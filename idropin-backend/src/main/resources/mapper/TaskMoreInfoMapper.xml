@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.idropin.infrastructure.persistence.mapper.TaskMoreInfoMapper">
+
+    <resultMap id="BaseResultMap" type="com.idropin.domain.entity.TaskMoreInfo">
+        <id column="id" property="id"/>
+        <result column="task_id" property="taskId" typeHandler="org.apache.ibatis.type.StringTypeHandler"/>
+        <result column="ddl" property="ddl"/>
+        <result column="tip" property="tip"/>
+        <result column="info" property="info"/>
+        <result column="people" property="people"/>
+        <result column="format" property="format"/>
+        <result column="template" property="template"/>
+        <result column="bind_field" property="bindField"/>
+        <result column="rewrite" property="rewrite"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.idropin.domain.entity.TaskMoreInfo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO task_more_info (
+            task_id,
+            ddl,
+            tip,
+            info,
+            people,
+            format,
+            template,
+            bind_field,
+            rewrite,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{taskId}::uuid,
+            #{ddl},
+            #{tip},
+            #{info},
+            #{people},
+            #{format},
+            #{template},
+            #{bindField},
+            #{rewrite},
+            #{createdAt},
+            #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateById" parameterType="com.idropin.domain.entity.TaskMoreInfo">
+        UPDATE task_more_info
+        SET ddl = #{ddl},
+            tip = #{tip},
+            info = #{info},
+            people = #{people},
+            format = #{format},
+            template = #{template},
+            bind_field = #{bindField},
+            rewrite = #{rewrite},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT 
+            id,
+            task_id::text as task_id,
+            ddl,
+            tip,
+            info,
+            people,
+            format,
+            template,
+            bind_field,
+            rewrite,
+            created_at,
+            updated_at
+        FROM task_more_info
+        ${ew.customSqlSegment}
+    </select>
+
+    <select id="selectByTaskId" resultMap="BaseResultMap">
+        SELECT 
+            id,
+            task_id::text as task_id,
+            ddl,
+            tip,
+            info,
+            people,
+            format,
+            template,
+            bind_field,
+            rewrite,
+            created_at,
+            updated_at
+        FROM task_more_info
+        WHERE task_id = #{taskId}::uuid
+    </select>
+
+    <update id="updateByTaskId" parameterType="com.idropin.domain.entity.TaskMoreInfo">
+        UPDATE task_more_info
+        SET ddl = #{entity.ddl},
+            tip = #{entity.tip},
+            info = #{entity.info},
+            people = #{entity.people},
+            format = #{entity.format},
+            template = #{entity.template},
+            bind_field = #{entity.bindField},
+            rewrite = #{entity.rewrite},
+            updated_at = #{entity.updatedAt}
+        WHERE task_id = #{entity.taskId}::uuid
+    </update>
+
+</mapper>

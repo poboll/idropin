@@ -1,0 +1,53 @@
+package com.idropin.domain.dto;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.Data;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+/**
+ * 创建收集任务请求
+ *
+ * @author Idrop.in Team
+ */
+@Data
+public class CreateTaskRequest {
+
+  /**
+   * 任务标题
+   */
+  private String title;
+
+  /**
+   * 任务描述
+   */
+  private String description;
+
+  /**
+   * 截止时间
+   */
+  private String deadline;
+
+  /**
+   * 是否允许匿名
+   */
+  private Boolean allowAnonymous;
+
+  /**
+   * 是否需要登录
+   */
+  private Boolean requireLogin;
+
+  /**
+   * 最大文件大小（字节）
+   */
+  private Long maxFileSize;
+
+  /**
+   * 允许的文件类型（MIME类型数组）
+   */
+  private List<String> allowedTypes;
+
+  private String category;
+}
