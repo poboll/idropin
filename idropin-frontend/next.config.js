@@ -6,7 +6,7 @@ const nextConfig = {
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
   images: {
-    domains: ['localhost', 'img.cdn.sugarat.top'],
+    domains: ['localhost', 'img.cdn.sugarat.top', 'pic.imgdb.cn'],
     remotePatterns: [
       {
         protocol: 'http',
@@ -17,6 +17,10 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'img.cdn.sugarat.top',
+      },
+      {
+        protocol: 'https',
+        hostname: 'pic.imgdb.cn',
       }
     ],
     formats: ['image/avif', 'image/webp'],
