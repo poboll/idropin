@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Download, Loader2 } from 'lucide-react';
+import { Download, Loader2, X } from 'lucide-react';
 import HomeFooter from '@/components/layout/HomeFooter';
 import InfosForm from '@/components/forms/InfosForm';
 import SubmissionUploader, { UploadFile } from '@/components/submission/SubmissionUploader';
@@ -51,6 +51,9 @@ export default function TaskSubmissionPage() {
     text: '',
     imgs: [],
   });
+
+  // 图片预览模态框状态
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const limitBindField = (() => {
     const field = taskMoreInfo.bindField;
@@ -379,14 +382,14 @@ export default function TaskSubmissionPage() {
               
               {tipData.imgs && tipData.imgs.length > 0 && (
                 <div className="mb-4">
-                  <div className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">
+                  <div className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium text-center">
                     📷 批注图片：
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="flex flex-wrap justify-center gap-4">
                     {tipData.imgs.map((img, index) => (
                       <div 
                         key={img.uid || index} 
-                        className="relative group rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 transition-all shadow-sm hover:shadow-md"
+                        className="relative group rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 transition-all shadow-sm hover:shadow-md w-full sm:w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.75rem)] max-w-[280px]"
                       >
                         <div className="aspect-video relative bg-gray-100 dark:bg-gray-800">
                           <Image
@@ -394,12 +397,12 @@ export default function TaskSubmissionPage() {
                             alt={`批注图片 ${index + 1}`}
                             fill
                             className="object-contain cursor-pointer"
-                            onClick={() => window.open(img.name, '_blank')}
+                            onClick={() => setPreviewImage(img.name)}
                           />
                         </div>
                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all flex items-center justify-center">
                           <button
-                            onClick={() => window.open(img.name, '_blank')}
+                            onClick={() => setPreviewImage(img.name)}
                             className="opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-xs font-medium shadow-lg"
                           >
                             点击查看大图
@@ -591,6 +594,33 @@ export default function TaskSubmissionPage() {
       <div className="py-5">
         <HomeFooter type="simple" />
       </div>
+
+      {/* 图片预览模态框 */}
+      {previewImage && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80"
+          onClick={() => setPreviewImage(null)}
+        >
+          <button
+            onClick={() => setPreviewImage(null)}
+            className="absolute top-4 right-4 p-2 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors z-10"
+          >
+            <X className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+          </button>
+          <div 
+            className="relative w-[90vw] h-[90vh] max-w-5xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Image
+              src={previewImage}
+              alt="预览大图"
+              fill
+              className="object-contain"
+              priority
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

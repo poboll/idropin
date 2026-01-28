@@ -73,42 +73,34 @@ function FilesPageContent() {
   const loadFiles = async () => {
     setIsLoading(true);
     try {
-      // 使用真实API获取文件列表
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api'}/files?page=1&size=100`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      // 使用已有的 API 客户端获取文件列表
+      const { getFiles } = await import('@/lib/api/files');
+      const response = await getFiles({ page: 1, size: 100 });
       
-      if (response.ok) {
-        const data = await response.json();
-        if (data.data && data.data.records) {
-          // 转换API数据格式
-          const apiFiles: FileRecord[] = data.data.records.map((f: any, index: number) => ({
-            id: index + 1,
-            date: f.createdAt || new Date().toISOString(),
-            task_key: f.categoryId || 'default',
-            task_name: f.categoryId ? `任务 ${f.categoryId}` : '默认任务',
-            name: f.originalName || '未命名文件',
-            origin_name: f.originalName,
-            size: f.fileSize || 0,
-            people: f.uploaderId || '-',
-            info: '[]',
-            cover: f.mimeType?.startsWith('image/') ? f.url : undefined,
-            downloadCount: 0,
-            fileId: f.id,
-            mimeType: f.mimeType,
-          }));
-          setFiles(apiFiles);
-        } else {
-          setFiles([]);
-        }
+      if (response && response.records) {
+        // 转换API数据格式
+        const apiFiles: FileRecord[] = response.records.map((f: any, index: number) => ({
+          id: index + 1,
+          date: f.createdAt || new Date().toISOString(),
+          task_key: f.categoryId || 'default',
+          task_name: f.categoryId ? `任务 ${f.categoryId}` : '默认任务',
+          name: f.originalName || '未命名文件',
+          origin_name: f.originalName,
+          size: f.fileSize || 0,
+          people: f.uploaderId || '-',
+          info: '[]',
+          cover: f.mimeType?.startsWith('image/') ? f.url : undefined,
+          downloadCount: 0,
+          fileId: f.id,
+          mimeType: f.mimeType,
+        }));
+        setFiles(apiFiles);
       } else {
-        // API调用失败，显示空列表
         setFiles([]);
       }
     } catch (error) {
       console.error('加载文件失败', error);
+      // 如果API调用失败，显示空列表
       setFiles([]);
     } finally {
       setIsLoading(false);
