@@ -54,4 +54,9 @@ public interface CollectionTaskService {
    * 获取任务统计
    */
   TaskStatisticsVO getTaskStatistics(String taskId, String userId);
+
+  /**
+   * 公开获取任务（不验证用户权限，用于收集链接）
+   */
+  CollectionTask getTaskPublic(String taskId);
 }

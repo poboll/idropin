@@ -290,4 +290,10 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
         .recentSubmissions(recentSubmissions)
         .build();
   }
+
+  @Override
+  public CollectionTask getTaskPublic(String taskId) {
+    CollectionTask task = taskMapper.selectById(taskId);
+    return task; // 返回 null 如果不存在，不抛出异常
+  }
 }

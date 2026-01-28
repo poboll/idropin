@@ -215,6 +215,51 @@ public class CollectionTaskController {
     return Result.success(task);
   }
 
+  @GetMapping("/{taskId}/public-info")
+  @Operation(summary = "获取任务基本信息（公开接口，用于收集链接）")
+  public Result<Map<String, Object>> getPublicTaskInfo(@PathVariable String taskId) {
+    CollectionTask task = taskService.getTaskPublic(taskId);
+    if (task == null) {
+      return Result.error(4001, "任务不存在");
+    }
+    
+    Map<String, Object> result = new HashMap<>();
+    result.put("id", task.getId());
+    result.put("title", task.getTitle());
+    result.put("description", task.getDescription());
+    result.put("status", task.getStatus());
+    result.put("deadline", task.getDeadline());
+    
+    return Result.success(result);
+  }
+
+  @GetMapping("/{taskId}/public-more-info")
+  @Operation(summary = "获取任务更多信息（公开接口，用于收集链接）")
+  public Result<Map<String, Object>> getPublicTaskMoreInfo(@PathVariable String taskId) {
+    // 先验证任务存在
+    CollectionTask task = taskService.getTaskPublic(taskId);
+    if (task == null) {
+      return Result.error(4001, "任务不存在");
+    }
+    
+    // 查询更多信息
+    TaskMoreInfo moreInfo = taskMoreInfoMapper.selectByTaskId(taskId);
+    
+    Map<String, Object> result = new HashMap<>();
+    if (moreInfo != null) {
+      result.put("ddl", moreInfo.getDdl());
+      result.put("tip", moreInfo.getTip());
+      result.put("info", moreInfo.getInfo());
+      result.put("people", moreInfo.getPeople());
+      result.put("format", moreInfo.getFormat());
+      result.put("template", moreInfo.getTemplate());
+      result.put("bindField", moreInfo.getBindField());
+      result.put("rewrite", moreInfo.getRewrite());
+    }
+    
+    return Result.success(result);
+  }
+
   @GetMapping("/{taskId}/template")
   @Operation(summary = "获取任务模板")
   public Result<Map<String, Object>> getTaskTemplate(

@@ -8,7 +8,7 @@ import { Download, Loader2, X } from 'lucide-react';
 import HomeFooter from '@/components/layout/HomeFooter';
 import InfosForm from '@/components/forms/InfosForm';
 import SubmissionUploader, { UploadFile } from '@/components/submission/SubmissionUploader';
-import { getTaskInfo, getTaskMoreInfo, TaskInfo } from '@/lib/api/tasks';
+import { getTaskInfoPublic, getTaskMoreInfoPublic, TaskInfo } from '@/lib/api/tasks';
 import { checkPeopleIsExist, updatePeopleStatus } from '@/lib/api/people';
 import { getUploadToken, addFile, withdrawFile, checkSubmitStatus, getTemplateUrl } from '@/lib/api/files';
 import { 
@@ -105,14 +105,14 @@ export default function TaskSubmissionPage() {
     const loadTaskInfo = async () => {
       setIsLoading(true);
       try {
-        const info = await getTaskInfo(taskKey);
+        const info = await getTaskInfoPublic(taskKey);
         setTaskInfo({
           name: info.title || '',
           limitUpload: false,
         });
         setDisabledUpload(false);
 
-        const moreInfo = await getTaskMoreInfo(taskKey);
+        const moreInfo = await getTaskMoreInfoPublic(taskKey);
         setTaskMoreInfo(moreInfo);
         setInfos(parseInfo(moreInfo.info || ''));
         setFormatConfig(parseFileFormat(moreInfo.format || ''));

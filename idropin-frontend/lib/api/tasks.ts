@@ -156,9 +156,33 @@ export async function getTaskInfo(key: string): Promise<CollectionTask> {
   }
 }
 
+/**
+ * 获取任务基本信息（公开接口，用于收集链接，不需要登录）
+ */
+export async function getTaskInfoPublic(key: string): Promise<any> {
+  try {
+    const response = await apiClient.get<ApiResponse<any>>(`/tasks/${key}/public-info`);
+    return response.data.data;
+  } catch (error) {
+    throw extractApiError(error);
+  }
+}
+
 export async function getTaskMoreInfo(key: string): Promise<TaskInfo> {
   try {
     const response = await apiClient.get<ApiResponse<TaskInfo>>(`/tasks/${key}/more-info`);
+    return response.data.data;
+  } catch (error) {
+    throw extractApiError(error);
+  }
+}
+
+/**
+ * 获取任务更多信息（公开接口，用于收集链接，不需要登录）
+ */
+export async function getTaskMoreInfoPublic(key: string): Promise<TaskInfo> {
+  try {
+    const response = await apiClient.get<ApiResponse<TaskInfo>>(`/tasks/${key}/public-more-info`);
     return response.data.data;
   } catch (error) {
     throw extractApiError(error);
