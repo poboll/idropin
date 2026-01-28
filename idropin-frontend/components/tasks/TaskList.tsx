@@ -219,8 +219,24 @@ export default function TaskList() {
                       设置
                     </button>
                     <button
-                      onClick={() => {
-                        window.location.href = `/dashboard/tasks/${task.id}/share`;
+                      onClick={async () => {
+                        const shareUrl = `${window.location.origin}/task/${task.id}`;
+                        try {
+                          await navigator.clipboard.writeText(shareUrl);
+                          // 显示成功提示
+                          const toast = document.createElement('div');
+                          toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-slide-in';
+                          toast.innerHTML = `
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span>已复制分享链接到剪贴板</span>
+                          `;
+                          document.body.appendChild(toast);
+                          setTimeout(() => toast.remove(), 3000);
+                        } catch (err) {
+                          alert('复制失败，请手动复制链接');
+                        }
                         setActiveMenu(null);
                       }}
                       className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3"

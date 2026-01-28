@@ -39,7 +39,7 @@ export default function InfosForm({
             <>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 <span className="text-red-500 mr-1">*</span>
-                {info.text}
+                {info.text || '未命名字段'}
               </label>
 
               {info.type === 'input' && (
@@ -49,7 +49,7 @@ export default function InfosForm({
                   onChange={(e) => handleValueChange(idx, e.target.value)}
                   disabled={disabled}
                   maxLength={maxInputLength}
-                  placeholder={`请输入 ${info.text}`}
+                  placeholder={`请输入 ${info.text || '内容'}`}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md 
                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                     disabled:bg-gray-100 disabled:cursor-not-allowed
@@ -67,7 +67,7 @@ export default function InfosForm({
                     disabled:bg-gray-100 disabled:cursor-not-allowed
                     dark:bg-gray-800 dark:text-white"
                 >
-                  <option value="">请选择 {info.text}</option>
+                  <option value="">请选择 {info.text || '选项'}</option>
                   {info.children.map((child, childIdx) => (
                     <option key={childIdx} value={child.text}>
                       {child.text}
