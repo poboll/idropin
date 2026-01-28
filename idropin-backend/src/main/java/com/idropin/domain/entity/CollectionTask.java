@@ -15,8 +15,7 @@ import java.util.UUID;
 @TableName(value = "collection_task", autoResultMap = true)
 public class CollectionTask {
 
-  @TableId(type = IdType.ASSIGN_UUID)
-  @TableField(value = "id", jdbcType = JdbcType.OTHER)
+  @TableId(type = IdType.INPUT)
   private String id;
 
 

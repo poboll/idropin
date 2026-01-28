@@ -39,12 +39,43 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
   private final FileService fileService;
   private final StorageService storageService;
 
+  /**
+   * 生成6位短码
+   * 使用字母和数字组合，排除容易混淆的字符（0,O,1,I,l）
+   */
+  private String generateShortCode() {
+    String chars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz";
+    StringBuilder sb = new StringBuilder();
+    Random random = new Random();
+    for (int i = 0; i < 6; i++) {
+      sb.append(chars.charAt(random.nextInt(chars.length())));
+    }
+    return sb.toString();
+  }
+
   @Override
   @Transactional
   public CollectionTask createTask(CreateTaskRequest request, String userId) {
     CollectionTask task = new CollectionTask();
-    // 生成 UUID 并转换为字符串
-    task.setId(UUID.randomUUID().toString());
+    // 生成6位短码作为任务ID
+    String shortCode;
+    int maxAttempts = 10;
+    int attempts = 0;
+    do {
+      shortCode = generateShortCode();
+      attempts++;
+      // 检查是否已存在
+      if (taskMapper.selectById(shortCode) == null) {
+        break;
+      }
+    } while (attempts < maxAttempts);
+    
+    if (attempts >= maxAttempts) {
+      // 如果多次尝试都冲突，使用UUID的前8位
+      shortCode = UUID.randomUUID().toString().substring(0, 8);
+    }
+    
+    task.setId(shortCode);
     task.setTitle(request.getTitle());
     task.setDescription(request.getDescription());
     if (StringUtils.hasText(request.getDeadline())) {

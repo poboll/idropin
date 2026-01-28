@@ -17,7 +17,7 @@
             created_at,
             updated_at
         ) VALUES (
-            #{id}::uuid,
+            #{id},
             #{title},
             #{description},
             #{deadline},
