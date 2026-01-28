@@ -52,7 +52,13 @@ export default function TaskSubmissionPage() {
     imgs: [],
   });
 
-  const limitBindField = taskMoreInfo.bindField?.trim() || '姓名';
+  const limitBindField = (() => {
+    const field = taskMoreInfo.bindField;
+    if (!field) return '姓名';
+    if (Array.isArray(field)) return field[0] || '姓名';
+    if (typeof field === 'string') return field.trim() || '姓名';
+    return '姓名';
+  })();
   const isSameFieldName = infos.find(v => v.text === limitBindField);
   const showValidForm = taskMoreInfo.people && !isSameFieldName;
 

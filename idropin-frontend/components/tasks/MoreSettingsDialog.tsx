@@ -35,10 +35,9 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
   const [deadline, setDeadline] = useState<Date | null>(null);
   
   // Required fields state
-  const [requiredFields, setRequiredFields] = useState<RequiredField[]>([
-    { id: '1', name: '姓名', isDefault: true }
-  ]);
+  const [requiredFields, setRequiredFields] = useState<RequiredField[]>([]);
   const [newFieldName, setNewFieldName] = useState('');
+  const [bindFieldName, setBindFieldName] = useState('姓名'); // 绑定字段名称
   
   // Name list state
   const [nameList, setNameList] = useState<NameListPerson[]>([]);
@@ -76,18 +75,40 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
         try {
           const fields = JSON.parse(info.info);
           if (Array.isArray(fields)) {
-            setRequiredFields(fields);
+            setRequiredFields(fields.map((f: any) => ({
+              id: f.id || Date.now().toString(),
+              name: f.name || f,
+              isDefault: false
+            })));
           }
         } catch (e) {
           console.error('Failed to parse required fields:', e);
         }
       }
       
+      // bindField 现在存储绑定字段名称
       if (info.bindField) {
+        if (typeof info.bindField === 'string') {
+          setBindFieldName(info.bindField);
+        } else if (Array.isArray(info.bindField) && (info.bindField as any[]).length > 0) {
+          setBindFieldName((info.bindField as any[])[0]);
+        }
+      }
+      
+      // people 字段存储名单列表
+      if (info.people) {
         try {
-          const names = JSON.parse(info.bindField);
-          if (Array.isArray(names)) {
-            setNameList(names);
+          if (typeof info.people === 'string') {
+            const names = JSON.parse(info.people);
+            if (Array.isArray(names)) {
+              setNameList(names.map((n: any, idx: number) => ({
+                id: n.id || `${Date.now()}-${idx}`,
+                name: typeof n === 'string' ? n : n.name
+              })));
+            }
+          } else if (typeof info.people === 'boolean') {
+            // people 是布尔值，表示是否启用名单验证
+            setNameListEnabled(info.people);
           }
         } catch (e) {
           console.error('Failed to parse name list:', e);
@@ -331,9 +352,9 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
         people: nameListEnabled,
         format: taskInfo.format,
         template: taskInfo.template,
-        bindField: JSON.stringify(nameList),
+        bindField: bindFieldName, // 保存绑定字段名称（字符串）
         rewrite: taskInfo.rewrite,
-        info: JSON.stringify(requiredFields)
+        info: JSON.stringify(requiredFields) // 保存必填字段列表
       });
       
       // 显示成功提示（2秒后自动消失）
@@ -647,33 +668,38 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
               )}
 
               {activeTab === 'info' && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200">必填信息</h3>
-                  <p className="text-sm text-slate-500">用户提交文件时必须填写的信息。</p>
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200 mb-2">必填信息</h3>
+                    <p className="text-sm text-slate-500">用户提交文件时必须填写的信息。</p>
+                  </div>
                   
                   <div className="space-y-3">
                     {requiredFields.map((field, index) => (
-                      <div key={field.id} className="flex items-center gap-3 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-500 text-xs font-bold">{index + 1}</span>
+                      <div key={field.id} className="flex items-center gap-3 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm hover:border-blue-300 transition-colors">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold">{index + 1}</span>
                         <input 
                           type="text" 
                           value={field.name} 
-                          disabled={field.isDefault}
                           onChange={(e) => updateRequiredField(field.id, e.target.value)}
-                          className="flex-1 bg-transparent border-none text-sm font-medium text-slate-700 focus:ring-0 disabled:opacity-50"
+                          placeholder="字段名称"
+                          className="flex-1 bg-transparent border-none text-sm font-medium text-slate-700 dark:text-slate-200 focus:ring-0 px-2 py-1 rounded hover:bg-slate-50 dark:hover:bg-slate-700/50"
                         />
-                        {field.isDefault ? (
-                          <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded">默认</span>
-                        ) : (
-                          <button
-                            onClick={() => removeRequiredField(field.id)}
-                            className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => removeRequiredField(field.id)}
+                          className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                          title="删除字段"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
                       </div>
                     ))}
+                    
+                    {requiredFields.length === 0 && (
+                      <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-sm">
+                        暂无必填字段，点击下方添加
+                      </div>
+                    )}
                     
                     <div className="flex gap-2">
                       <input
@@ -681,18 +707,39 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                         value={newFieldName}
                         onChange={(e) => setNewFieldName(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && addRequiredField()}
-                        placeholder="输入字段名称"
-                        className="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="输入字段名称（如：姓名、学号）"
+                        className="flex-1 px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-slate-200"
                       />
                       <button
                         onClick={addRequiredField}
-                        className="px-6 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition-colors flex items-center gap-2"
+                        className="px-6 py-2.5 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition-colors flex items-center gap-2 font-medium"
                       >
                         <Plus className="w-4 h-4" />
                         添加
                       </button>
                     </div>
                   </div>
+                  
+                  {/* 绑定字段选择器 */}
+                  {nameListEnabled && requiredFields.length > 0 && (
+                    <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        绑定字段（用于名单验证）
+                      </label>
+                      <select
+                        value={bindFieldName}
+                        onChange={(e) => setBindFieldName(e.target.value)}
+                        className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-slate-200"
+                      >
+                        {requiredFields.map(field => (
+                          <option key={field.id} value={field.name}>{field.name}</option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-slate-500 mt-1.5">
+                        选择哪个字段用于验证参与名单
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
