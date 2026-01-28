@@ -55,8 +55,25 @@ export default function TaskSubmissionPage() {
   const limitBindField = (() => {
     const field = taskMoreInfo.bindField;
     if (!field) return '姓名';
+    
+    // 尝试解析 JSON
+    if (typeof field === 'string') {
+      try {
+        const parsed = JSON.parse(field);
+        if (parsed.fieldName) {
+          // 新格式：包含 fieldName 和 nameList
+          return parsed.fieldName;
+        } else if (Array.isArray(parsed)) {
+          // 旧格式：bindField 直接存储名单列表
+          return '姓名';
+        }
+      } catch {
+        // 不是 JSON，直接使用字符串
+        return field.trim() || '姓名';
+      }
+    }
+    
     if (Array.isArray(field)) return field[0] || '姓名';
-    if (typeof field === 'string') return field.trim() || '姓名';
     return '姓名';
   })();
   const isSameFieldName = infos.find(v => v.text === limitBindField);

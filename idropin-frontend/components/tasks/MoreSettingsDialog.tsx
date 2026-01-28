@@ -71,13 +71,14 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
       const info = await TaskApi.getTaskMoreInfo(key);
       setTaskInfo(info);
       
+      // 解析必填字段
       if (info.info) {
         try {
           const fields = JSON.parse(info.info);
           if (Array.isArray(fields)) {
-            setRequiredFields(fields.map((f: any) => ({
-              id: f.id || Date.now().toString(),
-              name: f.name || f,
+            setRequiredFields(fields.map((f: any, idx: number) => ({
+              id: `field-${idx}`,
+              name: typeof f === 'string' ? f : (f.name || '未命名字段'),
               isDefault: false
             })));
           }
@@ -86,35 +87,50 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
         }
       }
       
-      // bindField 现在存储绑定字段名称
+      // 解析绑定字段和名单
       if (info.bindField) {
-        if (typeof info.bindField === 'string') {
-          setBindFieldName(info.bindField);
-        } else if (Array.isArray(info.bindField) && (info.bindField as any[]).length > 0) {
-          setBindFieldName((info.bindField as any[])[0]);
-        }
-      }
-      
-      // people 字段存储名单列表
-      if (info.people) {
         try {
-          if (typeof info.people === 'string') {
-            const names = JSON.parse(info.people);
-            if (Array.isArray(names)) {
-              setNameList(names.map((n: any, idx: number) => ({
-                id: n.id || `${Date.now()}-${idx}`,
-                name: typeof n === 'string' ? n : n.name
+          const parsed = JSON.parse(info.bindField);
+          if (parsed.fieldName) {
+            // 新格式：包含 fieldName 和 nameList
+            setBindFieldName(parsed.fieldName);
+            if (parsed.nameList && Array.isArray(parsed.nameList)) {
+              setNameList(parsed.nameList.map((p: any, idx: number) => ({
+                id: p.id || `person-${idx}`,
+                name: typeof p === 'string' ? p : (p.name || '')
               })));
             }
-          } else if (typeof info.people === 'boolean') {
-            // people 是布尔值，表示是否启用名单验证
-            setNameListEnabled(info.people);
+          } else if (Array.isArray(parsed)) {
+            // 旧格式：bindField 直接存储名单列表
+            setNameList(parsed.map((p: any, idx: number) => ({
+              id: p.id || `person-${idx}`,
+              name: typeof p === 'string' ? p : (p.name || '')
+            })));
+            setBindFieldName('姓名');
           }
-        } catch (e) {
-          console.error('Failed to parse name list:', e);
+        } catch {
+          // 不是 JSON，直接作为字段名称使用
+          setBindFieldName(info.bindField);
         }
       }
       
+      // 解析批注信息（包含文本和图片）
+      if (info.tip) {
+        try {
+          const parsed = JSON.parse(info.tip);
+          if (parsed.text !== undefined) {
+            setTaskInfo(prev => ({ ...prev, tip: parsed.text }));
+          }
+          if (parsed.imgs && Array.isArray(parsed.imgs)) {
+            setTipImages(parsed.imgs.map((img: any) => img.name || img));
+          }
+        } catch {
+          // 如果不是 JSON，直接作为文本使用
+          setTaskInfo(prev => ({ ...prev, tip: info.tip }));
+        }
+      }
+      
+      // people 字段表示是否启用名单验证
       setNameListEnabled(!!info.people);
     } catch (e) {
       console.error(e);
@@ -346,15 +362,30 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
         allowedTypes: currentTask.allowedTypes
       });
 
+      // 构建 tip 数据（包含文本和图片）
+      const tipData = {
+        text: taskInfo.tip || '',
+        imgs: tipImages.map((img, idx) => ({
+          uid: idx + 1,
+          name: img
+        }))
+      };
+
+      // 保存名单到 bindField（临时方案，直到实现 people API）
+      const nameListData = nameListEnabled ? nameList : [];
+
       await TaskApi.updateTaskMoreInfo(task.key, {
         ddl: deadline ? deadline.toISOString() : null,
-        tip: taskInfo.tip,
+        tip: JSON.stringify(tipData), // 保存批注信息（包含文本和图片）
         people: nameListEnabled,
         format: taskInfo.format,
         template: taskInfo.template,
-        bindField: bindFieldName, // 保存绑定字段名称（字符串）
+        bindField: JSON.stringify({
+          fieldName: bindFieldName, // 绑定字段名称
+          nameList: nameListData // 名单列表
+        }),
         rewrite: taskInfo.rewrite,
-        info: JSON.stringify(requiredFields) // 保存必填字段列表
+        info: JSON.stringify(requiredFields.map(f => f.name)) // 只保存字段名称数组
       });
       
       // 显示成功提示（2秒后自动消失）

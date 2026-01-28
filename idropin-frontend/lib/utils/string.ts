@@ -116,7 +116,10 @@ export interface InfoItem {
 export function parseInfo(info: string): InfoItem[] {
   if (!info) return [];
   try {
-    return JSON.parse(info).map((v: string | InfoItem) => {
+    const parsed = JSON.parse(info);
+    if (!Array.isArray(parsed)) return [];
+    
+    return parsed.map((v: string | InfoItem) => {
       // 兼容旧表单数据（纯字符串形式）
       if (typeof v === 'string') {
         return { type: 'input', text: v, value: '' };
@@ -124,6 +127,10 @@ export function parseInfo(info: string): InfoItem[] {
       // 兼容旧数据展示
       if (!v.type) {
         v.type = 'input';
+      }
+      // 如果 v 有 name 属性但没有 text 属性，使用 name 作为 text
+      if (!v.text && (v as any).name) {
+        v.text = (v as any).name;
       }
       v.value = v.value || '';
       return v;
