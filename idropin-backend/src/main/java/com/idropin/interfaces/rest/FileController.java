@@ -6,8 +6,10 @@ import com.idropin.common.vo.Result;
 import com.idropin.domain.dto.FileQueryRequest;
 import com.idropin.domain.dto.FileUpdateRequest;
 import com.idropin.domain.entity.File;
+import com.idropin.domain.entity.TaskSubmission;
 import com.idropin.domain.vo.FileUploadResult;
 import com.idropin.domain.vo.FileVO;
+import com.idropin.infrastructure.persistence.mapper.TaskSubmissionMapper;
 import com.idropin.infrastructure.security.CustomUserDetails;
 import com.idropin.infrastructure.storage.StorageService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -43,6 +45,7 @@ public class FileController {
 
     private final FileService fileService;
     private final StorageService storageService;
+    private final TaskSubmissionMapper taskSubmissionMapper;
 
     @PostMapping("/upload")
     @Operation(summary = "单文件上传")
@@ -196,6 +199,118 @@ public class FileController {
         } catch (Exception e) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "文件不存在");
         }
+    }
+
+    /**
+     * 获取上传凭证（兼容旧版API）
+     */
+    @GetMapping("/upload/token")
+    @Operation(summary = "获取上传凭证")
+    public Result<String> getUploadToken(@AuthenticationPrincipal UserDetails userDetails) {
+        // 本地存储模式不需要凭证，返回一个简单的token
+        String userId = getUserIdOrNull(userDetails);
+        return Result.success("local-upload-token-" + (userId != null ? userId : "anonymous"));
+    }
+
+    /**
+     * 添加文件记录（兼容旧版API，用于任务提交）
+     */
+    @PostMapping("/add")
+    @Operation(summary = "添加文件记录")
+    public Result<Void> addFile(
+            @RequestBody java.util.Map<String, Object> options,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String userId = getUserIdOrNull(userDetails);
+        String name = (String) options.get("name");
+        String hash = (String) options.get("hash");
+        Number size = (Number) options.get("size");
+        String taskKey = (String) options.get("key");
+        String info = options.get("info") != null ? options.get("info").toString() : null;
+        String peopleName = (String) options.get("peopleName");
+        
+        log.info("Adding file record: name={}, hash={}, taskKey={}, userId={}, peopleName={}", name, hash, taskKey, userId, peopleName);
+        
+        // 创建提交记录
+        TaskSubmission submission = new TaskSubmission();
+        submission.setTaskKey(taskKey);
+        submission.setFileName(name);
+        submission.setFileHash(hash);
+        submission.setFileSize(size != null ? size.longValue() : 0L);
+        submission.setSubmitterName(peopleName);
+        submission.setSubmitInfo(info);
+        submission.setSubmitterId(userId);
+        submission.setStatus(0); // 已提交
+        
+        taskSubmissionMapper.insert(submission);
+        log.info("File submission record created: id={}", submission.getId());
+        
+        return Result.success(null);
+    }
+
+    /**
+     * 撤回文件（兼容旧版API）
+     */
+    @PostMapping("/withdraw")
+    @Operation(summary = "撤回文件")
+    public Result<Void> withdrawFile(
+            @RequestBody java.util.Map<String, Object> options,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String userId = getUserIdOrNull(userDetails);
+        String taskKey = (String) options.get("key");
+        Number id = (Number) options.get("id");
+        String filename = (String) options.get("filename");
+        
+        log.info("Withdrawing file: taskKey={}, id={}, filename={}, userId={}", taskKey, id, filename, userId);
+        
+        // 查找并更新提交记录状态
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<TaskSubmission> wrapper = 
+            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        wrapper.eq(TaskSubmission::getTaskKey, taskKey)
+               .eq(TaskSubmission::getFileName, filename)
+               .eq(TaskSubmission::getStatus, 0);
+        
+        TaskSubmission submission = taskSubmissionMapper.selectOne(wrapper);
+        if (submission != null) {
+            submission.setStatus(1); // 已撤回
+            taskSubmissionMapper.updateById(submission);
+            log.info("File submission withdrawn: id={}", submission.getId());
+        }
+        
+        return Result.success(null);
+    }
+
+    /**
+     * 检查提交状态（兼容旧版API）
+     */
+    @PostMapping("/check-submit")
+    @Operation(summary = "检查提交状态")
+    public Result<java.util.Map<String, Object>> checkSubmitStatus(
+            @RequestBody java.util.Map<String, Object> options,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String taskKey = (String) options.get("taskKey");
+        Object info = options.get("info");
+        String name = (String) options.get("name");
+        
+        log.info("Checking submit status: taskKey={}, name={}", taskKey, name);
+        
+        // 查询提交记录
+        List<TaskSubmission> submissions = taskSubmissionMapper.findByTaskKeyAndSubmitterName(taskKey, name);
+        
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("isSubmit", !submissions.isEmpty());
+        if (!submissions.isEmpty()) {
+            result.put("count", submissions.size());
+            result.put("lastSubmitTime", submissions.get(0).getCreatedAt());
+        }
+        
+        return Result.success(result);
+    }
+
+    private String getUserIdOrNull(UserDetails userDetails) {
+        if (userDetails instanceof CustomUserDetails) {
+            return ((CustomUserDetails) userDetails).getUserId();
+        }
+        return null;
     }
 
     private String getContentType(String path) {

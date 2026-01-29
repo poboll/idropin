@@ -27,6 +27,9 @@ export default function Modal({
     } else {
       document.body.style.overflow = 'unset';
     }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
   }, [isOpen]);
 
   // ESC键关闭
@@ -61,36 +64,36 @@ export default function Modal({
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* 背景遮罩 */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
+        className="modal-overlay absolute inset-0"
         onClick={onClose}
       />
 
       {/* 模态框内容 */}
       <div className="relative w-full h-full flex items-center justify-center p-4">
         <div
-          className={`${sizeClasses[size]} w-full bg-white dark:bg-gray-800 rounded-xl shadow-2xl animate-scale-in relative`}
+          className={`modal ${sizeClasses[size]} w-full relative`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* 标题栏 */}
           {title && (
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            <div className="modal-header">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {title}
               </h2>
               {showCloseButton && (
                 <button
                   onClick={onClose}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  className="btn-ghost btn-sm"
                   aria-label="关闭"
                 >
-                  <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                  <X className="h-5 w-5" />
                 </button>
               )}
             </div>
           )}
 
           {/* 内容区域 */}
-          <div className="px-6 py-4">
+          <div className="modal-body">
             {children}
           </div>
         </div>

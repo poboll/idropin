@@ -161,9 +161,9 @@ export default function SubmissionUploader({
   const getStatusIcon = (status: UploadFile['status']) => {
     switch (status) {
       case 'calculating':
-        return <Loader2 className="w-4 h-4 animate-spin text-blue-500" />;
+        return <Loader2 className="w-4 h-4 animate-spin text-gray-400" />;
       case 'uploading':
-        return <Loader2 className="w-4 h-4 animate-spin text-blue-500" />;
+        return <Loader2 className="w-4 h-4 animate-spin text-gray-400" />;
       case 'success':
         return <CheckCircle className="w-4 h-4 text-green-500" />;
       case 'fail':
@@ -171,7 +171,7 @@ export default function SubmissionUploader({
       case 'withdrawn':
         return <CheckCircle className="w-4 h-4 text-orange-500" />;
       default:
-        return <FileIcon className="w-4 h-4 text-gray-500" />;
+        return <FileIcon className="w-4 h-4 text-gray-400" />;
     }
   };
 
@@ -186,7 +186,7 @@ export default function SubmissionUploader({
       case 'fail':
         return file.error || '上传失败';
       case 'withdrawn':
-        return '已撤回 ✅';
+        return '已撤回';
       default:
         return '待上传';
     }
@@ -203,7 +203,7 @@ export default function SubmissionUploader({
             disabled={disabled}
             className="hidden"
           />
-          <span className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+          <span className="inline-flex items-center justify-center px-4 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-medium rounded-lg cursor-pointer hover:bg-gray-800 dark:hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
             选择文件
           </span>
         </label>
@@ -213,10 +213,10 @@ export default function SubmissionUploader({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           className={`
-            border-2 border-dashed rounded-lg p-8 text-center transition-colors
+            border border-dashed rounded-xl p-8 text-center transition-all
             ${isDragging 
-              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-              : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
+              ? 'border-gray-400 bg-gray-50 dark:bg-gray-800/50' 
+              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
             }
             ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
           `}
@@ -229,78 +229,77 @@ export default function SubmissionUploader({
               disabled={disabled}
               className="hidden"
             />
-            <Upload className="w-10 h-10 text-gray-400 mb-2" />
-            <span className="text-gray-600 dark:text-gray-400">
-              将文件拖于此处 或 <span className="text-blue-600">直接选择文件</span>
+            <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-3">
+              <Upload className="w-5 h-5 text-gray-400" />
+            </div>
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              将文件拖于此处 或 <span className="text-gray-900 dark:text-white font-medium">直接选择文件</span>
             </span>
           </label>
         </div>
       )}
 
       {calculatingCount > 0 && (
-        <div className="flex items-center gap-2 text-sm text-orange-600 bg-orange-50 dark:bg-orange-900/20 px-3 py-2 rounded">
+        <div className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-900/30 px-3 py-2.5 rounded-lg">
           <Loader2 className="w-4 h-4 animate-spin" />
-          还有 {calculatingCount} 个文件正在生成校验信息，请稍等 (1G通常需要20s)
+          还有 {calculatingCount} 个文件正在生成校验信息，请稍等
         </div>
       )}
 
       {files.length > 0 && (
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg divide-y divide-gray-200 dark:divide-gray-700">
-          <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500">
-            此处展示选择文件列表
+        <div className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+          <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900/50 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
+            已选择 {files.length} 个文件
           </div>
-          {files.map((file) => (
-            <div
-              key={file.id}
-              className="flex items-center justify-between px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800"
-            >
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                {getStatusIcon(file.status)}
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium truncate" title={file.name}>
-                    {file.name}
-                    {file.status === 'withdrawn' && ' - (已撤回 ✅)'}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {formatSize(file.size)} · {getStatusText(file)}
+          <div className="divide-y divide-gray-100 dark:divide-gray-800">
+            {files.map((file) => (
+              <div
+                key={file.id}
+                className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors"
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  {getStatusIcon(file.status)}
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm text-gray-900 dark:text-white truncate" title={file.name}>
+                      {file.name}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      {formatSize(file.size)} · {getStatusText(file)}
+                    </div>
                   </div>
                 </div>
+                {file.status !== 'uploading' && (
+                  <button
+                    onClick={() => removeFile(file.id)}
+                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    title="移除文件"
+                  >
+                    <X className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
+                  </button>
+                )}
+                {file.status === 'uploading' && (
+                  <div className="w-16">
+                    <div className="h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gray-900 dark:bg-white transition-all"
+                        style={{ width: `${file.progress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-              {file.status !== 'uploading' && (
-                <button
-                  onClick={() => removeFile(file.id)}
-                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
-                  title="移除文件"
-                >
-                  <X className="w-4 h-4 text-gray-500" />
-                </button>
-              )}
-              {file.status === 'uploading' && (
-                <div className="w-16">
-                  <div className="h-1 bg-gray-200 rounded overflow-hidden">
-                    <div
-                      className="h-full bg-blue-600 transition-all"
-                      style={{ width: `${file.progress}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
-      {formatConfig && (
-        <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+      {formatConfig && (formatConfig.status || formatConfig.size > 0) && (
+        <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
           {formatConfig.status && formatConfig.format.length > 0 && (
-            <p>
-              限制格式为: <span className="text-red-500">{formatConfig.format.join(', ')}</span>
-            </p>
+            <p>限制格式: {formatConfig.format.join(', ')}</p>
           )}
           {formatConfig.size > 0 && (
-            <p>
-              限制文件大小不超过: <span className="text-red-500">{formatConfig.size}{formatConfig.sizeUnit}</span>
-            </p>
+            <p>限制大小: {formatConfig.size}{formatConfig.sizeUnit}</p>
           )}
         </div>
       )}

@@ -3,7 +3,7 @@
 import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { User, Phone, Lock, KeyRound } from 'lucide-react';
+import { Upload, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth';
 
 type LoginMode = 'account' | 'sms';
@@ -142,130 +142,154 @@ export default function LoginPage() {
   const displayError = localError || error;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950">
-      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
-      <div className="relative w-full max-w-md px-6">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl mb-4 shadow-lg shadow-blue-500/30">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
+    <div className="min-h-screen bg-white dark:bg-black flex flex-col">
+      {/* Header */}
+      <header className="flex items-center justify-between px-6 py-4">
+        <Link href="/" className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-gray-900 dark:bg-white rounded-lg flex items-center justify-center">
+            <Upload className="w-4 h-4 text-white dark:text-gray-900" />
           </div>
-          <h1 className="text-2xl font-semibold text-slate-800 dark:text-white">
-            云集
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">
-            智能文件收集与管理平台
-          </p>
-        </div>
+          <span className="text-lg font-semibold text-gray-900 dark:text-white">云集</span>
+        </Link>
+        <Link
+          href="/register"
+          className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+        >
+          注册账户
+        </Link>
+      </header>
 
-        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-xl shadow-black/5 dark:shadow-black/20 border border-white/50 dark:border-slate-700/50 p-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-medium text-slate-800 dark:text-white">
-              {loginMode === 'account' ? '账号登录' : '验证码登录'}
-            </h2>
+      {/* Main Content */}
+      <main className="flex-1 flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-sm">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
+              登录到云集
+            </h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              智能文件收集与管理平台
+            </p>
+          </div>
+
+          {/* Login Mode Toggle */}
+          <div className="flex items-center justify-center gap-4 mb-6">
             <button
               type="button"
-              onClick={toggleLoginMode}
-              className="text-sm text-blue-500 hover:text-blue-600"
+              onClick={() => setLoginMode('account')}
+              className={`text-sm font-medium pb-2 border-b-2 transition-colors ${
+                loginMode === 'account'
+                  ? 'text-gray-900 dark:text-white border-gray-900 dark:border-white'
+                  : 'text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
             >
-              {loginMode === 'account' ? '验证码登录' : '账号登录'}
+              账号登录
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoginMode('sms')}
+              className={`text-sm font-medium pb-2 border-b-2 transition-colors ${
+                loginMode === 'sms'
+                  ? 'text-gray-900 dark:text-white border-gray-900 dark:border-white'
+                  : 'text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              验证码登录
             </button>
           </div>
 
+          {/* Error Message */}
           {displayError && (
-            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl">
-              <p className="text-red-600 dark:text-red-400 text-sm">{displayError}</p>
+            <div className="mb-6 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-sm text-red-600 dark:text-red-400">{displayError}</p>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Login Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
             {loginMode === 'account' ? (
               <>
-                <div>
-                  <label htmlFor="username" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    账号/手机号
+                <div className="form-group">
+                  <label htmlFor="username" className="form-label">
+                    账号
                   </label>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                    <input
-                      id="username"
-                      name="username"
-                      type="text"
-                      value={formData.username}
-                      onChange={handleInputChange}
-                      className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder="请输入账号或手机号"
-                      disabled={isLoading}
-                    />
-                  </div>
+                  <input
+                    id="username"
+                    name="username"
+                    type="text"
+                    value={formData.username}
+                    onChange={handleInputChange}
+                    className="input"
+                    placeholder="用户名或手机号"
+                    disabled={isLoading}
+                    autoComplete="username"
+                  />
                 </div>
 
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    密码
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                    <input
-                      id="password"
-                      name="password"
-                      type="password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder="请输入密码"
-                      disabled={isLoading}
-                    />
+                <div className="form-group">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label htmlFor="password" className="form-label mb-0">
+                      密码
+                    </label>
+                    <Link
+                      href="/forgot-password"
+                      className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                    >
+                      忘记密码？
+                    </Link>
                   </div>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className="input"
+                    placeholder="6-16位密码"
+                    disabled={isLoading}
+                    autoComplete="current-password"
+                  />
                 </div>
               </>
             ) : (
               <>
-                <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                <div className="form-group">
+                  <label htmlFor="phone" className="form-label">
                     手机号
                   </label>
-                  <div className="relative">
-                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                    <input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder="请输入手机号"
-                      maxLength={11}
-                      disabled={isLoading}
-                    />
-                  </div>
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    className="input"
+                    placeholder="请输入手机号"
+                    maxLength={11}
+                    disabled={isLoading}
+                  />
                 </div>
 
-                <div>
-                  <label htmlFor="code" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                <div className="form-group">
+                  <label htmlFor="code" className="form-label">
                     验证码
                   </label>
                   <div className="flex gap-3">
-                    <div className="relative flex-1">
-                      <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                      <input
-                        id="code"
-                        name="code"
-                        type="text"
-                        value={formData.code}
-                        onChange={handleInputChange}
-                        className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                        placeholder="请输入验证码"
-                        maxLength={6}
-                        disabled={isLoading}
-                      />
-                    </div>
+                    <input
+                      id="code"
+                      name="code"
+                      type="text"
+                      value={formData.code}
+                      onChange={handleInputChange}
+                      className="input flex-1"
+                      placeholder="请输入验证码"
+                      maxLength={6}
+                      disabled={isLoading}
+                    />
                     <button
                       type="button"
                       onClick={handleSendCode}
                       disabled={countdown > 0 || isSendingCode}
-                      className="px-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap min-w-[100px]"
+                      className="btn-secondary whitespace-nowrap min-w-[100px]"
                     >
                       {countdown > 0 ? `${countdown}s` : isSendingCode ? '发送中...' : '获取验证码'}
                     </button>
@@ -274,42 +298,40 @@ export default function LoginPage() {
               </>
             )}
 
-            <div className="flex items-center justify-between">
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 text-blue-500 bg-slate-50 dark:bg-slate-700 border-slate-300 dark:border-slate-600 rounded focus:ring-2 focus:ring-blue-500"
-                  disabled={isLoading}
-                />
-                <span className="ml-2 text-sm text-slate-600 dark:text-slate-400">
-                  记住登录信息
-                </span>
+            <div className="flex items-center">
+              <input
+                id="remember"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 text-gray-900 dark:text-white bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 rounded focus:ring-gray-900 dark:focus:ring-white"
+                disabled={isLoading}
+              />
+              <label htmlFor="remember" className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                记住登录信息
               </label>
-              {loginMode === 'account' && (
-                <Link
-                  href="/forgot-password"
-                  className="text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
-                >
-                  忘记密码?
-                </Link>
-              )}
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary w-full"
             >
-              {isLoading ? '登录中...' : '登录'}
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  登录中...
+                </>
+              ) : (
+                '登录'
+              )}
             </button>
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-slate-500 dark:text-slate-400 text-sm">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               还没有账户？{' '}
-              <Link href="/register" className="text-blue-500 hover:text-blue-600 font-medium">
+              <Link href="/register" className="text-gray-900 dark:text-white font-medium hover:underline">
                 立即注册
               </Link>
             </p>
@@ -318,17 +340,20 @@ export default function LoginPage() {
           <div className="mt-4 text-center">
             <Link 
               href="/feedback" 
-              className="text-sm text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400"
+              className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 transition-colors"
             >
-              问题反馈?
+              遇到问题？反馈给我们
             </Link>
           </div>
         </div>
+      </main>
 
-        <p className="text-center text-slate-400 text-sm mt-8">
+      {/* Footer */}
+      <footer className="py-6 text-center">
+        <p className="text-xs text-gray-400 dark:text-gray-500">
           © 2024 Idrop.in 云集
         </p>
-      </div>
+      </footer>
     </div>
   );
 }

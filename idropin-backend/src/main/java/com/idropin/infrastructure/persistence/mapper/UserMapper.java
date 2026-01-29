@@ -1,7 +1,10 @@
 package com.idropin.infrastructure.persistence.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.idropin.domain.entity.User;
+import com.idropin.domain.vo.AdminUserVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -49,4 +52,69 @@ public interface UserMapper extends BaseMapper<User> {
      */
     @Select("SELECT COUNT(*) > 0 FROM sys_user WHERE email = #{email}")
     boolean existsByEmail(@Param("email") String email);
+    
+    /**
+     * 分页查询管理员用户列表
+     */
+    IPage<AdminUserVO> selectAdminUserPage(Page<AdminUserVO> page, @Param("keyword") String keyword, @Param("status") String status);
+    
+    /**
+     * 统计用户总数
+     */
+    @Select("SELECT COUNT(*) FROM sys_user")
+    Long countUsers();
+    
+    /**
+     * 统计活跃用户数
+     */
+    @Select("SELECT COUNT(*) FROM sys_user WHERE status = 'ACTIVE'")
+    Long countActiveUsers();
+    
+    /**
+     * 统计昨日新增用户数
+     */
+    @Select("SELECT COUNT(*) FROM sys_user WHERE created_at >= CURRENT_DATE - INTERVAL '1 day' AND created_at < CURRENT_DATE")
+    Long countUsersYesterday();
+    
+    /**
+     * 统计文件总数
+     */
+    @Select("SELECT COUNT(*) FROM file")
+    Long countFiles();
+    
+    /**
+     * 统计昨日新增文件数
+     */
+    @Select("SELECT COUNT(*) FROM file WHERE created_at >= CURRENT_DATE - INTERVAL '1 day' AND created_at < CURRENT_DATE")
+    Long countFilesYesterday();
+    
+    /**
+     * 统计文件总大小
+     */
+    @Select("SELECT COALESCE(SUM(file_size), 0) FROM file")
+    Long sumFileSize();
+    
+    /**
+     * 统计归档文件数
+     */
+    @Select("SELECT COUNT(*) FROM file WHERE status = 'ARCHIVED'")
+    Long countArchivedFiles();
+    
+    /**
+     * 统计归档文件大小
+     */
+    @Select("SELECT COALESCE(SUM(file_size), 0) FROM file WHERE status = 'ARCHIVED'")
+    Long sumArchivedFileSize();
+    
+    /**
+     * 统计无效文件数
+     */
+    @Select("SELECT COUNT(*) FROM file WHERE status = 'INVALID'")
+    Long countInvalidFiles();
+    
+    /**
+     * 统计无效文件大小
+     */
+    @Select("SELECT COALESCE(SUM(file_size), 0) FROM file WHERE status = 'INVALID'")
+    Long sumInvalidFileSize();
 }

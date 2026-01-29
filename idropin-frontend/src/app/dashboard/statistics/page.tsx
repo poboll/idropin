@@ -1,21 +1,19 @@
 'use client'
 
 import { useStatistics } from '@/lib/hooks/useStatistics';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { formatBytes } from '@/lib/utils';
-import { Loader2, RefreshCw, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Loader2, RefreshCw, AlertCircle, FileText, HardDrive, Upload, Calendar } from 'lucide-react';
 
 export default function StatisticsPage() {
   const { statistics, loading, error, connected, refresh } = useStatistics();
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p>加载统计数据中...</p>
+          <div className="spinner mx-auto mb-4" />
+          <p className="text-sm text-gray-500 dark:text-gray-400">加载统计数据中...</p>
         </div>
       </div>
     );
@@ -23,204 +21,221 @@ export default function StatisticsPage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-red-500" />
-              连接错误
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600 mb-4">{error}</p>
-            <Button onClick={refresh} className="w-full">
-              重试连接
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="card max-w-md w-full p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">连接错误</h3>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+          <button onClick={refresh} className="btn-primary w-full">
+            重试连接
+          </button>
+        </div>
       </div>
     );
   }
 
   if (!statistics) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <p>暂无数据</p>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="empty-state">
+          <FileText className="empty-state-icon" />
+          <p className="empty-state-title">暂无数据</p>
+          <p className="empty-state-description">统计数据将在有文件上传后显示</p>
+        </div>
       </div>
     );
   }
 
-  const COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+  const COLORS = ['#171717', '#525252', '#737373', '#a3a3a3', '#d4d4d4', '#e5e5e5'];
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       {/* 页面标题 */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">数据统计</h1>
-          <p className="text-gray-600 mt-1">
-            {connected ? '✓ 实时连接中' : '✗ 连接已断开'}
-          </p>
+      <div className="page-header">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="page-title">数据统计</h1>
+            <p className="page-description flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`} />
+              {connected ? '实时连接中' : '连接已断开'}
+            </p>
+          </div>
+          <button onClick={refresh} className="btn-secondary">
+            <RefreshCw className="w-4 h-4" />
+            刷新
+          </button>
         </div>
-        <Button onClick={refresh} variant="outline" size="sm">
-          <RefreshCw className="w-4 h-4 mr-2" />
-          刷新
-        </Button>
       </div>
 
       {/* 关键指标卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">总文件数</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.totalFiles}</div>
-            <p className="text-xs text-gray-500 mt-1">个文件</p>
-          </CardContent>
-        </Card>
+        <div className="stat-card">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+              <FileText className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </div>
+          </div>
+          <p className="stat-label">总文件数</p>
+          <p className="stat-value">{statistics.totalFiles}</p>
+        </div>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">总存储大小</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatBytes(statistics.totalStorageSize)}</div>
-            <p className="text-xs text-gray-500 mt-1">已使用</p>
-          </CardContent>
-        </Card>
+        <div className="stat-card">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+              <HardDrive className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </div>
+          </div>
+          <p className="stat-label">总存储大小</p>
+          <p className="stat-value">{formatBytes(statistics.totalStorageSize)}</p>
+        </div>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">今日上传</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.todayUploads}</div>
-            <p className="text-xs text-gray-500 mt-1">个文件</p>
-          </CardContent>
-        </Card>
+        <div className="stat-card">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+              <Upload className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </div>
+          </div>
+          <p className="stat-label">今日上传</p>
+          <p className="stat-value">{statistics.todayUploads}</p>
+        </div>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">本周上传</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.weekUploads}</div>
-            <p className="text-xs text-gray-500 mt-1">个文件</p>
-          </CardContent>
-        </Card>
+        <div className="stat-card">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+              <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </div>
+          </div>
+          <p className="stat-label">本周上传</p>
+          <p className="stat-value">{statistics.weekUploads}</p>
+        </div>
       </div>
 
       {/* 图表区域 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 上传趋势 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>上传趋势（最近7天）</CardTitle>
-            <CardDescription>每日上传文件数量</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={statistics.uploadTrend}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="count"
-                  stroke="#3b82f6"
-                  name="文件数"
-                  dot={{ fill: '#3b82f6' }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        <div className="card p-6">
+          <div className="mb-6">
+            <h3 className="text-base font-medium text-gray-900 dark:text-white">上传趋势</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">最近7天每日上传文件数量</p>
+          </div>
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={statistics.uploadTrend}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+              <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#737373" />
+              <YAxis tick={{ fontSize: 12 }} stroke="#737373" />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#fff', 
+                  border: '1px solid #e5e5e5',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                }} 
+              />
+              <Line
+                type="monotone"
+                dataKey="count"
+                stroke="#171717"
+                strokeWidth={2}
+                name="文件数"
+                dot={{ fill: '#171717', strokeWidth: 2 }}
+                activeDot={{ r: 6 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
 
         {/* 文件类型分布 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>文件类型分布</CardTitle>
-            <CardDescription>按类型统计文件数量</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={statistics.fileTypeDistribution}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ typeName, percentage }) => `${typeName} ${percentage.toFixed(1)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="count"
-                >
-                  {statistics.fileTypeDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        <div className="card p-6">
+          <div className="mb-6">
+            <h3 className="text-base font-medium text-gray-900 dark:text-white">文件类型分布</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">按类型统计文件数量</p>
+          </div>
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart>
+              <Pie
+                data={statistics.fileTypeDistribution}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ typeName, percentage }) => `${typeName} ${percentage.toFixed(1)}%`}
+                outerRadius={100}
+                fill="#8884d8"
+                dataKey="count"
+              >
+                {statistics.fileTypeDistribution.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#fff', 
+                  border: '1px solid #e5e5e5',
+                  borderRadius: '8px'
+                }} 
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       {/* 分类统计 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>分类统计</CardTitle>
-          <CardDescription>按分类统计文件数量和存储大小</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={statistics.categoryStatistics}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="categoryName" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="fileCount" fill="#3b82f6" name="文件数" />
-              <Bar dataKey="storageSize" fill="#10b981" name="存储大小(字节)" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      <div className="card p-6">
+        <div className="mb-6">
+          <h3 className="text-base font-medium text-gray-900 dark:text-white">分类统计</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">按分类统计文件数量和存储大小</p>
+        </div>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={statistics.categoryStatistics}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+            <XAxis dataKey="categoryName" tick={{ fontSize: 12 }} stroke="#737373" />
+            <YAxis tick={{ fontSize: 12 }} stroke="#737373" />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: '#fff', 
+                border: '1px solid #e5e5e5',
+                borderRadius: '8px'
+              }} 
+            />
+            <Legend />
+            <Bar dataKey="fileCount" fill="#171717" name="文件数" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="storageSize" fill="#737373" name="存储大小(字节)" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
 
       {/* 存储空间使用 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>存储空间使用</CardTitle>
-          <CardDescription>总容量 {formatBytes(statistics.storageUsage.total)}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-              <div
-                className="bg-blue-500 h-full transition-all duration-300"
-                style={{ width: `${statistics.storageUsage.percentage}%` }}
-              />
+      <div className="card p-6">
+        <div className="mb-6">
+          <h3 className="text-base font-medium text-gray-900 dark:text-white">存储空间使用</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">总容量 {formatBytes(statistics.storageUsage.total)}</p>
+        </div>
+        <div className="space-y-4">
+          <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-3 overflow-hidden">
+            <div
+              className="bg-gray-900 dark:bg-white h-full transition-all duration-500 rounded-full"
+              style={{ width: `${statistics.storageUsage.percentage}%` }}
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">已使用</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">{formatBytes(statistics.storageUsage.used)}</p>
             </div>
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div>
-                <p className="text-gray-600">已使用</p>
-                <p className="font-semibold">{formatBytes(statistics.storageUsage.used)}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">剩余</p>
-                <p className="font-semibold">{formatBytes(statistics.storageUsage.remaining)}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">使用率</p>
-                <p className="font-semibold">{statistics.storageUsage.percentage.toFixed(2)}%</p>
-              </div>
+            <div className="text-center p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">剩余</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">{formatBytes(statistics.storageUsage.remaining)}</p>
+            </div>
+            <div className="text-center p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">使用率</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">{statistics.storageUsage.percentage.toFixed(2)}%</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

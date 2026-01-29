@@ -65,7 +65,7 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
       shortCode = generateShortCode();
       attempts++;
       // 检查是否已存在
-      if (taskMapper.selectById(shortCode) == null) {
+      if (taskMapper.selectByIdString(shortCode) == null) {
         break;
       }
     } while (attempts < maxAttempts);
@@ -126,7 +126,7 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
 
   @Override
   public CollectionTask getTask(String taskId, String userId) {
-    CollectionTask task = taskMapper.selectById(taskId);
+    CollectionTask task = taskMapper.selectByIdString(taskId);
     if (task == null) {
       throw new BusinessException("任务不存在");
     }
@@ -199,7 +199,7 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
   @Transactional
   public FileSubmission submitFile(String taskId, String fileId, String submitterName,
       String submitterEmail, String submitterId) {
-    CollectionTask task = taskMapper.selectById(taskId);
+    CollectionTask task = taskMapper.selectByIdString(taskId);
     if (task == null) {
       throw new BusinessException("任务不存在");
     }
@@ -324,7 +324,7 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
 
   @Override
   public CollectionTask getTaskPublic(String taskId) {
-    CollectionTask task = taskMapper.selectById(taskId);
-    return task; // 返回 null 如果不存在，不抛出异常
+    // 使用自定义的 selectByIdString 方法，明确指定 VARCHAR 类型避免 UUID 类型问题
+    return taskMapper.selectByIdString(taskId);
   }
 }

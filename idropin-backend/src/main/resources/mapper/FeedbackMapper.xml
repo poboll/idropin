@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.idropin.infrastructure.persistence.mapper.FeedbackMapper">
+
+    <resultMap id="FeedbackVOResultMap" type="com.idropin.domain.vo.FeedbackVO">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="username" column="username"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content"/>
+        <result property="contact" column="contact"/>
+        <result property="status" column="status"/>
+        <result property="replyCount" column="reply_count"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="selectUserFeedbackPage" resultMap="FeedbackVOResultMap">
+        SELECT 
+            f.id,
+            f.user_id,
+            u.username,
+            f.title,
+            f.content,
+            f.contact,
+            f.status,
+            (SELECT COUNT(*) FROM sys_feedback_reply WHERE feedback_id = f.id) as reply_count,
+            f.created_at,
+            f.updated_at
+        FROM sys_feedback f
+        LEFT JOIN sys_user u ON f.user_id = u.id
+        WHERE f.user_id = #{userId}
+        ORDER BY f.created_at DESC
+    </select>
+
+    <select id="selectAllFeedbackPage" resultMap="FeedbackVOResultMap">
+        SELECT 
+            f.id,
+            f.user_id,
+            u.username,
+            f.title,
+            f.content,
+            f.contact,
+            f.status,
+            (SELECT COUNT(*) FROM sys_feedback_reply WHERE feedback_id = f.id) as reply_count,
+            f.created_at,
+            f.updated_at
+        FROM sys_feedback f
+        LEFT JOIN sys_user u ON f.user_id = u.id
+        WHERE 1=1
+        <if test="status != null and status != ''">
+            AND f.status = #{status}
+        </if>
+        ORDER BY f.created_at DESC
+    </select>
+
+</mapper>

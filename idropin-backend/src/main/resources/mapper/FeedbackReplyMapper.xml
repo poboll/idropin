@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.idropin.infrastructure.persistence.mapper.FeedbackReplyMapper">
+
+    <resultMap id="FeedbackReplyVOResultMap" type="com.idropin.domain.vo.FeedbackReplyVO">
+        <id property="id" column="id"/>
+        <result property="feedbackId" column="feedback_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="username" column="username"/>
+        <result property="content" column="content"/>
+        <result property="isAdmin" column="is_admin"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <select id="selectRepliesByFeedbackId" resultMap="FeedbackReplyVOResultMap">
+        SELECT 
+            r.id,
+            r.feedback_id,
+            r.user_id,
+            u.username,
+            r.content,
+            r.is_admin,
+            r.created_at
+        FROM sys_feedback_reply r
+        LEFT JOIN sys_user u ON r.user_id = u.id
+        WHERE r.feedback_id = #{feedbackId}
+        ORDER BY r.created_at ASC
+    </select>
+
+</mapper>

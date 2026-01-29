@@ -2,7 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquare, Send, CheckCircle } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Send, Check, Loader2 } from 'lucide-react';
 
 export default function FeedbackPage() {
   const [formData, setFormData] = useState({
@@ -43,39 +43,38 @@ export default function FeedbackPage() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-purple-900 to-cyan-700 flex flex-col">
-        <header className="p-6">
-          <Link 
-            href="/" 
-            className="inline-flex items-center gap-2 text-white/80 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>返回首页</span>
-          </Link>
+      <div className="min-h-screen bg-white dark:bg-black flex flex-col">
+        <header className="border-b border-gray-200 dark:border-gray-800">
+          <div className="max-w-6xl mx-auto px-6 h-16 flex items-center">
+            <Link 
+              href="/" 
+              className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="text-sm">返回首页</span>
+            </Link>
+          </div>
         </header>
 
         <main className="flex-1 flex items-center justify-center px-6">
           <div className="max-w-md w-full text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-green-500 rounded-full mb-6">
-              <CheckCircle className="w-10 h-10 text-white" />
+            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
             </div>
-            <h1 className="text-3xl font-bold text-white mb-4">
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">
               提交成功
             </h1>
-            <p className="text-white/80 mb-8">
+            <p className="text-gray-500 dark:text-gray-400 mb-8">
               感谢你的反馈！你的需求已进入审核阶段，我们会认真评估每一条建议。
             </p>
-            <div className="flex gap-4 justify-center">
+            <div className="flex gap-3 justify-center">
               <button
                 onClick={() => setIsSuccess(false)}
-                className="px-6 py-3 bg-white/10 text-white rounded-xl hover:bg-white/20 transition-colors"
+                className="btn-secondary"
               >
                 继续提交
               </button>
-              <Link
-                href="/"
-                className="px-6 py-3 bg-white text-purple-900 rounded-xl hover:bg-white/90 transition-colors"
-              >
+              <Link href="/" className="btn-primary">
                 返回首页
               </Link>
             </div>
@@ -86,52 +85,48 @@ export default function FeedbackPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-900 to-cyan-700 flex flex-col">
-      <header className="p-6">
-        <Link 
-          href="/" 
-          className="inline-flex items-center gap-2 text-white/80 hover:text-white transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span>返回首页</span>
-        </Link>
+    <div className="min-h-screen bg-white dark:bg-black flex flex-col">
+      <header className="border-b border-gray-200 dark:border-gray-800">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center">
+          <Link 
+            href="/" 
+            className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm">返回首页</span>
+          </Link>
+        </div>
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-12">
-        <div className="max-w-lg w-full">
+        <div className="max-w-md w-full">
           <div className="text-center mb-10">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 rounded-2xl mb-4">
-              <MessageSquare className="w-8 h-8 text-white" />
+            <div className="w-14 h-14 bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <MessageSquare className="w-7 h-7 text-gray-600 dark:text-gray-400" />
             </div>
-            <h1 className="text-4xl font-light text-white mb-4">
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
               需求墙
             </h1>
-            <p className="text-white/80">
+            <p className="text-gray-500 dark:text-gray-400 text-sm">
               通过投票决定下一个新功能是什么
-            </p>
-            <p className="text-white/80">
-              票数越多优先级越高
-            </p>
-            <p className="text-white/80 mt-2">
-              当然你也可以提出你的需求，让大家来投票
             </p>
           </div>
 
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8">
-            <h2 className="text-xl font-semibold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
-              <Send className="w-5 h-5 text-blue-500" />
+          <div className="card p-6">
+            <h2 className="text-base font-medium text-gray-900 dark:text-white mb-5 flex items-center gap-2">
+              <Send className="w-4 h-4" />
               提交需求
             </h2>
 
             {error && (
-              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl">
-                <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+              <div className="alert alert-error mb-5">
+                <span className="text-sm">{error}</span>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label htmlFor="title" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="form-group">
+                <label htmlFor="title" className="form-label">
                   需求标题 <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -139,37 +134,37 @@ export default function FeedbackPage() {
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="input"
                   placeholder="一句简单明了的话概括一下"
                   disabled={isSubmitting}
                 />
               </div>
 
-              <div>
-                <label htmlFor="des" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              <div className="form-group">
+                <label htmlFor="des" className="form-label">
                   详细描述 <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   id="des"
                   value={formData.des}
                   onChange={(e) => setFormData({ ...formData, des: e.target.value })}
-                  rows={5}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                  rows={4}
+                  className="input resize-none"
                   placeholder="用朴素的话语进一步描述你的需求"
                   disabled={isSubmitting}
                 />
               </div>
 
-              <div>
-                <label htmlFor="contact" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  联系方式 <span className="text-slate-400 text-xs">（选填）</span>
+              <div className="form-group">
+                <label htmlFor="contact" className="form-label">
+                  联系方式 <span className="text-gray-400 font-normal">(选填)</span>
                 </label>
                 <input
                   id="contact"
                   type="text"
                   value={formData.contact}
                   onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="input"
                   placeholder="邮箱、QQ、微信等任意方式均可"
                   disabled={isSubmitting}
                 />
@@ -178,28 +173,26 @@ export default function FeedbackPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-xl shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="btn-primary w-full"
               >
                 {isSubmitting ? (
                   <>
-                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     提交中...
                   </>
                 ) : (
                   <>
-                    <Send className="w-5 h-5" />
+                    <Send className="w-4 h-4" />
                     提交需求
                   </>
                 )}
               </button>
             </form>
 
-            <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
-              <p className="text-slate-500 dark:text-slate-400 text-sm text-center">
+            <div className="mt-5 pt-5 border-t border-gray-200 dark:border-gray-800 text-center">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 没有账号？
-                <Link href="/register" className="text-blue-500 hover:text-blue-600 ml-1">
-                  立即注册
-                </Link>
+                <Link href="/register" className="link ml-1">立即注册</Link>
                 {' '}即可参与投票
               </p>
             </div>
@@ -207,8 +200,8 @@ export default function FeedbackPage() {
         </div>
       </main>
 
-      <footer className="p-6 text-center">
-        <p className="text-white/60 text-sm">
+      <footer className="py-6 text-center border-t border-gray-200 dark:border-gray-800">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           © 2024 Idrop.in 云集
         </p>
       </footer>

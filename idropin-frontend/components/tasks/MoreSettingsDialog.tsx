@@ -838,17 +838,17 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
           )}
         </div>
 
-        <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3 bg-slate-50 dark:bg-slate-900/50 rounded-b-xl">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-5 py-2.5 text-sm text-slate-600 hover:bg-white hover:shadow-sm rounded-lg transition-all border border-transparent hover:border-slate-200"
+            className="btn-secondary"
           >
             取消
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-5 py-2.5 text-sm font-medium bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 rounded-lg shadow-lg shadow-blue-500/20 transition-all disabled:opacity-50 hover:-translate-y-0.5"
+            className="btn-primary"
           >
             {saving ? '保存中...' : '保存设置'}
           </button>

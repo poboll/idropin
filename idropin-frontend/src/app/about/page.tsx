@@ -9,10 +9,11 @@ import {
   BarChart3, 
   Shield, 
   Zap, 
-  Globe,
   ArrowLeft,
   Github,
-  Mail
+  Mail,
+  Globe,
+  ArrowRight
 } from 'lucide-react';
 
 const features = [
@@ -20,37 +21,31 @@ const features = [
     icon: Upload,
     title: '智能文件收集',
     description: '创建收集任务，支持多种文件格式，自动归类整理',
-    color: 'bg-blue-500',
   },
   {
     icon: FolderOpen,
     title: '高效文件管理',
     description: '分类管理、标签筛选、批量操作，轻松管理海量文件',
-    color: 'bg-green-500',
   },
   {
     icon: Share2,
     title: '安全文件分享',
     description: '密码保护、过期设置、下载限制，分享更安心',
-    color: 'bg-purple-500',
   },
   {
     icon: BarChart3,
     title: '实时数据统计',
     description: '多维度统计分析，可视化展示，掌握全局数据',
-    color: 'bg-orange-500',
   },
   {
     icon: Shield,
     title: '数据安全保障',
     description: 'JWT认证、权限控制、数据加密，全方位安全防护',
-    color: 'bg-red-500',
   },
   {
     icon: Zap,
     title: '极速上传体验',
     description: '大文件分片上传、断点续传、秒传，告别等待',
-    color: 'bg-yellow-500',
   },
 ];
 
@@ -63,73 +58,64 @@ const techStack = [
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-        <div className="max-w-6xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link 
-              href="/" 
-              className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span>返回首页</span>
-            </Link>
-            <div className="flex items-center gap-3">
-              <Link 
-                href="/login"
-                className="px-4 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors"
-              >
-                登录
-              </Link>
-              <Link 
-                href="/register"
-                className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                注册
-              </Link>
-            </div>
+    <div className="min-h-screen bg-white dark:bg-black">
+      {/* Header */}
+      <header className="border-b border-gray-200 dark:border-gray-800">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          <Link 
+            href="/" 
+            className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm">返回首页</span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/login" className="btn-ghost btn-sm">登录</Link>
+            <Link href="/register" className="btn-primary btn-sm">注册</Link>
           </div>
         </div>
       </header>
 
       <main>
+        {/* Hero */}
         <section className="py-20 px-6">
           <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-500 rounded-3xl mb-6">
-              <Cloud className="w-10 h-10 text-white" />
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-900 dark:bg-white rounded-2xl mb-6">
+              <Cloud className="w-8 h-8 text-white dark:text-gray-900" />
             </div>
-            <h1 className="text-4xl font-bold text-slate-800 dark:text-white mb-4">
+            <h1 className="text-4xl font-semibold text-gray-900 dark:text-white mb-3 tracking-tight">
               云集
             </h1>
-            <p className="text-xl text-slate-600 dark:text-slate-400 mb-2">
+            <p className="text-lg text-gray-600 dark:text-gray-400 mb-2">
               Idrop.in - 智能文件收集与管理平台
             </p>
-            <p className="text-slate-500 dark:text-slate-500 max-w-2xl mx-auto">
-              为教育场景设计的一站式文件管理解决方案，让文件收集、管理、分享变得简单高效
+            <p className="text-gray-500 dark:text-gray-500 max-w-xl mx-auto">
+              为教育场景设计的一站式文件管理解决方案
             </p>
           </div>
         </section>
 
-        <section className="py-16 px-6 bg-white dark:bg-slate-800">
+        {/* Features */}
+        <section className="py-16 px-6 border-t border-gray-200 dark:border-gray-800">
           <div className="max-w-6xl mx-auto">
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-white text-center mb-12">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white text-center mb-12">
               核心功能
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {features.map((feature) => {
                 const Icon = feature.icon;
                 return (
                   <div 
                     key={feature.title}
-                    className="p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700"
+                    className="card p-6 card-hover"
                   >
-                    <div className={`inline-flex items-center justify-center w-12 h-12 ${feature.color} rounded-xl mb-4`}>
-                      <Icon className="w-6 h-6 text-white" />
+                    <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
+                      <Icon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                     </div>
-                    <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-2">
+                    <h3 className="text-base font-medium text-gray-900 dark:text-white mb-2">
                       {feature.title}
                     </h3>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       {feature.description}
                     </p>
                   </div>
@@ -139,24 +125,22 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <section className="py-16 px-6">
+        {/* Tech Stack */}
+        <section className="py-16 px-6 border-t border-gray-200 dark:border-gray-800">
           <div className="max-w-6xl mx-auto">
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-white text-center mb-12">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white text-center mb-12">
               技术栈
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {techStack.map((stack) => (
-                <div 
-                  key={stack.category}
-                  className="p-6 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700"
-                >
-                  <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">
+                <div key={stack.category} className="card p-5">
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
                     {stack.category}
                   </h3>
                   <ul className="space-y-2">
                     {stack.items.map((item) => (
-                      <li key={item} className="flex items-center gap-2 text-slate-600 dark:text-slate-400 text-sm">
-                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+                      <li key={item} className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                        <span className="w-1 h-1 bg-gray-400 dark:bg-gray-600 rounded-full" />
                         {item}
                       </li>
                     ))}
@@ -167,68 +151,84 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <section className="py-16 px-6 bg-white dark:bg-slate-800">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-8">
+        {/* Stats */}
+        <section className="py-16 px-6 border-t border-gray-200 dark:border-gray-800">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white text-center mb-12">
               项目信息
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl">
-                <div className="text-3xl font-bold text-blue-500 mb-2">14000+</div>
-                <div className="text-slate-600 dark:text-slate-400">代码行数</div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="stat-card text-center">
+                <p className="stat-value">14000+</p>
+                <p className="stat-label">代码行数</p>
               </div>
-              <div className="p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl">
-                <div className="text-3xl font-bold text-green-500 mb-2">40+</div>
-                <div className="text-slate-600 dark:text-slate-400">API接口</div>
+              <div className="stat-card text-center">
+                <p className="stat-value">40+</p>
+                <p className="stat-label">API接口</p>
               </div>
-              <div className="p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl">
-                <div className="text-3xl font-bold text-purple-500 mb-2">85%</div>
-                <div className="text-slate-600 dark:text-slate-400">测试覆盖率</div>
+              <div className="stat-card text-center">
+                <p className="stat-value">85%</p>
+                <p className="stat-label">测试覆盖率</p>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="py-16 px-6">
+        {/* Contact */}
+        <section className="py-16 px-6 border-t border-gray-200 dark:border-gray-800">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-8">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-8">
               联系我们
             </h2>
-            <div className="flex justify-center gap-6">
-              <a 
-                href="mailto:support@idrop.in"
-                className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
-              >
-                <Mail className="w-5 h-5" />
-                <span>support@idrop.in</span>
+            <div className="flex justify-center gap-3 flex-wrap">
+              <a href="mailto:support@idrop.in" className="btn-secondary">
+                <Mail className="w-4 h-4" />
+                support@idrop.in
               </a>
               <a 
                 href="https://github.com/your-org/idropin"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                className="btn-secondary"
               >
-                <Github className="w-5 h-5" />
-                <span>GitHub</span>
+                <Github className="w-4 h-4" />
+                GitHub
               </a>
               <a 
                 href="https://docs.idrop.in"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                className="btn-secondary"
               >
-                <Globe className="w-5 h-5" />
-                <span>文档</span>
+                <Globe className="w-4 h-4" />
+                文档
               </a>
             </div>
           </div>
         </section>
+
+        {/* CTA */}
+        <section className="py-16 px-6 border-t border-gray-200 dark:border-gray-800">
+          <div className="max-w-xl mx-auto text-center">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              开始使用
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">
+              立即注册，体验智能文件管理
+            </p>
+            <Link href="/register" className="btn-primary btn-lg">
+              免费注册
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </section>
       </main>
 
-      <footer className="py-8 px-6 border-t border-slate-200 dark:border-slate-700">
+      {/* Footer */}
+      <footer className="py-8 px-6 border-t border-gray-200 dark:border-gray-800">
         <div className="max-w-6xl mx-auto text-center">
-          <p className="text-slate-500 dark:text-slate-400 text-sm">
-            © 2024 Idrop.in 云集 - 智能文件收集与管理平台
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            © 2024 Idrop.in 云集
           </p>
         </div>
       </footer>

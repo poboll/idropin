@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { FileText, Database, UploadCloud, Calendar, Clock } from 'lucide-react';
+import { FileText, HardDrive, Upload, Calendar, Clock, ArrowRight } from 'lucide-react';
 import { getFileStatistics, FileStatistics, formatFileSize } from '@/lib/api/statistics';
 import { getFiles, FileItem } from '@/lib/api/files';
 import { useAuthStore } from '@/lib/stores/auth';
@@ -38,98 +38,87 @@ export default function OverviewPage() {
       value: stats ? stats.totalFiles.toString() : '-',
       sub: '个人累计上传',
       icon: FileText,
-      color: 'text-blue-500',
-      bg: 'bg-blue-50 dark:bg-blue-900/20',
     },
     {
       title: '占用空间',
       value: stats ? formatFileSize(stats.totalStorageSize) : '-',
       sub: `总容量: ${stats?.storageUsage?.total ? formatFileSize(stats.storageUsage.total) : '无限制'}`,
-      icon: Database,
-      color: 'text-purple-500',
-      bg: 'bg-purple-50 dark:bg-purple-900/20',
+      icon: HardDrive,
     },
     {
       title: '今日上传',
       value: stats ? stats.todayUploads.toString() : '-',
       sub: '今日新增文件',
-      icon: UploadCloud,
-      color: 'text-green-500',
-      bg: 'bg-green-50 dark:bg-green-900/20',
+      icon: Upload,
     },
     {
       title: '本月上传',
       value: stats ? stats.monthUploads.toString() : '-',
       sub: '本月活跃度',
       icon: Calendar,
-      color: 'text-orange-500',
-      bg: 'bg-orange-50 dark:bg-orange-900/20',
     },
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800 dark:text-white">
-          你好，{user?.username || '用户'} 👋
-        </h1>
-        <span className="text-sm text-slate-500">数据实时更新</span>
+    <div className="space-y-6">
+      <div className="page-header">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="page-title">你好，{user?.username || '用户'}</h1>
+            <p className="page-description">数据实时更新</p>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((card, i) => (
-          <div key={i} className="glass-card p-6 flex items-center justify-between hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-            <div>
-              <p className="text-sm text-slate-500 mb-1">{card.title}</p>
-              <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">{card.value}</h3>
-              <p className="text-xs text-slate-400">{card.sub}</p>
+          <div key={i} className="stat-card">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                <card.icon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              </div>
             </div>
-            <div className={`p-4 rounded-2xl ${card.bg}`}>
-              <card.icon className={`w-8 h-8 ${card.color}`} />
-            </div>
+            <p className="stat-label">{card.title}</p>
+            <p className="stat-value">{card.value}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{card.sub}</p>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 glass-panel p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
-              <Clock className="w-5 h-5 text-slate-500" />
+        <div className="lg:col-span-2 card p-6">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-base font-medium text-gray-900 dark:text-white flex items-center gap-2">
+              <Clock className="w-4 h-4 text-gray-500" />
               最近上传
             </h3>
-            <Link href="/dashboard/files" className="text-sm text-blue-500 hover:text-blue-600">
+            <Link href="/dashboard/files" className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 transition-colors">
               查看全部
+              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
           
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-slate-500 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50">
+            <table className="table">
+              <thead>
                 <tr>
-                  <th className="px-4 py-3 font-medium rounded-tl-lg">文件名</th>
-                  <th className="px-4 py-3 font-medium">大小</th>
-                  <th className="px-4 py-3 font-medium rounded-tr-lg">上传时间</th>
+                  <th>文件名</th>
+                  <th>大小</th>
+                  <th>上传时间</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+              <tbody>
                 {recentFiles.length > 0 ? (
                   recentFiles.map((file) => (
-                    <tr key={file.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
-                      <td className="px-4 py-3 text-slate-700 dark:text-slate-200 max-w-[200px] truncate">
-                        {file.originalName}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
-                        {formatFileSize(file.fileSize)}
-                      </td>
-                      <td className="px-4 py-3 text-slate-500">
-                        {new Date(file.createdAt).toLocaleString()}
-                      </td>
+                    <tr key={file.id}>
+                      <td className="max-w-[200px] truncate">{file.originalName}</td>
+                      <td>{formatFileSize(file.fileSize)}</td>
+                      <td>{new Date(file.createdAt).toLocaleString()}</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={3} className="px-4 py-8 text-center text-slate-400">
+                    <td colSpan={3} className="text-center py-8 text-gray-400">
                       暂无上传记录
                     </td>
                   </tr>
@@ -139,48 +128,49 @@ export default function OverviewPage() {
           </div>
         </div>
 
-        <div className="glass-panel p-6 flex flex-col justify-center">
-          <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
-            <Database className="w-5 h-5 text-slate-500" />
+        <div className="card p-6">
+          <h3 className="text-base font-medium text-gray-900 dark:text-white mb-5 flex items-center gap-2">
+            <HardDrive className="w-4 h-4 text-gray-500" />
             存储使用情况
           </h3>
           
-          <div className="text-center space-y-6">
-            <div className="relative w-40 h-40 mx-auto">
-              <svg className="w-full h-full" viewBox="0 0 36 36">
+          <div className="text-center space-y-5">
+            <div className="relative w-32 h-32 mx-auto">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                 <path
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                   fill="none"
-                  stroke="#eee"
+                  stroke="currentColor"
                   strokeWidth="3"
+                  className="text-gray-100 dark:text-gray-800"
                 />
                 <path
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                   fill="none"
-                  stroke="#3b82f6"
+                  stroke="currentColor"
                   strokeWidth="3"
                   strokeDasharray={`${stats?.storageUsage?.percentage || 0}, 100`}
-                  className="animate-[spin_1s_ease-out_reverse]"
+                  className="text-gray-900 dark:text-white"
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center flex-col">
-                <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                <span className="text-2xl font-semibold text-gray-900 dark:text-white">
                   {stats?.storageUsage?.percentage || 0}%
                 </span>
-                <span className="text-xs text-slate-400">已使用</span>
+                <span className="text-xs text-gray-500">已使用</span>
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4 text-center">
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-                <p className="text-xs text-slate-400 mb-1">已用空间</p>
-                <p className="font-semibold text-slate-700 dark:text-slate-200">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">已用空间</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
                   {stats ? formatFileSize(stats.storageUsage.used) : '-'}
                 </p>
               </div>
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-                <p className="text-xs text-slate-400 mb-1">剩余空间</p>
-                <p className="font-semibold text-slate-700 dark:text-slate-200">
+              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">剩余空间</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
                   {stats ? formatFileSize(stats.storageUsage.remaining) : '-'}
                 </p>
               </div>

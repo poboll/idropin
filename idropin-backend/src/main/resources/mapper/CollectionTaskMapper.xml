@@ -2,6 +2,28 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.idropin.infrastructure.persistence.mapper.CollectionTaskMapper">
 
+    <resultMap id="BaseResultMap" type="com.idropin.domain.entity.CollectionTask">
+        <id column="id" property="id" jdbcType="VARCHAR"/>
+        <result column="title" property="title" jdbcType="VARCHAR"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+        <result column="deadline" property="deadline" jdbcType="TIMESTAMP"/>
+        <result column="allow_anonymous" property="allowAnonymous" jdbcType="BOOLEAN"/>
+        <result column="require_login" property="requireLogin" jdbcType="BOOLEAN"/>
+        <result column="max_file_size" property="maxFileSize" jdbcType="BIGINT"/>
+        <result column="allowed_types" property="allowedTypes" jdbcType="ARRAY" typeHandler="com.idropin.infrastructure.config.StringArrayTypeHandler"/>
+        <result column="created_by" property="createdBy" jdbcType="VARCHAR"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <select id="selectByIdString" resultMap="BaseResultMap">
+        SELECT id, title, description, deadline, allow_anonymous, require_login, 
+               max_file_size, allowed_types, created_by, status, created_at, updated_at
+        FROM collection_task
+        WHERE id = CAST(#{id} AS VARCHAR)
+    </select>
+
     <insert id="insert" parameterType="com.idropin.domain.entity.CollectionTask">
         INSERT INTO collection_task (
             id,

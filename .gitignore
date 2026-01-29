@@ -132,5 +132,8 @@ start-project.sh
 stop-project.sh
 fix-database.sh
 
+# Project overview (AI generated)
+PROJECT_OVERVIEW.md
+
 # Docker
 docker-compose.yml

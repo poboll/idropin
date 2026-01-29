@@ -5,10 +5,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Phone, Lock, KeyRound, Mail } from 'lucide-react';
 import { confirmPasswordReset } from '@/lib/api/auth';
+import { RouteGuard } from '@/components/RouteGuard';
 
 type ResetMode = 'email' | 'phone';
 
-function ResetPasswordForm() {
+function ResetPasswordFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -337,12 +338,14 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
-        <div className="text-slate-500">加载中...</div>
-      </div>
-    }>
-      <ResetPasswordForm />
-    </Suspense>
+    <RouteGuard>
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+          <div className="text-slate-500">加载中...</div>
+        </div>
+      }>
+        <ResetPasswordFormContent />
+      </Suspense>
+    </RouteGuard>
   );
 }

@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.idropin.domain.entity.TaskMoreInfo;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
 
 /**
  * 任务更多信息Mapper
@@ -14,8 +13,13 @@ import org.apache.ibatis.annotations.Select;
 @Mapper
 public interface TaskMoreInfoMapper extends BaseMapper<TaskMoreInfo> {
     
-    @Select("SELECT id, task_id::text as taskId, ddl, tip, info, people, format, template, bind_field as bindField, rewrite, created_at as createdAt, updated_at as updatedAt FROM task_more_info WHERE task_id = #{taskId}::uuid")
+    /**
+     * 根据任务ID查询更多信息（使用XML定义）
+     */
     TaskMoreInfo selectByTaskId(@Param("taskId") String taskId);
     
+    /**
+     * 根据任务ID更新更多信息（使用XML定义）
+     */
     int updateByTaskId(@Param("entity") TaskMoreInfo entity);
 }

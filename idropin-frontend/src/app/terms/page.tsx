@@ -78,7 +78,7 @@ export default function TermsPage() {
                 5. 免责声明
               </h2>
               <p className="text-slate-600 dark:text-slate-300">
-                本服务按"现状"提供，我们不对服务的可用性、准确性或完整性做出任何保证。
+                本服务按&ldquo;现状&rdquo;提供，我们不对服务的可用性、准确性或完整性做出任何保证。
                 对于因使用本服务而产生的任何损失，我们不承担责任。
               </p>
             </section>

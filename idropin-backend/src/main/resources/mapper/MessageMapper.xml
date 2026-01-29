@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.idropin.infrastructure.persistence.mapper.MessageMapper">
+
+    <resultMap id="MessageVOResultMap" type="com.idropin.domain.vo.MessageVO">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content"/>
+        <result property="senderType" column="sender_type"/>
+        <result property="senderName" column="sender_name"/>
+        <result property="isRead" column="is_read"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="readAt" column="read_at"/>
+    </resultMap>
+
+    <select id="selectMessagePage" resultMap="MessageVOResultMap">
+        SELECT 
+            m.id,
+            m.title,
+            m.content,
+            m.sender_type,
+            CASE 
+                WHEN m.sender_type = 'system' THEN '系统通知'
+                WHEN u.username IS NOT NULL THEN u.username
+                ELSE '管理员'
+            END as sender_name,
+            m.is_read,
+            m.created_at,
+            m.read_at
+        FROM sys_message m
+        LEFT JOIN sys_user u ON m.sender_id = u.id
+        WHERE m.recipient_id = #{recipientId}
+        <if test="unreadOnly != null and unreadOnly == true">
+            AND m.is_read = false
+        </if>
+        ORDER BY m.created_at DESC
+    </select>
+
+    <select id="countUnread" resultType="java.lang.Integer">
+        SELECT COUNT(*) 
+        FROM sys_message 
+        WHERE recipient_id = #{recipientId} AND is_read = false
+    </select>
+
+    <update id="markAllAsRead">
+        UPDATE sys_message 
+        SET is_read = true, read_at = CURRENT_TIMESTAMP 
+        WHERE recipient_id = #{recipientId} AND is_read = false
+    </update>
+
+</mapper>

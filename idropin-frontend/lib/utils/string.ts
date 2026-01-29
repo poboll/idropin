@@ -119,21 +119,29 @@ export function parseInfo(info: string): InfoItem[] {
     const parsed = JSON.parse(info);
     if (!Array.isArray(parsed)) return [];
     
-    return parsed.map((v: string | InfoItem) => {
+    return parsed.map((v: string | InfoItem | any) => {
       // 兼容旧表单数据（纯字符串形式）
       if (typeof v === 'string') {
         return { type: 'input', text: v, value: '' };
       }
-      // 兼容旧数据展示
-      if (!v.type) {
-        v.type = 'input';
+      
+      // 创建新对象避免修改原始数据
+      const item: InfoItem = {
+        type: v.type || 'input',
+        text: v.text || v.name || '未命名字段',
+        value: v.value || '',
+      };
+      
+      // 处理子选项（用于 select 和 radio 类型）
+      if (v.children && Array.isArray(v.children)) {
+        item.children = v.children.map((child: any) => ({
+          type: child.type || 'input',
+          text: child.text || child.name || '',
+          value: child.value || '',
+        }));
       }
-      // 如果 v 有 name 属性但没有 text 属性，使用 name 作为 text
-      if (!v.text && (v as any).name) {
-        v.text = (v as any).name;
-      }
-      v.value = v.value || '';
-      return v;
+      
+      return item;
     });
   } catch {
     return [];

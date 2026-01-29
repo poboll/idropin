@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { searchFiles, type SearchRequest } from '@/lib/api/search';
+import { Search, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 
 interface SearchBarProps {
   onSearch?: (results: any) => void;
@@ -35,42 +36,60 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-4">
+    <div className="card p-4">
       <form onSubmit={handleSearch} className="space-y-4">
         <div className="flex gap-2">
-          <input
-            type="text"
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            placeholder="搜索文件名、标签..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              placeholder="搜索文件名、标签..."
+              className="input pl-10"
+            />
+          </div>
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="btn-primary"
           >
-            {loading ? '搜索中...' : '搜索'}
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                搜索中
+              </>
+            ) : (
+              '搜索'
+            )}
           </button>
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="btn-secondary"
           >
-            {showAdvanced ? '收起' : '高级'}
+            {showAdvanced ? (
+              <>
+                收起
+                <ChevronUp className="w-4 h-4" />
+              </>
+            ) : (
+              <>
+                高级
+                <ChevronDown className="w-4 h-4" />
+              </>
+            )}
           </button>
         </div>
 
         {showAdvanced && (
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                文件类型
-              </label>
+          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-800">
+            <div className="form-group">
+              <label className="form-label">文件类型</label>
               <select
                 value={filters.mimeType || ''}
                 onChange={(e) => setFilters({ ...filters, mimeType: e.target.value || undefined })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="input"
               >
                 <option value="">全部类型</option>
                 <option value="image/">图片</option>
@@ -81,14 +100,12 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                排序方式
-              </label>
+            <div className="form-group">
+              <label className="form-label">排序方式</label>
               <select
                 value={filters.sortBy || 'createdAt'}
                 onChange={(e) => setFilters({ ...filters, sortBy: e.target.value as any })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="input"
               >
                 <option value="createdAt">创建时间</option>
                 <option value="fileSize">文件大小</option>

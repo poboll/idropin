@@ -47,6 +47,41 @@ public class User {
   private String status;
 
   /**
+   * 用户角色: USER-普通用户, ADMIN-管理员, SUPER_ADMIN-超级管理员
+   */
+  private String role;
+
+  /**
+   * 手机号
+   */
+  private String phone;
+
+  /**
+   * 存储配额(字节)
+   */
+  private Long storageLimit;
+
+  /**
+   * 已使用存储(字节)
+   */
+  private Long storageUsed;
+
+  /**
+   * 任务数量限制
+   */
+  private Integer taskLimit;
+
+  /**
+   * 最后登录时间
+   */
+  private LocalDateTime lastLoginAt;
+
+  /**
+   * 最后登录IP
+   */
+  private String lastLoginIp;
+
+  /**
    * 创建时间
    */
   @TableField(fill = FieldFill.INSERT)

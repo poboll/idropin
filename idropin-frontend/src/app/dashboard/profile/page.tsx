@@ -8,58 +8,61 @@ export default function ProfilePage() {
   const { user } = useAuthStore();
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold text-slate-800 dark:text-white">个人资料</h1>
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div className="page-header">
+        <h1 className="page-title">个人资料</h1>
+        <p className="page-description">管理你的账户信息</p>
+      </div>
 
-      <div className="glass-panel p-8">
-        <div className="flex flex-col md:flex-row items-center gap-8">
+      <div className="card p-8">
+        <div className="flex flex-col md:flex-row items-center gap-6 pb-6 border-b border-gray-200 dark:border-gray-800">
           <div className="relative group cursor-pointer">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+            <div className="w-20 h-20 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900 text-2xl font-semibold">
               {user?.username?.[0]?.toUpperCase() || 'U'}
             </div>
-            <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <Camera className="w-8 h-8 text-white" />
+            <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <Camera className="w-6 h-6 text-white" />
             </div>
           </div>
           
-          <div className="flex-1 text-center md:text-left space-y-2">
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{user?.username}</h2>
-            <p className="text-slate-500 dark:text-slate-400">普通用户</p>
+          <div className="flex-1 text-center md:text-left">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{user?.username}</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">普通用户</p>
           </div>
         </div>
 
-        <div className="mt-8 grid gap-6 md:grid-cols-2">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-500 dark:text-slate-400">用户名</label>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-              <User className="w-5 h-5 text-slate-400" />
-              <span className="text-slate-700 dark:text-slate-200">{user?.username}</span>
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <div className="form-group">
+            <label className="form-label">用户名</label>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+              <User className="w-4 h-4 text-gray-400" />
+              <span className="text-sm text-gray-900 dark:text-white">{user?.username}</span>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-500 dark:text-slate-400">邮箱</label>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-              <Mail className="w-5 h-5 text-slate-400" />
-              <span className="text-slate-700 dark:text-slate-200">{user?.email || '未绑定邮箱'}</span>
+          <div className="form-group">
+            <label className="form-label">邮箱</label>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+              <Mail className="w-4 h-4 text-gray-400" />
+              <span className="text-sm text-gray-900 dark:text-white">{user?.email || '未绑定邮箱'}</span>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-500 dark:text-slate-400">注册时间</label>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-              <Calendar className="w-5 h-5 text-slate-400" />
-              <span className="text-slate-700 dark:text-slate-200">
+          <div className="form-group">
+            <label className="form-label">注册时间</label>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+              <Calendar className="w-4 h-4 text-gray-400" />
+              <span className="text-sm text-gray-900 dark:text-white">
                 {user?.createdAt ? formatDate(user.createdAt) : '-'}
               </span>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-500 dark:text-slate-400">账户ID</label>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-              <Key className="w-5 h-5 text-slate-400" />
-              <span className="text-slate-700 dark:text-slate-200">{user?.id}</span>
+          <div className="form-group">
+            <label className="form-label">账户ID</label>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+              <Key className="w-4 h-4 text-gray-400" />
+              <span className="text-sm text-gray-900 dark:text-white font-mono">{user?.id}</span>
             </div>
           </div>
         </div>

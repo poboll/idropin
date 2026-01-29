@@ -4,7 +4,7 @@
 
     <resultMap id="BaseResultMap" type="com.idropin.domain.entity.TaskMoreInfo">
         <id column="id" property="id"/>
-        <result column="task_id" property="taskId" typeHandler="org.apache.ibatis.type.StringTypeHandler"/>
+        <result column="task_id" property="taskId" jdbcType="VARCHAR"/>
         <result column="ddl" property="ddl"/>
         <result column="tip" property="tip"/>
         <result column="info" property="info"/>
@@ -31,7 +31,7 @@
             created_at,
             updated_at
         ) VALUES (
-            #{taskId}::uuid,
+            #{taskId, jdbcType=VARCHAR},
             #{ddl},
             #{tip},
             #{info},
@@ -59,28 +59,10 @@
         WHERE id = #{id}
     </update>
 
-    <select id="selectList" resultMap="BaseResultMap">
-        SELECT 
-            id,
-            task_id::text as task_id,
-            ddl,
-            tip,
-            info,
-            people,
-            format,
-            template,
-            bind_field,
-            rewrite,
-            created_at,
-            updated_at
-        FROM task_more_info
-        ${ew.customSqlSegment}
-    </select>
-
     <select id="selectByTaskId" resultMap="BaseResultMap">
         SELECT 
             id,
-            task_id::text as task_id,
+            task_id,
             ddl,
             tip,
             info,
@@ -92,7 +74,7 @@
             created_at,
             updated_at
         FROM task_more_info
-        WHERE task_id = #{taskId}::uuid
+        WHERE task_id = #{taskId, jdbcType=VARCHAR}::varchar
     </select>
 
     <update id="updateByTaskId" parameterType="com.idropin.domain.entity.TaskMoreInfo">
@@ -106,7 +88,7 @@
             bind_field = #{entity.bindField},
             rewrite = #{entity.rewrite},
             updated_at = #{entity.updatedAt}
-        WHERE task_id = #{entity.taskId}::uuid
+        WHERE task_id = #{entity.taskId, jdbcType=VARCHAR}::varchar
     </update>
 
 </mapper>

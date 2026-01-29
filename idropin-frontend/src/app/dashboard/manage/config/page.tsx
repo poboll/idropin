@@ -1,204 +1,170 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ToggleLeft, ToggleRight, Edit3, Save, X, RefreshCw } from 'lucide-react';
-
-interface RouteConfig {
-  path: string;
-  name: string;
-  title: string;
-  disabled: boolean;
-}
-
-const allowDisabledRoutes = [
-  { path: '/register', name: 'register', title: '注册', hint: '关闭后将同时禁用注册功能' },
-  { path: '/login', name: 'login', title: '登录', hint: '' },
-  { path: '/reset-password', name: 'reset-password', title: '找回密码', hint: '' },
-  { path: '/feedback', name: 'feedback', title: '反馈', hint: '' },
-];
+import Link from 'next/link';
+import { 
+  RefreshCw, Globe, Lock, Unlock, AlertCircle, Settings
+} from 'lucide-react';
+import { 
+  getAllRouteConfigs, updateRouteConfig, getRouteDescription,
+  RouteConfig
+} from '@/lib/api/config';
 
 export default function ConfigManagePage() {
   const [routes, setRoutes] = useState<RouteConfig[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState<string | null>(null);
 
-  const [editConfig, setEditConfig] = useState(false);
-  const [jsonData, setJsonData] = useState<Record<string, unknown>>({});
-  const [editJSON, setEditJSON] = useState('');
-
-  useEffect(() => {
-    loadConfig();
-  }, []);
-
-  const loadConfig = async () => {
-    setIsLoading(true);
-    
-    const mockRoutes: RouteConfig[] = allowDisabledRoutes.map((r) => ({
-      path: r.path,
-      name: r.name,
-      title: r.title,
-      disabled: r.path === '/feedback',
-    }));
-    setRoutes(mockRoutes);
-
-    const mockJsonData = {
-      site: {
-        title: 'Idrop.in - 云集',
-        description: '智能文件收集与管理平台',
-        keywords: ['文件收集', '文件管理', '云存储'],
-        icp: '备案号示例',
-      },
-      features: {
-        maxUploadSize: 104857600,
-        allowedFileTypes: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'png', 'zip'],
-        enableSmsLogin: true,
-        enableWechatLogin: false,
-      },
-      storage: {
-        provider: 'minio',
-        bucket: 'idropin',
-        region: 'cn-east-1',
-      },
-      notification: {
-        enableEmail: true,
-        enableSms: false,
-        smtpHost: 'smtp.example.com',
-        smtpPort: 465,
-      },
-    };
-    setJsonData(mockJsonData);
-    setIsLoading(false);
-  };
-
-  const handleToggleRoute = async (route: RouteConfig) => {
-    setRoutes(prev => prev.map(r => 
-      r.path === route.path ? { ...r, disabled: !r.disabled } : r
-    ));
-    alert('切换成功');
-  };
-
-  const handleEditConfig = () => {
-    setEditConfig(true);
-    setEditJSON(JSON.stringify(jsonData, null, 2));
-  };
-
-  const handleSaveConfig = async () => {
+  const fetchRoutes = async () => {
+    setLoading(true);
     try {
-      const data = JSON.parse(editJSON);
-      setJsonData(data);
-      setEditConfig(false);
-      alert('保存成功');
-    } catch (e) {
-      alert('JSON 格式错误');
+      const data = await getAllRouteConfigs();
+      setRoutes(data);
+    } catch (error) {
+      console.error('Failed to fetch routes:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getRouteHint = (path: string) => {
-    return allowDisabledRoutes.find(r => r.path === path)?.hint || '';
+  useEffect(() => {
+    fetchRoutes();
+  }, []);
+
+  const handleToggle = async (route: RouteConfig) => {
+    setUpdating(route.id);
+    try {
+      await updateRouteConfig(route.id, { isEnabled: !route.isEnabled });
+      setRoutes(routes.map(r => 
+        r.id === route.id ? { ...r, isEnabled: !r.isEnabled } : r
+      ));
+    } catch (error) {
+      console.error('Failed to update route:', error);
+      alert('更新失败');
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const getRouteIcon = (routePath: string) => {
+    switch (routePath) {
+      case '/register':
+        return <Globe className="w-5 h-5" />;
+      case '/':
+        return <Globe className="w-5 h-5" />;
+      case '/reset-password':
+        return <Lock className="w-5 h-5" />;
+      default:
+        return <Settings className="w-5 h-5" />;
+    }
   };
 
   return (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2">
-            <span className="w-1 h-5 bg-blue-600 rounded-full"></span>
-            禁用路由管理
-          </h2>
-          <button
-            onClick={loadConfig}
-            disabled={isLoading}
-            className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            刷新
-          </button>
+      {/* 页面标题 */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">配置管理</h1>
+          <p className="text-sm text-gray-500 mt-1">管理系统路由和功能配置</p>
         </div>
-        
-        <div className="space-y-3 max-w-lg">
-          {routes.map((route) => (
-            <div
-              key={route.path}
-              className="flex items-center gap-4 p-3 border border-gray-200 dark:border-gray-700 rounded-lg"
-            >
-              <button
-                onClick={() => handleToggleRoute(route)}
-                className="flex-shrink-0"
-              >
-                {route.disabled ? (
-                  <ToggleLeft className="w-10 h-6 text-red-500" />
-                ) : (
-                  <ToggleRight className="w-10 h-6 text-green-500" />
-                )}
-              </button>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-800 dark:text-white">{route.title}</span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded ${route.disabled ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'}`}>
-                    {route.disabled ? '已禁用' : '已启用'}
-                  </span>
-                </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  {route.path}
-                  {getRouteHint(route.path) && (
-                    <span className="text-orange-500 ml-2">{getRouteHint(route.path)}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <button
+          onClick={fetchRoutes}
+          className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+        >
+          <RefreshCw className="w-4 h-4" />
+          刷新
+        </button>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2">
-            <span className="w-1 h-5 bg-blue-600 rounded-full"></span>
-            全局配置管理（JSON）
+      {/* 子导航 */}
+      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 pb-4">
+        <Link href="/dashboard/manage" className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">概况</Link>
+        <Link href="/dashboard/manage/users" className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">用户</Link>
+        <Link href="/dashboard/manage/feedback" className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">需求</Link>
+        <Link href="/dashboard/manage/config" className="px-4 py-2 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg font-medium">配置</Link>
+      </div>
+
+      {/* 路由配置 */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+          <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <Lock className="w-4 h-4" />
+            禁用路由管理
           </h2>
-          <div className="flex gap-2">
-            {!editConfig ? (
-              <button
-                onClick={handleEditConfig}
-                className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-              >
-                <Edit3 className="w-4 h-4" />
-                更新
-              </button>
-            ) : (
-              <>
-                <button
-                  onClick={() => setEditConfig(false)}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700"
-                >
-                  <X className="w-4 h-4" />
-                  取消
-                </button>
-                <button
-                  onClick={handleSaveConfig}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-sm rounded hover:bg-green-700"
-                >
-                  <Save className="w-4 h-4" />
-                  保存
-                </button>
-              </>
-            )}
-          </div>
+          <p className="text-sm text-gray-500 mt-1">控制系统各功能页面的访问权限</p>
         </div>
 
-        <div className="max-w-2xl">
-          {!editConfig ? (
-            <pre className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 overflow-x-auto text-sm text-gray-800 dark:text-gray-200">
-              {JSON.stringify(jsonData, null, 2)}
-            </pre>
-          ) : (
-            <textarea
-              value={editJSON}
-              onChange={(e) => setEditJSON(e.target.value)}
-              rows={20}
-              className="w-full px-4 py-3 font-mono text-sm bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
-              spellCheck={false}
-            />
-          )}
+        {loading ? (
+          <div className="p-8 flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : routes.length === 0 ? (
+          <div className="p-8 text-center text-gray-500">暂无路由配置</div>
+        ) : (
+          <div className="divide-y divide-gray-100 dark:divide-gray-700">
+            {routes.map((route) => (
+              <div key={route.id} className="px-5 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className={`p-2 rounded-lg ${
+                    route.isEnabled 
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                      : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                  }`}>
+                    {getRouteIcon(route.routePath)}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium text-gray-900 dark:text-white">{route.routeName}</h3>
+                      <code className="px-2 py-0.5 bg-gray-100 dark:bg-gray-900 rounded text-xs text-gray-600 dark:text-gray-400">
+                        {route.routePath}
+                      </code>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-0.5">{getRouteDescription(route.routePath)}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  {!route.isEnabled && (
+                    <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm">已禁用</span>
+                    </div>
+                  )}
+                  
+                  {/* Toggle Switch */}
+                  <button
+                    onClick={() => handleToggle(route)}
+                    disabled={updating === route.id}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                      route.isEnabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                    } ${updating === route.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        route.isEnabled ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 提示信息 */}
+      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+        <div className="flex gap-3">
+          <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-medium text-amber-800 dark:text-amber-300">注意事项</h4>
+            <ul className="mt-1 text-sm text-amber-700 dark:text-amber-400 space-y-1">
+              <li>• 禁用注册功能后，新用户将无法注册账号</li>
+              <li>• 禁用首页后，未登录用户将被重定向到登录页</li>
+              <li>• 禁用找回密码后，用户将无法通过邮箱重置密码</li>
+              <li>• 配置更改会立即生效，请谨慎操作</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createTask, type CreateTaskRequest } from '@/lib/api/tasks';
-import { CheckCircle, XCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
 interface CreateTaskFormProps {
   activeCategory?: string;
@@ -41,11 +41,7 @@ export default function CreateTaskForm({ activeCategory, onSuccess, onCancel }: 
     try {
       setLoading(true);
       await createTask(formData);
-      
-      // 显示成功提示
       setSuccess(true);
-      
-      // 清空表单
       setFormData({
         title: '',
         description: '',
@@ -53,13 +49,9 @@ export default function CreateTaskForm({ activeCategory, onSuccess, onCancel }: 
         allowAnonymous: false,
         requireLogin: true,
       });
-      
-      // 2秒后隐藏成功提示并调用回调
       setTimeout(() => {
         setSuccess(false);
-        if (onSuccess) {
-          onSuccess();
-        }
+        onSuccess?.();
       }, 2000);
     } catch (err: any) {
       console.error('创建任务失败:', err);
@@ -70,25 +62,26 @@ export default function CreateTaskForm({ activeCategory, onSuccess, onCancel }: 
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {/* 成功提示 */}
       {success && (
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 flex items-center gap-3">
-          <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-          <p className="text-sm text-green-800 dark:text-green-200 font-medium">任务创建成功！</p>
+        <div className="alert alert-success">
+          <CheckCircle className="w-4 h-4 flex-shrink-0" />
+          <span className="text-sm font-medium">任务创建成功！</span>
         </div>
       )}
 
       {/* 错误提示 */}
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3">
-          <XCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" />
-          <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+        <div className="alert alert-error">
+          <XCircle className="w-4 h-4 flex-shrink-0" />
+          <span className="text-sm">{error}</span>
         </div>
       )}
 
-      <div>
-        <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      {/* 任务标题 */}
+      <div className="form-group">
+        <label htmlFor="title" className="form-label">
           任务标题 <span className="text-red-500">*</span>
         </label>
         <input
@@ -96,45 +89,45 @@ export default function CreateTaskForm({ activeCategory, onSuccess, onCancel }: 
           id="title"
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+          className="input"
           placeholder="例如：作业提交"
           required
         />
       </div>
 
-      <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      {/* 任务描述 */}
+      <div className="form-group">
+        <label htmlFor="description" className="form-label">
           任务描述
         </label>
         <textarea
           id="description"
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          rows={4}
-          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+          rows={3}
+          className="input resize-none"
           placeholder="请详细描述任务要求..."
         />
       </div>
 
-      <div>
-        <label htmlFor="deadline" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          截止时间 <span className="text-gray-400 text-xs">(不填写表示永久有效)</span>
+      {/* 截止时间 */}
+      <div className="form-group">
+        <label htmlFor="deadline" className="form-label">
+          截止时间
         </label>
         <input
           type="datetime-local"
           id="deadline"
           value={formData.deadline || ''}
           onChange={(e) => setFormData({ ...formData, deadline: e.target.value || null })}
-          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-          placeholder="不填写表示永久有效"
+          className="input"
         />
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          留空表示任务永久有效，无截止时间限制
-        </p>
+        <p className="form-hint">留空表示任务永久有效</p>
       </div>
 
-      <div>
-        <label htmlFor="maxFileSize" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      {/* 最大文件大小 */}
+      <div className="form-group">
+        <label htmlFor="maxFileSize" className="form-label">
           最大文件大小 (MB)
         </label>
         <input
@@ -147,53 +140,74 @@ export default function CreateTaskForm({ activeCategory, onSuccess, onCancel }: 
               maxFileSize: e.target.value ? parseInt(e.target.value) * 1024 * 1024 : undefined,
             })
           }
-          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+          className="input"
           placeholder="例如：10"
           min="1"
         />
       </div>
 
-      <div className="space-y-3">
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            id="allowAnonymous"
-            checked={formData.allowAnonymous}
-            onChange={(e) => setFormData({ ...formData, allowAnonymous: e.target.checked })}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
-          />
-          <label htmlFor="allowAnonymous" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+      {/* 选项 */}
+      <div className="space-y-3 pt-2">
+        <label className="flex items-center gap-3 cursor-pointer group">
+          <div className="relative">
+            <input
+              type="checkbox"
+              checked={formData.allowAnonymous}
+              onChange={(e) => setFormData({ ...formData, allowAnonymous: e.target.checked })}
+              className="peer sr-only"
+            />
+            <div className="w-5 h-5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900 peer-checked:bg-gray-900 dark:peer-checked:bg-white peer-checked:border-gray-900 dark:peer-checked:border-white transition-colors">
+              <svg className="w-5 h-5 text-white dark:text-gray-900 opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          </div>
+          <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
             允许匿名提交
-          </label>
-        </div>
+          </span>
+        </label>
 
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            id="requireLogin"
-            checked={formData.requireLogin}
-            onChange={(e) => setFormData({ ...formData, requireLogin: e.target.checked })}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
-          />
-          <label htmlFor="requireLogin" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+        <label className="flex items-center gap-3 cursor-pointer group">
+          <div className="relative">
+            <input
+              type="checkbox"
+              checked={formData.requireLogin}
+              onChange={(e) => setFormData({ ...formData, requireLogin: e.target.checked })}
+              className="peer sr-only"
+            />
+            <div className="w-5 h-5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900 peer-checked:bg-gray-900 dark:peer-checked:bg-white peer-checked:border-gray-900 dark:peer-checked:border-white transition-colors">
+              <svg className="w-5 h-5 text-white dark:text-gray-900 opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          </div>
+          <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
             需要登录才能提交
-          </label>
-        </div>
+          </span>
+        </label>
       </div>
 
-      <div className="flex gap-3 pt-4">
+      {/* 按钮 */}
+      <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
         <button
           type="submit"
           disabled={loading}
-          className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="btn-primary flex-1"
         >
-          {loading ? '创建中...' : '创建任务'}
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              创建中...
+            </>
+          ) : (
+            '创建任务'
+          )}
         </button>
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
-            className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-white transition-colors"
+            className="btn-secondary"
           >
             取消
           </button>
