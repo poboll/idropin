@@ -2,6 +2,7 @@ package com.idropin.interfaces.rest;
 
 import com.idropin.application.service.CollectionTaskService;
 import com.idropin.application.service.FileService;
+import com.idropin.common.exception.BusinessException;
 import com.idropin.common.vo.Result;
 import com.idropin.domain.dto.CreateTaskRequest;
 import com.idropin.domain.dto.TaskMoreInfoRequest;
@@ -43,6 +44,7 @@ public class CollectionTaskController {
   private final FileService fileService;
   private final StorageService storageService;
   private final TaskMoreInfoMapper taskMoreInfoMapper;
+  private final com.idropin.infrastructure.persistence.mapper.UserMapper userMapper;
 
   @PostMapping
   @Operation(summary = "创建收集任务")
@@ -108,12 +110,27 @@ public class CollectionTaskController {
       @RequestParam(value = "submitterName", required = false) String submitterName,
       @RequestParam(value = "submitterEmail", required = false) String submitterEmail,
       @AuthenticationPrincipal UserDetails userDetails) {
+    
+    log.info("Received file submission for task: {}, file: {}, submitterName: {}", 
+        taskId, file.getOriginalFilename(), submitterName);
+    
+    // 验证文件不为空
+    if (file.isEmpty()) {
+      log.error("File is empty");
+      throw new BusinessException("文件不能为空");
+    }
+    
     String userId = getUserIdOrNull(userDetails);
 
-    String fileId = fileService.uploadFile(file, userId).getId();
+    // 上传文件到存储
+    com.idropin.domain.entity.File uploadedFile = fileService.uploadFile(file, userId);
+    log.info("File uploaded successfully with ID: {}", uploadedFile.getId());
 
+    // 创建提交记录
     FileSubmission submission = taskService.submitFile(
-        taskId, fileId, submitterName, submitterEmail, userId);
+        taskId, uploadedFile.getId(), submitterName, submitterEmail, userId);
+    
+    log.info("File submission created successfully with ID: {}", submission.getId());
 
     return Result.success(submission);
   }
@@ -223,12 +240,23 @@ public class CollectionTaskController {
       return Result.error(4001, "任务不存在");
     }
     
+    // 获取创建者用户名
+    String creatorName = "";
+    if (task.getCreatedBy() != null) {
+      com.idropin.domain.entity.User creator = userMapper.selectById(task.getCreatedBy());
+      if (creator != null) {
+        creatorName = creator.getUsername();
+      }
+    }
+    
     Map<String, Object> result = new HashMap<>();
     result.put("id", task.getId());
     result.put("title", task.getTitle());
     result.put("description", task.getDescription());
     result.put("status", task.getStatus());
     result.put("deadline", task.getDeadline());
+    result.put("createdBy", task.getCreatedBy());
+    result.put("creatorName", creatorName);
     
     return Result.success(result);
   }

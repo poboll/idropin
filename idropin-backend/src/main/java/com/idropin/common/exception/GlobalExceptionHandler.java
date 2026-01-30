@@ -65,7 +65,8 @@ public class GlobalExceptionHandler {
   @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
   public Result<?> handleRuntimeException(RuntimeException e) {
     log.error("运行时异常: ", e);
-    return Result.error(500, "服务器内部错误");
+    String message = e.getMessage() != null ? e.getMessage() : "服务器内部错误";
+    return Result.error(500, message);
   }
 
   /**
@@ -75,6 +76,7 @@ public class GlobalExceptionHandler {
   @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
   public Result<?> handleException(Exception e) {
     log.error("未知异常: ", e);
-    return Result.error(500, "服务器内部错误");
+    String message = e.getMessage() != null ? e.getMessage() : "未知错误";
+    return Result.error(500, message);
   }
 }

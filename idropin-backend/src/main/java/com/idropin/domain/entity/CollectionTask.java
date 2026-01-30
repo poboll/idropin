@@ -66,6 +66,11 @@ public class CollectionTask {
   private String status;
 
   /**
+   * 任务类型: FILE_COLLECTION（文件收集）, INFO_COLLECTION（信息收集）
+   */
+  private String taskType;
+
+  /**
    * 创建时间
    */
   @TableField(fill = FieldFill.INSERT)

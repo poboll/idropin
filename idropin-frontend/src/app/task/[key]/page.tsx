@@ -27,6 +27,8 @@ interface TaskBasicInfo {
   description?: string;
   category?: string;
   limitUpload?: boolean;
+  deadline?: string;
+  creatorName?: string;
 }
 
 export default function TaskSubmissionPage() {
@@ -106,6 +108,8 @@ export default function TaskSubmissionPage() {
           name: info.title || '',
           description: info.description || '',
           limitUpload: false,
+          deadline: info.deadline || '',
+          creatorName: info.creatorName || '',
         });
         setDisabledUpload(false);
 
@@ -192,7 +196,6 @@ export default function TaskSubmissionPage() {
     setIsSubmitting(true);
 
     try {
-      await getUploadToken();
       const readyFiles = files.filter(f => f.status === 'ready' && f.md5);
 
       for (const uploadFile of readyFiles) {
@@ -209,14 +212,24 @@ export default function TaskSubmissionPage() {
         fileName = normalizeFileName(fileName);
 
         try {
-          await addFile({
-            name: fileName,
-            hash: uploadFile.md5!,
-            size: uploadFile.file.size,
-            key: taskKey,
-            info: JSON.stringify(infos),
-            peopleName: isSameFieldName?.value || peopleName,
+          // First upload the actual file content to storage
+          const formData = new FormData();
+          formData.append('file', uploadFile.file);
+          formData.append('taskKey', taskKey);
+          formData.append('submitterName', isSameFieldName?.value || peopleName || '');
+          formData.append('submitterEmail', '');
+          
+          // Use the proper task submission endpoint that uploads file AND creates submission record
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api'}/tasks/${taskKey}/submit`, {
+            method: 'POST',
+            body: formData,
+            credentials: 'include',
           });
+
+          if (!response.ok) {
+            const error = await response.text();
+            throw new Error(error || '上传失败');
+          }
 
           setFiles(prev => prev.map(f => 
             f.id === uploadFile.id ? { ...f, status: 'success' as const, progress: 100 } : f
@@ -228,14 +241,16 @@ export default function TaskSubmissionPage() {
           }
 
           alert(`文件: ${originName} 提交成功`);
-        } catch {
+        } catch (error) {
+          console.error('Upload failed:', error);
           setFiles(prev => prev.map(f => 
             f.id === uploadFile.id ? { ...f, status: 'fail' as const, error: '上传失败' } : f
           ));
         }
       }
     } catch (err) {
-      alert('获取上传凭证失败');
+      alert('上传失败');
+      console.error(err);
     } finally {
       setIsSubmitting(false);
     }
@@ -366,30 +381,57 @@ export default function TaskSubmissionPage() {
 
       <main className="max-w-3xl mx-auto px-4 py-8">
         {/* Task Title Card */}
-        <div className="bg-white dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-800 p-6 mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
-            {taskInfo.name}
-          </h1>
+        <div className="bg-white dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-800 p-8 mb-6 shadow-sm">
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
+                {taskInfo.name}
+              </h1>
+              
+              {/* Task Description */}
+              {taskInfo.description && (
+                <p className="text-gray-600 dark:text-gray-400 text-base leading-relaxed whitespace-pre-wrap">
+                  {taskInfo.description}
+                </p>
+              )}
+            </div>
+          </div>
           
-          {/* Task Description */}
-          {taskInfo.description && (
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 whitespace-pre-wrap">
-              {taskInfo.description}
-            </p>
-          )}
-          
-          {/* Task Meta Info */}
-          <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400">
-            {ddlStr && (
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4" />
-                <span>截止: {ddlStr}</span>
+          {/* Task Meta Info - Enhanced */}
+          <div className="flex flex-wrap gap-6 pt-4 border-t border-gray-100 dark:border-gray-800">
+            {taskInfo.creatorName && (
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center">
+                  <Users className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-500">收件人</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">{taskInfo.creatorName}</p>
+                </div>
+              </div>
+            )}
+            {(taskInfo.deadline || ddlStr) && (
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900/30 dark:to-amber-800/30 flex items-center justify-center">
+                  <Clock className="w-4 h-4 text-amber-600 dark:text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-500">截止时间</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    {ddlStr || (taskInfo.deadline ? formatDate(new Date(taskInfo.deadline)) : '')}
+                  </p>
+                </div>
               </div>
             )}
             {taskMoreInfo.people && (
-              <div className="flex items-center gap-1.5">
-                <Users className="w-4 h-4" />
-                <span>需验证名单</span>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 flex items-center justify-center">
+                  <FileText className="w-4 h-4 text-blue-600 dark:text-blue-500" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-500">验证方式</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">需验证名单</p>
+                </div>
               </div>
             )}
           </div>

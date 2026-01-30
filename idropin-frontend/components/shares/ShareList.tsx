@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { getUserShares, cancelShare, getShareUrl, type FileShare } from '@/lib/api/shares';
+import { extractApiError } from '@/lib/api/client';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { Share2, Calendar, Download, Clock, Copy, Check, X, Lock } from 'lucide-react';
+import { Share2, Calendar, Download, Clock, Copy, Check, X, Lock, RefreshCw } from 'lucide-react';
 
 export default function ShareList() {
   const [shares, setShares] = useState<FileShare[]>([]);
@@ -19,10 +20,12 @@ export default function ShareList() {
   const loadShares = async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await getUserShares();
       setShares(data);
-    } catch (err: any) {
-      setError(err.message || '加载分享列表失败');
+    } catch (err: unknown) {
+      const apiError = extractApiError(err);
+      setError(apiError.message);
     } finally {
       setLoading(false);
     }
@@ -47,8 +50,9 @@ export default function ShareList() {
     try {
       await cancelShare(shareId);
       setShares(shares.filter(s => s.id !== shareId));
-    } catch (err: any) {
-      alert(err.message || '取消分享失败');
+    } catch (err: unknown) {
+      const apiError = extractApiError(err);
+      alert(apiError.message);
     }
   };
 
@@ -72,9 +76,20 @@ export default function ShareList() {
 
   if (error) {
     return (
-      <div className="alert alert-error">
-        <X className="w-4 h-4" />
-        <span>{error}</span>
+      <div className="card p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <X className="w-5 h-5 text-red-600 dark:text-red-400" />
+          </div>
+          <div>
+            <h3 className="text-base font-medium text-gray-900 dark:text-white">加载失败</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{error}</p>
+          </div>
+        </div>
+        <button onClick={loadShares} className="btn-primary w-full">
+          <RefreshCw className="w-4 h-4" />
+          重试
+        </button>
       </div>
     );
   }

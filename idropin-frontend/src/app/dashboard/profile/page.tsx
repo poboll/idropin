@@ -1,11 +1,59 @@
 'use client';
 
+import { useState } from 'react';
 import { useAuthStore } from '@/lib/stores';
-import { User, Mail, Calendar, Key, Camera } from 'lucide-react';
+import { apiClient, extractApiError } from '@/lib/api/client';
+import { User, Mail, Calendar, Key, Camera, Lock, Loader2, ChevronDown } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
 export default function ProfilePage() {
   const { user } = useAuthStore();
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [verifyType, setVerifyType] = useState<'password' | 'email' | 'phone'>('password');
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [verifyCode, setVerifyCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(false);
+
+    if (newPassword !== confirmPassword) {
+      setError('两次输入的密码不一致');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setError('密码长度至少6位');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await apiClient.put('/user/password', {
+        oldPassword: verifyType === 'password' ? oldPassword : undefined,
+        newPassword,
+        verifyType,
+        verifyCode: verifyType !== 'password' ? verifyCode : undefined,
+      });
+      setSuccess(true);
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setVerifyCode('');
+      setTimeout(() => setShowPasswordForm(false), 2000);
+    } catch (err) {
+      const apiError = extractApiError(err);
+      setError(apiError.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -66,6 +114,133 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="card p-8">
+        <div 
+          className="flex items-center justify-between cursor-pointer"
+          onClick={() => setShowPasswordForm(!showPasswordForm)}
+        >
+          <div className="flex items-center gap-3">
+            <Lock className="w-5 h-5 text-gray-400" />
+            <div>
+              <h3 className="font-medium text-gray-900 dark:text-white">修改密码</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">更新你的登录密码</p>
+            </div>
+          </div>
+          <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${showPasswordForm ? 'rotate-180' : ''}`} />
+        </div>
+
+        {showPasswordForm && (
+          <form onSubmit={handleChangePassword} className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 space-y-4">
+            {error && (
+              <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              </div>
+            )}
+            {success && (
+              <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <p className="text-sm text-green-600 dark:text-green-400">密码修改成功！</p>
+              </div>
+            )}
+
+            <div className="form-group">
+              <label className="form-label">验证方式</label>
+              <div className="grid grid-cols-3 gap-2">
+                {(['password', 'email', 'phone'] as const).map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setVerifyType(type)}
+                    className={`p-2 rounded-lg border text-sm transition-colors ${
+                      verifyType === type
+                        ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300'
+                    }`}
+                  >
+                    {type === 'password' ? '原密码验证' : type === 'email' ? '邮箱验证码' : '手机验证码'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {verifyType === 'password' ? (
+              <div className="form-group">
+                <label className="form-label">原密码</label>
+                <input
+                  type="password"
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  placeholder="请输入原密码"
+                  className="input"
+                  required
+                />
+              </div>
+            ) : (
+              <div className="form-group">
+                <label className="form-label">{verifyType === 'email' ? '邮箱' : '手机'}验证码</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={verifyCode}
+                    onChange={(e) => setVerifyCode(e.target.value)}
+                    placeholder="请输入验证码"
+                    className="input flex-1"
+                    required
+                  />
+                  <button type="button" className="btn-secondary whitespace-nowrap">
+                    发送验证码
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="form-group">
+              <label className="form-label">新密码</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="请输入新密码（至少6位）"
+                className="input"
+                required
+                minLength={6}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">确认新密码</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="请再次输入新密码"
+                className="input"
+                required
+              />
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowPasswordForm(false)}
+                className="btn-secondary"
+              >
+                取消
+              </button>
+              <button type="submit" disabled={loading} className="btn-primary">
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    提交中...
+                  </>
+                ) : (
+                  '确认修改'
+                )}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

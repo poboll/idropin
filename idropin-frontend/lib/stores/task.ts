@@ -5,7 +5,10 @@ import * as taskApi from '../api/tasks';
 export interface Task {
   key: string;
   name: string;
+  description?: string;
   category: string;
+  taskType?: 'FILE_COLLECTION' | 'INFO_COLLECTION';
+  createdAt?: string;
   recentLog: string[];
 }
 
@@ -37,7 +40,10 @@ export const useTaskStore = create<TaskStore>()(
           const mappedTasks: Task[] = tasks.map((t) => ({
             key: t.id,
             name: t.title,
-            category: 'default', // Use default category for now
+            description: t.description,
+            category: 'default',
+            taskType: t.taskType,
+            createdAt: t.createdAt,
             recentLog: [],
           }));
           set({ taskList: mappedTasks });

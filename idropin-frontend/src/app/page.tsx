@@ -1,9 +1,18 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Upload, Search, BarChart3, Shield, Zap, Globe } from 'lucide-react';
+import { ArrowRight, Upload, Search, BarChart3, Shield, Zap, Globe, LayoutDashboard } from 'lucide-react';
+import { getToken } from '@/lib/api/client';
 
 export default function Home() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const token = getToken();
+    setIsLoggedIn(!!token);
+  }, []);
+
   return (
     <div className="min-h-screen bg-white dark:bg-black">
       {/* Navigation */}
@@ -30,18 +39,30 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-3">
-              <Link
-                href="/login"
-                className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-              >
-                登录
-              </Link>
-              <Link
-                href="/register"
-                className="btn-primary btn-sm"
-              >
-                注册
-              </Link>
+              {isLoggedIn ? (
+                <Link
+                  href="/dashboard"
+                  className="btn-primary btn-sm"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  进入控制台
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  >
+                    登录
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="btn-primary btn-sm"
+                  >
+                    注册
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

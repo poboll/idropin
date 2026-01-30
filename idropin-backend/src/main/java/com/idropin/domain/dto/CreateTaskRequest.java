@@ -50,4 +50,9 @@ public class CreateTaskRequest {
   private List<String> allowedTypes;
 
   private String category;
+
+  /**
+   * 任务类型: FILE_COLLECTION（文件收集）, INFO_COLLECTION（信息收集）
+   */
+  private String taskType;
 }

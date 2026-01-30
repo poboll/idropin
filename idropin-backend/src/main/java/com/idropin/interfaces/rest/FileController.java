@@ -262,7 +262,13 @@ public class FileController {
         
         log.info("Withdrawing file: taskKey={}, id={}, filename={}, userId={}", taskKey, id, filename, userId);
         
-        // 查找并更新提交记录状态
+        if (taskKey == null || taskKey.isEmpty()) {
+            throw new com.idropin.common.exception.BusinessException("任务key不能为空");
+        }
+        if (filename == null || filename.isEmpty()) {
+            throw new com.idropin.common.exception.BusinessException("文件名不能为空");
+        }
+        
         com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<TaskSubmission> wrapper = 
             new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
         wrapper.eq(TaskSubmission::getTaskKey, taskKey)
@@ -270,11 +276,13 @@ public class FileController {
                .eq(TaskSubmission::getStatus, 0);
         
         TaskSubmission submission = taskSubmissionMapper.selectOne(wrapper);
-        if (submission != null) {
-            submission.setStatus(1); // 已撤回
-            taskSubmissionMapper.updateById(submission);
-            log.info("File submission withdrawn: id={}", submission.getId());
+        if (submission == null) {
+            throw new com.idropin.common.exception.BusinessException("未找到可撤回的提交记录，可能已被撤回或不存在");
         }
+        
+        submission.setStatus(1);
+        taskSubmissionMapper.updateById(submission);
+        log.info("File submission withdrawn: id={}", submission.getId());
         
         return Result.success(null);
     }

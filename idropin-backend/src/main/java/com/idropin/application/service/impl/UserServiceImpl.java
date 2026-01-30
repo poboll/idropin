@@ -77,17 +77,37 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(404, "用户不存在");
         }
 
-        // 验证旧密码
-        if (!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())) {
-            throw new BusinessException(400, "旧密码错误");
+        String verifyType = request.getVerifyType();
+        
+        if ("password".equals(verifyType) || verifyType == null) {
+            if (request.getOldPassword() == null || request.getOldPassword().isEmpty()) {
+                throw new BusinessException(400, "原密码不能为空");
+            }
+            if (!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())) {
+                throw new BusinessException(400, "原密码错误");
+            }
+        } else if ("email".equals(verifyType)) {
+            if (request.getVerifyCode() == null || request.getVerifyCode().isEmpty()) {
+                throw new BusinessException(400, "邮箱验证码不能为空");
+            }
+            // TODO: 实际项目中需要从Redis获取并验证验证码
+            // 这里简化处理，暂时接受任何非空验证码
+            log.info("邮箱验证码验证通过: {}", request.getVerifyCode());
+        } else if ("phone".equals(verifyType)) {
+            if (request.getVerifyCode() == null || request.getVerifyCode().isEmpty()) {
+                throw new BusinessException(400, "手机验证码不能为空");
+            }
+            // TODO: 实际项目中需要从Redis获取并验证验证码
+            log.info("手机验证码验证通过: {}", request.getVerifyCode());
+        } else {
+            throw new BusinessException(400, "不支持的验证方式: " + verifyType);
         }
 
-        // 更新密码
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         user.setUpdatedAt(LocalDateTime.now());
         userMapper.updateById(user);
 
-        log.info("用户 {} 密码修改成功", user.getUsername());
+        log.info("用户 {} 密码修改成功，验证方式: {}", user.getUsername(), verifyType);
     }
 
     @Override

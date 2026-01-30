@@ -14,23 +14,23 @@ import java.util.UUID;
 @TableName("file_submission")
 public class FileSubmission {
 
-  @TableId(type = IdType.INPUT)
-  private UUID id;
+  @TableId(type = IdType.ASSIGN_UUID)
+  private String id;
 
   /**
    * 任务ID
    */
-  private UUID taskId;
+  private String taskId;
 
   /**
    * 文件ID
    */
-  private UUID fileId;
+  private String fileId;
 
   /**
    * 提交者ID
    */
-  private UUID submitterId;
+  private String submitterId;
 
 
   /**

@@ -188,7 +188,7 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
     CollectionTask task = getTask(taskId, userId);
 
     LambdaQueryWrapper<FileSubmission> wrapper = new LambdaQueryWrapper<>();
-    wrapper.eq(FileSubmission::getTaskId, UUID.fromString(task.getId()));
+    wrapper.eq(FileSubmission::getTaskId, task.getId());
     submissionMapper.delete(wrapper);
 
     taskMapper.deleteById(task.getId());
@@ -235,23 +235,23 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
 
     LambdaQueryWrapper<FileSubmission> wrapper = new LambdaQueryWrapper<>();
     if (submitterId != null) {
-      wrapper.eq(FileSubmission::getSubmitterId, UUID.fromString(submitterId));
+      wrapper.eq(FileSubmission::getSubmitterId, submitterId);
     } else {
       wrapper.eq(FileSubmission::getSubmitterEmail, submitterEmail);
     }
-    wrapper.eq(FileSubmission::getTaskId, UUID.fromString(taskId));
-    wrapper.eq(FileSubmission::getFileId, UUID.fromString(fileId));
+    wrapper.eq(FileSubmission::getTaskId, taskId);
+    wrapper.eq(FileSubmission::getFileId, fileId);
 
     if (submissionMapper.selectCount(wrapper) > 0) {
       throw new BusinessException("已提交过此文件");
     }
 
     FileSubmission submission = new FileSubmission();
-    submission.setId(UUID.randomUUID());
-    submission.setTaskId(UUID.fromString(taskId));
-    submission.setFileId(UUID.fromString(fileId));
+    submission.setId(UUID.randomUUID().toString());
+    submission.setTaskId(taskId);
+    submission.setFileId(fileId);
     if (submitterId != null) {
-      submission.setSubmitterId(UUID.fromString(submitterId));
+      submission.setSubmitterId(submitterId);
     }
     submission.setSubmitterName(submitterName);
     submission.setSubmitterEmail(submitterEmail);
@@ -268,7 +268,7 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
     CollectionTask task = getTask(taskId, userId);
 
     LambdaQueryWrapper<FileSubmission> wrapper = new LambdaQueryWrapper<>();
-    wrapper.eq(FileSubmission::getTaskId, UUID.fromString(taskId))
+    wrapper.eq(FileSubmission::getTaskId, taskId)
         .orderByDesc(FileSubmission::getSubmittedAt);
 
     return submissionMapper.selectList(wrapper);
@@ -279,13 +279,13 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
     CollectionTask task = getTask(taskId, userId);
 
     LambdaQueryWrapper<FileSubmission> wrapper = new LambdaQueryWrapper<>();
-    wrapper.eq(FileSubmission::getTaskId, UUID.fromString(taskId));
+    wrapper.eq(FileSubmission::getTaskId, taskId);
     List<FileSubmission> submissions = submissionMapper.selectList(wrapper);
 
     long totalSubmissions = submissions.size();
 
     Set<String> uniqueSubmitters = submissions.stream()
-        .map(sub -> sub.getSubmitterId() != null ? sub.getSubmitterId().toString() : sub.getSubmitterEmail())
+        .map(sub -> sub.getSubmitterId() != null ? sub.getSubmitterId() : sub.getSubmitterEmail())
         .collect(Collectors.toSet());
     long uniqueSubmittersCount = uniqueSubmitters.size();
 
@@ -304,7 +304,7 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
           File file = fileMapper.selectById(sub.getFileId());
           String fileName = file != null ? file.getOriginalName() : "未知文件";
           return TaskStatisticsVO.RecentSubmission.builder()
-              .submissionId(sub.getId().toString())
+              .submissionId(sub.getId())
               .fileName(fileName)
               .submitterName(sub.getSubmitterName() != null ? sub.getSubmitterName() : "匿名用户")
               .submittedAt(sub.getSubmittedAt().toString())

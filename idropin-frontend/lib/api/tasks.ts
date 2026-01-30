@@ -14,6 +14,7 @@ export interface CreateTaskRequest {
   requireLogin?: boolean;
   maxFileSize?: number;
   allowedTypes?: string[];
+  taskType?: 'FILE_COLLECTION' | 'INFO_COLLECTION';
 }
 
 export interface CollectionTask {
@@ -27,6 +28,7 @@ export interface CollectionTask {
   allowedTypes?: string[];
   createdBy: string;
   status: string;
+  taskType?: 'FILE_COLLECTION' | 'INFO_COLLECTION';
   createdAt: string;
   updatedAt: string;
 }
