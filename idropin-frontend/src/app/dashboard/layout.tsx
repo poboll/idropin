@@ -51,7 +51,8 @@ export default function DashboardLayout({
     setMounted(true);
     // Refresh user info on mount to get latest role/permissions
     fetchCurrentUser();
-  }, [fetchCurrentUser]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 只在组件挂载时执行一次
 
   const handleLogout = () => {
     logout();
@@ -143,9 +144,17 @@ export default function DashboardLayout({
                 }}
                 className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
-                <div className="w-7 h-7 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {user?.username?.charAt(0).toUpperCase() || 'U'}
-                </div>
+                {user?.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt="Avatar"
+                    className="w-7 h-7 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-7 h-7 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {user?.username?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                )}
                 <span className="hidden sm:block text-sm text-gray-700 dark:text-gray-300 max-w-[100px] truncate">
                   {user?.username || 'User'}
                 </span>

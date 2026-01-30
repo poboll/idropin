@@ -13,8 +13,11 @@ export function RouteGuard({ children }: RouteGuardProps) {
 
   if (isChecking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black">
+        <div className="text-center">
+          <div className="spinner mx-auto mb-4" />
+          <p className="text-sm text-gray-500 dark:text-gray-400">检查路由状态...</p>
+        </div>
       </div>
     );
   }

@@ -117,4 +117,16 @@ public interface UserMapper extends BaseMapper<User> {
      */
     @Select("SELECT COALESCE(SUM(file_size), 0) FROM file WHERE status = 'INVALID'")
     Long sumInvalidFileSize();
+    
+    /**
+     * 更新用户头像
+     */
+    @org.apache.ibatis.annotations.Update("UPDATE sys_user SET avatar_url = #{avatarUrl}, updated_at = #{updatedAt} WHERE id = #{id}")
+    int updateAvatar(@Param("id") String id, @Param("avatarUrl") String avatarUrl, @Param("updatedAt") java.time.LocalDateTime updatedAt);
+    
+    /**
+     * 更新用户密码
+     */
+    @org.apache.ibatis.annotations.Update("UPDATE sys_user SET password_hash = #{passwordHash}, updated_at = #{updatedAt} WHERE id = #{id}")
+    int updatePassword(@Param("id") String id, @Param("passwordHash") String passwordHash, @Param("updatedAt") java.time.LocalDateTime updatedAt);
 }

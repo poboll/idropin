@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores';
-import LoadingScreen from '@/components/LoadingScreen';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -29,7 +28,8 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     };
 
     checkAuth();
-  }, [fetchCurrentUser, isMounted]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMounted]); // 只依赖 isMounted，避免 fetchCurrentUser 导致无限循环
 
   useEffect(() => {
     if (!isMounted) return;
@@ -46,7 +46,14 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
   // 显示加载状态
   if (isChecking || isLoading) {
-    return <LoadingScreen message="验证登录状态" />;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black">
+        <div className="text-center">
+          <div className="spinner mx-auto mb-4" />
+          <p className="text-sm text-gray-500 dark:text-gray-400">验证登录状态...</p>
+        </div>
+      </div>
+    );
   }
 
   // 未认证时不渲染内容（等待跳转）

@@ -75,6 +75,7 @@ function ContactContent() {
                       src={qrcode.img} 
                       alt={qrcode.text} 
                       fill
+                      sizes="128px"
                       className="object-contain"
                     />
                   </div>

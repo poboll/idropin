@@ -49,7 +49,22 @@ public class UserDetailsServiceImpl implements UserDetailsService {
      */
     private List<SimpleGrantedAuthority> getAuthorities(User user) {
         List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+        
+        // 添加基础用户角色
         authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+        
+        // 根据用户角色添加相应权限
+        String role = user.getRole();
+        if (role != null) {
+            if ("ADMIN".equals(role)) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+            } else if ("SUPER_ADMIN".equals(role)) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN"));
+                authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN")); // 超级管理员也有管理员权限
+            }
+        }
+        
+        log.debug("用户 {} 的权限: {}", user.getUsername(), authorities);
         return authorities;
     }
 }

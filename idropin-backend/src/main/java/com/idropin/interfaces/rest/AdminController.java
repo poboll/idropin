@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "管理功能", description = "管理员专属接口")
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping("/admin")
 @RequiredArgsConstructor
 @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
 public class AdminController {

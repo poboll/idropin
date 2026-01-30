@@ -188,23 +188,32 @@ export default function StatisticsPage() {
           <h3 className="text-base font-medium text-gray-900 dark:text-white">分类统计</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">按分类统计文件数量和存储大小</p>
         </div>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={statistics.categoryStatistics}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
-            <XAxis dataKey="categoryName" tick={{ fontSize: 12 }} stroke="#737373" />
-            <YAxis tick={{ fontSize: 12 }} stroke="#737373" />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#fff', 
-                border: '1px solid #e5e5e5',
-                borderRadius: '8px'
-              }} 
-            />
-            <Legend />
-            <Bar dataKey="fileCount" fill="#171717" name="文件数" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="storageSize" fill="#737373" name="存储大小(字节)" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        {statistics.categoryStatistics && statistics.categoryStatistics.length > 0 ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={statistics.categoryStatistics}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+              <XAxis dataKey="categoryName" tick={{ fontSize: 12 }} stroke="#737373" />
+              <YAxis tick={{ fontSize: 12 }} stroke="#737373" />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#fff', 
+                  border: '1px solid #e5e5e5',
+                  borderRadius: '8px'
+                }} 
+              />
+              <Legend />
+              <Bar dataKey="fileCount" fill="#171717" name="文件数" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="storageSize" fill="#737373" name="存储大小(字节)" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex items-center justify-center h-[300px] text-gray-400 dark:text-gray-600">
+            <div className="text-center">
+              <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">暂无分类数据</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 存储空间使用 */}

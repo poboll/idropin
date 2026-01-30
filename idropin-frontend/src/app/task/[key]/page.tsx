@@ -372,6 +372,7 @@ export default function TaskSubmissionPage() {
                 src="https://pic.imgdb.cn/item/668cd877d9c307b7e99e9061.png"
                 alt="EasyPicker"
                 fill
+                sizes="96px"
                 className="object-contain"
                 priority
               />
@@ -514,6 +515,7 @@ export default function TaskSubmissionPage() {
                         src={img.name}
                         alt={`批注图片 ${index + 1}`}
                         fill
+                        sizes="(max-width: 640px) 100vw, 50vw"
                         className="object-cover transition-transform group-hover:scale-105"
                       />
                       {/* 悬停遮罩提示 */}
@@ -724,6 +726,7 @@ export default function TaskSubmissionPage() {
               src={previewImage}
               alt="预览大图"
               fill
+              sizes="90vw"
               className="object-contain"
               priority
             />

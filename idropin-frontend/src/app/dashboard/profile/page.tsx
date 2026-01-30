@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import { useAuthStore } from '@/lib/stores';
 import { apiClient, extractApiError } from '@/lib/api/client';
-import { User, Mail, Calendar, Key, Camera, Lock, Loader2, ChevronDown, Upload as UploadIcon } from 'lucide-react';
+import { User, Mail, Calendar, Key, Camera, Lock, ChevronDown, Upload as UploadIcon } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
 export default function ProfilePage() {
@@ -151,13 +151,13 @@ export default function ProfilePage() {
                   className="w-20 h-20 rounded-full object-cover"
                 />
               ) : (
-                <div className="w-20 h-20 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900 text-2xl font-semibold">
+                <div className="w-20 h-20 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-700 dark:text-gray-300 text-2xl font-semibold">
                   {user?.username?.[0]?.toUpperCase() || 'U'}
                 </div>
               )}
               <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 {uploadingAvatar ? (
-                  <Loader2 className="w-6 h-6 text-white animate-spin" />
+                  <div className="spinner" />
                 ) : (
                   <Camera className="w-6 h-6 text-white" />
                 )}
@@ -324,7 +324,7 @@ export default function ProfilePage() {
               <button type="submit" disabled={loading} className="btn-primary">
                 {loading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <div className="spinner w-4 h-4" />
                     提交中...
                   </>
                 ) : (

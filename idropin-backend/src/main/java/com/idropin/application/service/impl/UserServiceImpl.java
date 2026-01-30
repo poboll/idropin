@@ -104,9 +104,9 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(400, "不支持的验证方式: " + verifyType);
         }
 
-        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
-        user.setUpdatedAt(LocalDateTime.now());
-        userMapper.updateById(user);
+        // 使用自定义更新方法，避免JSONB类型转换问题
+        String newPasswordHash = passwordEncoder.encode(request.getNewPassword());
+        userMapper.updatePassword(userId, newPasswordHash, LocalDateTime.now());
 
         log.info("用户 {} 密码修改成功，验证方式: {}", user.getUsername(), verifyType);
     }
@@ -119,9 +119,8 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(404, "用户不存在");
         }
 
-        user.setAvatarUrl(avatarUrl);
-        user.setUpdatedAt(LocalDateTime.now());
-        userMapper.updateById(user);
+        // 使用自定义更新方法，避免JSONB类型转换问题
+        userMapper.updateAvatar(userId, avatarUrl, LocalDateTime.now());
 
         log.info("用户 {} 资料更新成功", user.getUsername());
 
@@ -129,7 +128,7 @@ public class UserServiceImpl implements UserService {
                 .id(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
-                .avatarUrl(user.getAvatarUrl())
+                .avatarUrl(avatarUrl)
                 .status(user.getStatus())
                 .role(user.getRole())
                 .createdAt(user.getCreatedAt())

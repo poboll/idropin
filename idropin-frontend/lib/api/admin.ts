@@ -67,7 +67,7 @@ export interface OperationLogPage {
  * 获取平台概况统计
  */
 export async function getOverviewStats(): Promise<OverviewStats> {
-  const response = await apiClient.get('/api/admin/overview');
+  const response = await apiClient.get('/admin/overview');
   return response.data.data;
 }
 
@@ -80,7 +80,7 @@ export async function getUsers(params: {
   page?: number;
   size?: number;
 }): Promise<AdminUserPage> {
-  const response = await apiClient.get('/api/admin/users', { params });
+  const response = await apiClient.get('/admin/users', { params });
   return response.data.data;
 }
 
@@ -88,14 +88,14 @@ export async function getUsers(params: {
  * 修改用户状态
  */
 export async function updateUserStatus(userId: string, status: string): Promise<void> {
-  await apiClient.put(`/api/admin/users/${userId}/status`, { status });
+  await apiClient.put(`/admin/users/${userId}/status`, { status });
 }
 
 /**
  * 重置用户密码
  */
 export async function resetUserPassword(userId: string): Promise<string> {
-  const response = await apiClient.post(`/api/admin/users/${userId}/reset-password`);
+  const response = await apiClient.post(`/admin/users/${userId}/reset-password`);
   return response.data.data;
 }
 
@@ -103,35 +103,35 @@ export async function resetUserPassword(userId: string): Promise<string> {
  * 绑定用户手机号
  */
 export async function bindUserPhone(userId: string, phone: string): Promise<void> {
-  await apiClient.put(`/api/admin/users/${userId}/phone`, { phone });
+  await apiClient.put(`/admin/users/${userId}/phone`, { phone });
 }
 
 /**
  * 发送消息给用户
  */
 export async function sendMessageToUser(userId: string, title: string, content: string): Promise<void> {
-  await apiClient.post(`/api/admin/users/${userId}/message`, { title, content });
+  await apiClient.post(`/admin/users/${userId}/message`, { title, content });
 }
 
 /**
  * 修改用户配额
  */
 export async function updateUserQuota(userId: string, storageLimit?: number, taskLimit?: number): Promise<void> {
-  await apiClient.put(`/api/admin/users/${userId}/quota`, { storageLimit, taskLimit });
+  await apiClient.put(`/admin/users/${userId}/quota`, { storageLimit, taskLimit });
 }
 
 /**
  * 强制用户下线
  */
 export async function forceUserLogout(userId: string): Promise<void> {
-  await apiClient.post(`/api/admin/users/${userId}/force-logout`);
+  await apiClient.post(`/admin/users/${userId}/force-logout`);
 }
 
 /**
  * 推送全局消息
  */
 export async function broadcastMessage(title: string, content: string): Promise<void> {
-  await apiClient.post('/api/admin/broadcast-message', { title, content });
+  await apiClient.post('/admin/broadcast-message', { title, content });
 }
 
 /**
@@ -141,7 +141,7 @@ export async function getOperationLogs(params: {
   page?: number;
   size?: number;
 }): Promise<OperationLogPage> {
-  const response = await apiClient.get('/api/admin/operation-logs', { params });
+  const response = await apiClient.get('/admin/operation-logs', { params });
   return response.data.data;
 }
 

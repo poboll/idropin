@@ -71,8 +71,11 @@ export default function ManageOverviewPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="spinner mx-auto mb-4" />
+          <p className="text-sm text-gray-500 dark:text-gray-400">加载管理数据中...</p>
+        </div>
       </div>
     );
   }
