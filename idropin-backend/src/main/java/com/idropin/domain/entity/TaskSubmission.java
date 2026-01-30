@@ -40,9 +40,24 @@ public class TaskSubmission {
     private String submitterName;
 
     /**
-     * 提交信息（JSON格式）
+     * 提交者邮箱
+     */
+    private String submitterEmail;
+
+    /**
+     * 提交信息（JSON格式）- 用于存储表单数据
      */
     private String submitInfo;
+
+    /**
+     * 信息数据（JSON格式）- 用于仅信息收集类型
+     */
+    private String infoData;
+
+    /**
+     * 提交时间
+     */
+    private LocalDateTime submittedAt;
 
     /**
      * 提交者ID（可选）

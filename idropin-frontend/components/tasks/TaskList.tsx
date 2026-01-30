@@ -141,8 +141,19 @@ export default function TaskList() {
             key={task.id}
             className="group relative bg-white border-2 border-slate-200 rounded-2xl p-6 hover:border-blue-400 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
           >
-            {/* 状态标签 */}
-            <div className="absolute top-4 right-4">
+            {/* 标签区域 */}
+            <div className="absolute top-4 right-4 flex items-center gap-2">
+              {/* 收集类型标签 */}
+              {task.collectionType && (
+                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
+                  task.collectionType === 'FILE'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                    : 'bg-green-50 text-green-700 border border-green-200'
+                }`}>
+                  {task.collectionType === 'FILE' ? '📁 收集文件' : '📝 收集信息'}
+                </div>
+              )}
+              {/* 状态标签 */}
               <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${statusConfig.className} ${statusConfig.bgClass} text-xs font-semibold`}>
                 <StatusIcon className="w-3.5 h-3.5" />
                 {statusConfig.label}

@@ -50,6 +50,12 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
   const [tipImages, setTipImages] = useState<string[]>([]);
   const tipImageInputRef = useRef<HTMLInputElement>(null);
   
+  // File attributes state
+  const [fileTypeRestriction, setFileTypeRestriction] = useState<'none' | 'restricted'>('none');
+  const [allowedFileTypes, setAllowedFileTypes] = useState<string>('');
+  const [maxFileCount, setMaxFileCount] = useState<number>(10);
+  const [maxFileSizeValue, setMaxFileSizeValue] = useState<number>(0);
+  
   // Task import dialog state
   const [showTaskImportDialog, setShowTaskImportDialog] = useState(false);
   const [availableTasks, setAvailableTasks] = useState<TaskWithCreatedAt[]>([]);
@@ -67,6 +73,17 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
       if (taskDetails.deadline) {
         setDeadline(new Date(taskDetails.deadline));
       }
+      
+      // 加载文件属性设置
+      if (taskDetails.allowedTypes && taskDetails.allowedTypes.length > 0) {
+        setFileTypeRestriction('restricted');
+        setAllowedFileTypes(taskDetails.allowedTypes.join(','));
+      } else {
+        setFileTypeRestriction('none');
+        setAllowedFileTypes('');
+      }
+      setMaxFileCount(taskDetails.maxFileCount || 10);
+      setMaxFileSizeValue(taskDetails.maxFileSize || 0);
       
       const info = await TaskApi.getTaskMoreInfo(key);
       setTaskInfo(info);
@@ -328,7 +345,9 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
       if (taskInfo.template.startsWith('http')) {
         window.open(taskInfo.template, '_blank');
       } else {
-        alert('模板文件预览功能开发中');
+        // 使用模板下载接口预览
+        const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api'}/files/template?template=${encodeURIComponent(taskInfo.template)}&key=${task?.key}`;
+        window.open(url, '_blank');
       }
     }
   };
@@ -342,7 +361,12 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
         link.download = taskInfo.template.split('/').pop() || 'template';
         link.click();
       } else {
-        alert('模板文件下载功能开发中');
+        // 使用模板下载接口
+        const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api'}/files/template?template=${encodeURIComponent(taskInfo.template)}&key=${task?.key}`;
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = taskInfo.template;
+        link.click();
       }
     }
   };
@@ -352,6 +376,12 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
     setSaving(true);
     try {
       const currentTask = await TaskApi.getTask(task.key);
+      
+      // 处理文件类型限制
+      const allowedTypesArray = fileTypeRestriction === 'restricted' && allowedFileTypes.trim()
+        ? allowedFileTypes.split(',').map(t => t.trim().toLowerCase()).filter(t => t)
+        : [];
+      
       // Only update deadline if it has changed
       // Don't send description to avoid overwriting it with incorrect values
       await TaskApi.updateTask(task.key, {
@@ -359,8 +389,9 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
         deadline: deadline ? deadline.toISOString() : null,
         allowAnonymous: currentTask.allowAnonymous,
         requireLogin: currentTask.requireLogin,
-        maxFileSize: currentTask.maxFileSize,
-        allowedTypes: currentTask.allowedTypes
+        maxFileSize: maxFileSizeValue,
+        allowedTypes: allowedTypesArray,
+        maxFileCount: maxFileCount
       });
 
       // 构建 tip 数据（包含文本和图片）
@@ -430,6 +461,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
     { id: 'people', label: '限制名单', icon: Users },
     { id: 'info', label: '必填信息', icon: Settings },
     { id: 'template', label: '模板文件', icon: FileText },
+    { id: 'fileProps', label: '文件属性管理', icon: Settings },
   ];
 
   if (!task) return null;
@@ -833,6 +865,137 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                     onChange={handleTemplateUpload}
                     className="hidden"
                   />
+                </div>
+              )}
+
+              {activeTab === 'fileProps' && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200 mb-2">文件属性管理</h3>
+                    <p className="text-sm text-slate-500">设置文件上传的限制条件。</p>
+                  </div>
+
+                  {/* 文件类型限制 */}
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                      文件类型限制
+                    </label>
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => setFileTypeRestriction('none')}
+                        className={`flex-1 py-3 rounded-lg font-medium transition-all ${
+                          fileTypeRestriction === 'none'
+                            ? 'bg-blue-500 text-white shadow-lg'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        不限制文件类型
+                      </button>
+                      <button
+                        onClick={() => setFileTypeRestriction('restricted')}
+                        className={`flex-1 py-3 rounded-lg font-medium transition-all ${
+                          fileTypeRestriction === 'restricted'
+                            ? 'bg-blue-500 text-white shadow-lg'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        限制文件类型
+                      </button>
+                    </div>
+                    
+                    {fileTypeRestriction === 'restricted' && (
+                      <div className="mt-3">
+                        <input
+                          type="text"
+                          value={allowedFileTypes}
+                          onChange={(e) => setAllowedFileTypes(e.target.value)}
+                          placeholder="例如: txt,png,jpeg,webp,pdf,doc,docx"
+                          className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-slate-200"
+                        />
+                        <p className="text-xs text-slate-500 mt-2">
+                          输入允许的文件扩展名，用逗号分隔，不区分大小写。例如：txt,png,jpeg,webp
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 最大文件数量 */}
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                      最大同时提交文件数量
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="range"
+                        min="1"
+                        max="16"
+                        value={maxFileCount}
+                        onChange={(e) => setMaxFileCount(parseInt(e.target.value))}
+                        className="flex-1"
+                      />
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="1"
+                          max="16"
+                          value={maxFileCount}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            if (val >= 1 && val <= 16) {
+                              setMaxFileCount(val);
+                            }
+                          }}
+                          className="w-20 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-slate-200"
+                        />
+                        <span className="text-sm text-slate-600 dark:text-slate-400">个</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      设置用户一次最多可以提交多少个文件（1-16个）
+                    </p>
+                  </div>
+
+                  {/* 文件最大大小 */}
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                      单个文件最大大小
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min="0"
+                        value={maxFileSizeValue}
+                        onChange={(e) => setMaxFileSizeValue(parseInt(e.target.value) || 0)}
+                        placeholder="0"
+                        className="flex-1 px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-slate-200"
+                      />
+                      <span className="text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">字节 (Bytes)</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-xs text-slate-500">
+                      <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
+                        <div className="font-medium">1 KB = 1,024 B</div>
+                      </div>
+                      <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
+                        <div className="font-medium">1 MB = 1,024 KB</div>
+                      </div>
+                      <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
+                        <div className="font-medium">1 GB = 1,024 MB</div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      设置为 0 表示不限制文件大小。常用值：10MB = 10485760 字节，100MB = 104857600 字节
+                    </p>
+                  </div>
+
+                  {/* 预览当前设置 */}
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <h4 className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-2">当前设置预览</h4>
+                    <ul className="text-sm text-blue-800 dark:text-blue-400 space-y-1">
+                      <li>• 文件类型：{fileTypeRestriction === 'none' ? '不限制' : `仅允许 ${allowedFileTypes || '未设置'}`}</li>
+                      <li>• 最多提交：{maxFileCount} 个文件</li>
+                      <li>• 文件大小：{maxFileSizeValue === 0 ? '不限制' : `最大 ${(maxFileSizeValue / 1024 / 1024).toFixed(2)} MB`}</li>
+                    </ul>
+                  </div>
                 </div>
               )}
             </>

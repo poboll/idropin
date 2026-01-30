@@ -14,7 +14,9 @@ export interface CreateTaskRequest {
   requireLogin?: boolean;
   maxFileSize?: number;
   allowedTypes?: string[];
+  maxFileCount?: number; // 最大同时提交文件数量（1-16，默认10）
   taskType?: 'FILE_COLLECTION' | 'INFO_COLLECTION';
+  collectionType?: 'INFO' | 'FILE'; // INFO=仅收集信息, FILE=收集文件
 }
 
 export interface CollectionTask {
@@ -26,9 +28,11 @@ export interface CollectionTask {
   requireLogin: boolean;
   maxFileSize?: number;
   allowedTypes?: string[];
+  maxFileCount?: number; // 最大同时提交文件数量（1-16，默认10）
   createdBy: string;
   status: string;
   taskType?: 'FILE_COLLECTION' | 'INFO_COLLECTION';
+  collectionType?: 'INFO' | 'FILE'; // INFO=仅收集信息, FILE=收集文件
   createdAt: string;
   updatedAt: string;
 }

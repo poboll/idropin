@@ -17,6 +17,7 @@ export default function CreateTaskForm({ activeCategory, onSuccess, onCancel }: 
     category: activeCategory || 'default',
     allowAnonymous: false,
     requireLogin: true,
+    collectionType: 'FILE', // 默认为收集文件
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +49,7 @@ export default function CreateTaskForm({ activeCategory, onSuccess, onCancel }: 
         category: activeCategory || 'default',
         allowAnonymous: false,
         requireLogin: true,
+        collectionType: 'FILE', // 重置为默认值
       });
       setTimeout(() => {
         setSuccess(false);
@@ -110,6 +112,98 @@ export default function CreateTaskForm({ activeCategory, onSuccess, onCancel }: 
         />
       </div>
 
+      {/* 收集类型 */}
+      <div className="form-group">
+        <label className="form-label">
+          收集类型 <span className="text-red-500">*</span>
+        </label>
+        <div className="grid grid-cols-2 gap-3 mt-2">
+          <label 
+            className={`relative flex flex-col p-4 border-2 rounded-lg cursor-pointer transition-all ${
+              formData.collectionType === 'FILE'
+                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+            }`}
+          >
+            <input
+              type="radio"
+              name="collectionType"
+              value="FILE"
+              checked={formData.collectionType === 'FILE'}
+              onChange={(e) => setFormData({ ...formData, collectionType: 'FILE' })}
+              className="sr-only"
+            />
+            <div className="flex items-center gap-2 mb-2">
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                formData.collectionType === 'FILE'
+                  ? 'border-blue-500 bg-blue-500'
+                  : 'border-gray-300 dark:border-gray-600'
+              }`}>
+                {formData.collectionType === 'FILE' && (
+                  <div className="w-2.5 h-2.5 rounded-full bg-white"></div>
+                )}
+              </div>
+              <span className={`font-medium ${
+                formData.collectionType === 'FILE'
+                  ? 'text-blue-700 dark:text-blue-300'
+                  : 'text-gray-700 dark:text-gray-300'
+              }`}>
+                收集文件
+              </span>
+            </div>
+            <p className={`text-xs ${
+              formData.collectionType === 'FILE'
+                ? 'text-blue-600 dark:text-blue-400'
+                : 'text-gray-500 dark:text-gray-400'
+            }`}>
+              需要提交者上传文件（如作业、文档等）
+            </p>
+          </label>
+
+          <label 
+            className={`relative flex flex-col p-4 border-2 rounded-lg cursor-pointer transition-all ${
+              formData.collectionType === 'INFO'
+                ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+            }`}
+          >
+            <input
+              type="radio"
+              name="collectionType"
+              value="INFO"
+              checked={formData.collectionType === 'INFO'}
+              onChange={(e) => setFormData({ ...formData, collectionType: 'INFO' })}
+              className="sr-only"
+            />
+            <div className="flex items-center gap-2 mb-2">
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                formData.collectionType === 'INFO'
+                  ? 'border-green-500 bg-green-500'
+                  : 'border-gray-300 dark:border-gray-600'
+              }`}>
+                {formData.collectionType === 'INFO' && (
+                  <div className="w-2.5 h-2.5 rounded-full bg-white"></div>
+                )}
+              </div>
+              <span className={`font-medium ${
+                formData.collectionType === 'INFO'
+                  ? 'text-green-700 dark:text-green-300'
+                  : 'text-gray-700 dark:text-gray-300'
+              }`}>
+                仅收集信息
+              </span>
+            </div>
+            <p className={`text-xs ${
+              formData.collectionType === 'INFO'
+                ? 'text-green-600 dark:text-green-400'
+                : 'text-gray-500 dark:text-gray-400'
+            }`}>
+              仅收集表单信息，不需要上传文件
+            </p>
+          </label>
+        </div>
+      </div>
+
       {/* 截止时间 */}
       <div className="form-group">
         <label htmlFor="deadline" className="form-label">
@@ -125,26 +219,28 @@ export default function CreateTaskForm({ activeCategory, onSuccess, onCancel }: 
         <p className="form-hint">留空表示任务永久有效</p>
       </div>
 
-      {/* 最大文件大小 */}
-      <div className="form-group">
-        <label htmlFor="maxFileSize" className="form-label">
-          最大文件大小 (MB)
-        </label>
-        <input
-          type="number"
-          id="maxFileSize"
-          value={formData.maxFileSize ? formData.maxFileSize / (1024 * 1024) : ''}
-          onChange={(e) =>
-            setFormData({
-              ...formData,
-              maxFileSize: e.target.value ? parseInt(e.target.value) * 1024 * 1024 : undefined,
-            })
-          }
-          className="input"
-          placeholder="例如：10"
-          min="1"
-        />
-      </div>
+      {/* 最大文件大小 - 仅在收集文件类型时显示 */}
+      {formData.collectionType === 'FILE' && (
+        <div className="form-group">
+          <label htmlFor="maxFileSize" className="form-label">
+            最大文件大小 (MB)
+          </label>
+          <input
+            type="number"
+            id="maxFileSize"
+            value={formData.maxFileSize ? formData.maxFileSize / (1024 * 1024) : ''}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                maxFileSize: e.target.value ? parseInt(e.target.value) * 1024 * 1024 : undefined,
+              })
+            }
+            className="input"
+            placeholder="例如：10"
+            min="1"
+          />
+        </div>
+      )}
 
       {/* 选项 */}
       <div className="space-y-3 pt-2">

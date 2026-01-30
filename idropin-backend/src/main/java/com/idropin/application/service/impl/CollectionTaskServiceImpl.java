@@ -100,6 +100,7 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
     task.setAllowAnonymous(request.getAllowAnonymous() != null ? request.getAllowAnonymous() : false);
     task.setRequireLogin(request.getRequireLogin() != null ? request.getRequireLogin() : true);
     task.setMaxFileSize(request.getMaxFileSize());
+    task.setMaxFileCount(request.getMaxFileCount() != null ? request.getMaxFileCount() : 10);
 
     if (request.getAllowedTypes() != null && !request.getAllowedTypes().isEmpty()) {
       task.setAllowedTypes(request.getAllowedTypes().toArray(new String[0]));
@@ -107,6 +108,8 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
 
     task.setCreatedBy(userId);
     task.setStatus("OPEN");
+    // 设置收集类型，默认为 FILE（收集文件）
+    task.setCollectionType(request.getCollectionType() != null ? request.getCollectionType() : "FILE");
     task.setCreatedAt(LocalDateTime.now());
     task.setUpdatedAt(LocalDateTime.now());
 
@@ -172,6 +175,9 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
     }
     if (request.getMaxFileSize() != null) {
       task.setMaxFileSize(request.getMaxFileSize());
+    }
+    if (request.getMaxFileCount() != null) {
+      task.setMaxFileCount(request.getMaxFileCount());
     }
     if (request.getAllowedTypes() != null) {
       task.setAllowedTypes(request.getAllowedTypes().toArray(new String[0]));

@@ -52,12 +52,14 @@ public class SecurityConfig {
                         .requestMatchers("/tasks/*/public-info").permitAll() // 公开任务信息（用于收集链接）
                         .requestMatchers("/tasks/*/public-more-info").permitAll() // 公开任务更多信息
                         .requestMatchers("/tasks/*/submit").permitAll() // 公开文件提交
+                        .requestMatchers("/tasks/*/submit-info").permitAll() // 公开信息提交
                         .requestMatchers("/tasks/*/public-submit").permitAll() // 公开文件提交
                         .requestMatchers("/people/check").permitAll() // 公开名单验证
                         .requestMatchers("/files/add").permitAll() // 公开文件添加
                         .requestMatchers("/files/withdraw").permitAll() // 公开文件撤回
                         .requestMatchers("/files/check-submit").permitAll() // 公开提交状态查询
                         .requestMatchers("/files/upload/token").permitAll() // 公开上传token
+                        .requestMatchers("/files/template").permitAll() // 公开模板文件下载
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/doc.html", "/swagger-ui/**", "/v3/api-docs/**", "/webjars/**").permitAll()
                         .anyRequest().authenticated())

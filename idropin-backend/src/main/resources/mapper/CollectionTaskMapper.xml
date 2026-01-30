@@ -11,22 +11,24 @@
         <result column="require_login" property="requireLogin" jdbcType="BOOLEAN"/>
         <result column="max_file_size" property="maxFileSize" jdbcType="BIGINT"/>
         <result column="allowed_types" property="allowedTypes" jdbcType="ARRAY" typeHandler="com.idropin.infrastructure.config.StringArrayTypeHandler"/>
+        <result column="max_file_count" property="maxFileCount" jdbcType="INTEGER"/>
         <result column="created_by" property="createdBy" jdbcType="VARCHAR"/>
         <result column="status" property="status" jdbcType="VARCHAR"/>
+        <result column="collection_type" property="collectionType" jdbcType="VARCHAR"/>
         <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
         <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
     </resultMap>
 
     <select id="selectByIdString" resultMap="BaseResultMap">
         SELECT id, title, description, deadline, allow_anonymous, require_login, 
-               max_file_size, allowed_types, created_by, status, created_at, updated_at
+               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, created_at, updated_at
         FROM collection_task
         WHERE id = CAST(#{id} AS VARCHAR)
     </select>
 
     <select id="selectByCreatedBy" resultMap="BaseResultMap">
         SELECT id, title, description, deadline, allow_anonymous, require_login, 
-               max_file_size, allowed_types, created_by, status, created_at, updated_at
+               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, created_at, updated_at
         FROM collection_task
         WHERE CAST(created_by AS VARCHAR) = #{createdBy}
         ORDER BY created_at DESC
@@ -42,8 +44,10 @@
             require_login,
             max_file_size,
             allowed_types,
+            max_file_count,
             created_by,
             status,
+            collection_type,
             created_at,
             updated_at
         ) VALUES (
@@ -55,8 +59,10 @@
             #{requireLogin},
             #{maxFileSize},
             #{allowedTypes, jdbcType=ARRAY, typeHandler=com.idropin.infrastructure.config.StringArrayTypeHandler},
+            #{maxFileCount},
             #{createdBy},
             #{status},
+            #{collectionType},
             #{createdAt},
             #{updatedAt}
         )

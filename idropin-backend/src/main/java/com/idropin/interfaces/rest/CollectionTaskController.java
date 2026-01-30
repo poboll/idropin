@@ -138,6 +138,49 @@ public class CollectionTaskController {
     return Result.success(submission);
   }
 
+  @PostMapping("/{taskId}/submit-info")
+  @Operation(summary = "提交信息到任务（仅信息收集类型）")
+  public Result<Map<String, Object>> submitInfo(
+      @PathVariable String taskId,
+      @RequestParam(value = "submitterName", required = false) String submitterName,
+      @RequestParam(value = "submitterEmail", required = false) String submitterEmail,
+      @RequestParam(value = "infoData", required = false) String infoData,
+      @AuthenticationPrincipal UserDetails userDetails) {
+    
+    log.info("Received info submission for task: {}, submitterName: {}", taskId, submitterName);
+    
+    // 验证任务存在且为INFO类型
+    CollectionTask task = taskService.getTaskPublic(taskId);
+    if (task == null) {
+      throw new BusinessException("任务不存在");
+    }
+    
+    if (!"INFO".equals(task.getCollectionType())) {
+      throw new BusinessException("此任务不是信息收集类型");
+    }
+    
+    String userId = getUserIdOrNull(userDetails);
+    
+    // 创建一个信息提交记录（使用TaskSubmission表）
+    TaskSubmission submission = new TaskSubmission();
+    submission.setTaskKey(taskId);
+    submission.setSubmitterName(submitterName);
+    submission.setSubmitterEmail(submitterEmail);
+    submission.setInfoData(infoData); // 存储JSON格式的表单信息
+    submission.setSubmittedAt(LocalDateTime.now());
+    submission.setStatus(0); // 0-已提交
+    
+    taskSubmissionMapper.insert(submission);
+    
+    log.info("Info submission created successfully with ID: {}", submission.getId());
+    
+    Map<String, Object> result = new HashMap<>();
+    result.put("id", submission.getId());
+    result.put("message", "信息提交成功");
+    
+    return Result.success(result);
+  }
+
   @GetMapping("/{taskId}/submissions")
   @Operation(summary = "获取任务的提交记录")
   public Result<List<FileSubmission>> getTaskSubmissions(
@@ -260,6 +303,7 @@ public class CollectionTaskController {
     result.put("deadline", task.getDeadline());
     result.put("createdBy", task.getCreatedBy());
     result.put("creatorName", creatorName);
+    result.put("collectionType", task.getCollectionType()); // 添加收集类型
     
     return Result.success(result);
   }

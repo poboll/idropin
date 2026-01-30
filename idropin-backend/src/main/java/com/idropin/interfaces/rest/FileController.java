@@ -7,9 +7,11 @@ import com.idropin.domain.dto.FileQueryRequest;
 import com.idropin.domain.dto.FileUpdateRequest;
 import com.idropin.domain.entity.File;
 import com.idropin.domain.entity.TaskSubmission;
+import com.idropin.domain.entity.TaskMoreInfo;
 import com.idropin.domain.vo.FileUploadResult;
 import com.idropin.domain.vo.FileVO;
 import com.idropin.infrastructure.persistence.mapper.TaskSubmissionMapper;
+import com.idropin.infrastructure.persistence.mapper.TaskMoreInfoMapper;
 import com.idropin.infrastructure.security.CustomUserDetails;
 import com.idropin.infrastructure.storage.StorageService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,6 +50,7 @@ public class FileController {
     private final StorageService storageService;
     private final TaskSubmissionMapper taskSubmissionMapper;
     private final com.idropin.infrastructure.persistence.mapper.FileSubmissionMapper fileSubmissionMapper;
+    private final TaskMoreInfoMapper taskMoreInfoMapper;
 
     @PostMapping("/upload")
     @Operation(summary = "单文件上传")
@@ -401,6 +404,54 @@ public class FileController {
                 outputStream.write(buffer, 0, read);
                 remaining -= read;
             }
+        }
+    }
+
+    /**
+     * 获取任务模板文件（公开接口）
+     */
+    @GetMapping("/template")
+    @Operation(summary = "获取任务模板文件")
+    public void getTemplate(
+            @RequestParam String template,
+            @RequestParam String key,
+            HttpServletResponse response) throws IOException {
+        
+        try {
+            // 查询任务的模板信息
+            TaskMoreInfo moreInfo = taskMoreInfoMapper.selectByTaskId(key);
+            
+            if (moreInfo == null || moreInfo.getTemplate() == null || moreInfo.getTemplate().isEmpty()) {
+                response.setContentType("text/plain; charset=UTF-8");
+                response.getWriter().write("该任务暂未设置模板文件");
+                return;
+            }
+            
+            // 验证请求的template参数与数据库中的一致
+            if (!template.equals(moreInfo.getTemplate())) {
+                response.setContentType("text/plain; charset=UTF-8");
+                response.getWriter().write("无权访问此模板");
+                return;
+            }
+            
+            // 设置响应头
+            response.setContentType("text/plain; charset=UTF-8");
+            
+            // TODO: 实际的文件下载逻辑
+            // 目前模板文件只是存储了文件名，需要实现实际的文件存储和下载
+            // 当实现文件存储后，应该：
+            // 1. 从存储服务获取文件流
+            // 2. 设置正确的Content-Type
+            // 3. 设置Content-Disposition为attachment
+            // 4. 将文件流写入response
+            
+            response.getWriter().write("模板文件下载功能开发中\n\n");
+            response.getWriter().write("提示：目前模板文件功能仅保存了文件名（" + template + "），\n");
+            response.getWriter().write("完整的文件上传和下载功能将在后续版本中实现。");
+        } catch (Exception e) {
+            log.error("获取模板文件失败", e);
+            response.setContentType("text/plain; charset=UTF-8");
+            response.getWriter().write("获取模板文件失败：" + e.getMessage());
         }
     }
 }

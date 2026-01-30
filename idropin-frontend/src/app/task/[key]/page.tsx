@@ -29,6 +29,7 @@ interface TaskBasicInfo {
   limitUpload?: boolean;
   deadline?: string;
   creatorName?: string;
+  collectionType?: 'INFO' | 'FILE'; // 收集类型
 }
 
 export default function TaskSubmissionPage() {
@@ -110,6 +111,7 @@ export default function TaskSubmissionPage() {
           limitUpload: false,
           deadline: info.deadline || '',
           creatorName: info.creatorName || '',
+          collectionType: info.collectionType || 'FILE', // 默认为收集文件
         });
         setDisabledUpload(false);
 
@@ -205,31 +207,22 @@ export default function TaskSubmissionPage() {
     setIsSubmitting(true);
 
     try {
-      const readyFiles = files.filter(f => f.status === 'ready' && f.md5);
-
-      for (const uploadFile of readyFiles) {
-        setFiles(prev => prev.map(f => 
-          f.id === uploadFile.id ? { ...f, status: 'uploading' as const, progress: 0 } : f
-        ));
-
-        let fileName = uploadFile.name;
-        const originName = fileName;
-
-        if (taskMoreInfo.rewrite) {
-          fileName = infos.map(v => v.value).join(formatConfig?.splitChar || '-') + getFileSuffix(fileName);
-        }
-        fileName = normalizeFileName(fileName);
+      // 如果是仅收集信息类型，直接提交表单信息
+      if (taskInfo.collectionType === 'INFO') {
+        // 创建一个仅包含信息的提交记录
+        const formData = new FormData();
+        formData.append('taskKey', taskKey);
+        formData.append('submitterName', isSameFieldName?.value || peopleName || '');
+        formData.append('submitterEmail', '');
+        // 将表单信息序列化为JSON
+        const infoData = infos.reduce((acc, item) => {
+          acc[item.text] = item.value;
+          return acc;
+        }, {} as Record<string, string>);
+        formData.append('infoData', JSON.stringify(infoData));
 
         try {
-          // First upload the actual file content to storage
-          const formData = new FormData();
-          formData.append('file', uploadFile.file);
-          formData.append('taskKey', taskKey);
-          formData.append('submitterName', isSameFieldName?.value || peopleName || '');
-          formData.append('submitterEmail', '');
-          
-          // Use the proper task submission endpoint that uploads file AND creates submission record
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api'}/tasks/${taskKey}/submit`, {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api'}/tasks/${taskKey}/submit-info`, {
             method: 'POST',
             body: formData,
             credentials: 'include',
@@ -237,28 +230,71 @@ export default function TaskSubmissionPage() {
 
           if (!response.ok) {
             const error = await response.text();
-            throw new Error(error || '上传失败');
+            throw new Error(error || '提交失败');
           }
 
-          setFiles(prev => prev.map(f => 
-            f.id === uploadFile.id ? { ...f, status: 'success' as const, progress: 100 } : f
-          ));
-
-          if (taskMoreInfo.people) {
-            const name = isSameFieldName?.value || peopleName;
-            await updatePeopleStatus(taskKey, fileName, name, uploadFile.md5!);
-          }
-
-          alert(`文件: ${originName} 提交成功`);
+          alert('信息提交成功！');
         } catch (error) {
-          console.error('Upload failed:', error);
+          console.error('Submit failed:', error);
+          alert('提交失败，请重试');
+        }
+      } else {
+        // 原有的文件上传逻辑
+        const readyFiles = files.filter(f => f.status === 'ready' && f.md5);
+
+        for (const uploadFile of readyFiles) {
           setFiles(prev => prev.map(f => 
-            f.id === uploadFile.id ? { ...f, status: 'fail' as const, error: '上传失败' } : f
+            f.id === uploadFile.id ? { ...f, status: 'uploading' as const, progress: 0 } : f
           ));
+
+          let fileName = uploadFile.name;
+          const originName = fileName;
+
+          if (taskMoreInfo.rewrite) {
+            fileName = infos.map(v => v.value).join(formatConfig?.splitChar || '-') + getFileSuffix(fileName);
+          }
+          fileName = normalizeFileName(fileName);
+
+          try {
+            // First upload the actual file content to storage
+            const formData = new FormData();
+            formData.append('file', uploadFile.file);
+            formData.append('taskKey', taskKey);
+            formData.append('submitterName', isSameFieldName?.value || peopleName || '');
+            formData.append('submitterEmail', '');
+            
+            // Use the proper task submission endpoint that uploads file AND creates submission record
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api'}/tasks/${taskKey}/submit`, {
+              method: 'POST',
+              body: formData,
+              credentials: 'include',
+            });
+
+            if (!response.ok) {
+              const error = await response.text();
+              throw new Error(error || '上传失败');
+            }
+
+            setFiles(prev => prev.map(f => 
+              f.id === uploadFile.id ? { ...f, status: 'success' as const, progress: 100 } : f
+            ));
+
+            if (taskMoreInfo.people) {
+              const name = isSameFieldName?.value || peopleName;
+              await updatePeopleStatus(taskKey, fileName, name, uploadFile.md5!);
+            }
+
+            alert(`文件: ${originName} 提交成功`);
+          } catch (error) {
+            console.error('Upload failed:', error);
+            setFiles(prev => prev.map(f => 
+              f.id === uploadFile.id ? { ...f, status: 'fail' as const, error: '上传失败' } : f
+            ));
+          }
         }
       }
     } catch (err) {
-      alert('上传失败');
+      alert('提交失败');
       console.error(err);
     } finally {
       setIsSubmitting(false);
@@ -592,21 +628,23 @@ export default function TaskSubmissionPage() {
               />
             </div>
 
-            {/* Upload Section */}
-            <div className="bg-white dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-800 p-6 mb-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Upload className="w-4 h-4 text-gray-400" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">文件上传</span>
-              </div>
+            {/* Upload Section - 仅在收集文件类型时显示 */}
+            {taskInfo.collectionType === 'FILE' && (
+              <div className="bg-white dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-800 p-6 mb-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Upload className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">文件上传</span>
+                </div>
 
-              <SubmissionUploader
-                files={files}
-                onFilesChange={setFiles}
-                formatConfig={formatConfig}
-                disabled={disabledUpload || isUploading}
-                isMobile={isMobile}
-              />
-            </div>
+                <SubmissionUploader
+                  files={files}
+                  onFilesChange={setFiles}
+                  formatConfig={formatConfig}
+                  disabled={disabledUpload || isUploading}
+                  isMobile={isMobile}
+                />
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-3 justify-center mb-6">
@@ -629,7 +667,10 @@ export default function TaskSubmissionPage() {
                 !disabledUpload && (
                   <button
                     onClick={handleSubmit}
-                    disabled={!allowUpload || isSubmitting}
+                    disabled={
+                      (taskInfo.collectionType === 'FILE' ? !allowUpload : false) || 
+                      isSubmitting
+                    }
                     className="px-6 py-2.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 
                       text-white dark:text-gray-900 text-sm font-medium rounded-lg
                       disabled:opacity-50 disabled:cursor-not-allowed
@@ -640,7 +681,7 @@ export default function TaskSubmissionPage() {
                     ) : (
                       <CheckCircle2 className="w-4 h-4" />
                     )}
-                    提交文件
+                    {taskInfo.collectionType === 'INFO' ? '提交信息' : '提交文件'}
                   </button>
                 )
               )}

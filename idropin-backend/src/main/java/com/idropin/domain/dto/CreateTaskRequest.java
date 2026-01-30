@@ -49,10 +49,20 @@ public class CreateTaskRequest {
    */
   private List<String> allowedTypes;
 
+  /**
+   * 最大同时提交文件数量（1-16，默认10）
+   */
+  private Integer maxFileCount;
+
   private String category;
 
   /**
    * 任务类型: FILE_COLLECTION（文件收集）, INFO_COLLECTION（信息收集）
    */
   private String taskType;
+
+  /**
+   * 收集类型: INFO（仅收集信息）, FILE（收集文件）
+   */
+  private String collectionType;
 }
