@@ -9,6 +9,7 @@ import com.idropin.domain.dto.TaskMoreInfoRequest;
 import com.idropin.domain.entity.CollectionTask;
 import com.idropin.domain.entity.FileSubmission;
 import com.idropin.domain.entity.TaskMoreInfo;
+import com.idropin.domain.entity.TaskSubmission;
 import com.idropin.domain.vo.TaskStatisticsVO;
 import com.idropin.infrastructure.persistence.mapper.TaskMoreInfoMapper;
 import com.idropin.infrastructure.security.CustomUserDetails;
@@ -45,6 +46,8 @@ public class CollectionTaskController {
   private final StorageService storageService;
   private final TaskMoreInfoMapper taskMoreInfoMapper;
   private final com.idropin.infrastructure.persistence.mapper.UserMapper userMapper;
+  private final com.idropin.infrastructure.persistence.mapper.TaskSubmissionMapper taskSubmissionMapper;
+  private final com.idropin.infrastructure.persistence.mapper.FileSubmissionMapper fileSubmissionMapper;
 
   @PostMapping
   @Operation(summary = "创建收集任务")
@@ -305,6 +308,41 @@ public class CollectionTaskController {
     if (moreInfo != null && moreInfo.getTemplate() != null) {
       result.put("template", moreInfo.getTemplate());
     }
+    
+    return Result.success(result);
+  }
+
+  @GetMapping("/{taskKey}/task-submissions")
+  @Operation(summary = "获取任务的公开提交记录（通过taskKey）")
+  public Result<java.util.Map<String, Object>> getTaskSubmissionsByKey(
+      @PathVariable String taskKey,
+      @AuthenticationPrincipal UserDetails userDetails) {
+    
+    log.info("Getting task submissions for taskKey: {}", taskKey);
+    
+    // 验证用户有权限访问此任务（taskKey就是taskId）
+    String userId = getUserId(userDetails);
+    CollectionTask task = taskService.getTask(taskKey, userId);
+    
+    // 查询task_submission表（旧的提交记录）
+    List<TaskSubmission> taskSubmissions = taskSubmissionMapper.findAllByTaskKey(taskKey);
+    
+    // 查询file_submission表（新的提交记录）
+    List<com.idropin.domain.entity.FileSubmission> fileSubmissions = 
+      fileSubmissionMapper.selectList(
+        new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.idropin.domain.entity.FileSubmission>()
+          .eq("task_id", taskKey)
+          .orderByDesc("submitted_at")
+      );
+    
+    // 合并两个表的数据
+    java.util.Map<String, Object> result = new java.util.HashMap<>();
+    result.put("taskSubmissions", taskSubmissions);
+    result.put("fileSubmissions", fileSubmissions);
+    result.put("totalCount", taskSubmissions.size() + fileSubmissions.size());
+    
+    log.info("Found {} task_submissions and {} file_submissions for taskKey: {}", 
+      taskSubmissions.size(), fileSubmissions.size(), taskKey);
     
     return Result.success(result);
   }

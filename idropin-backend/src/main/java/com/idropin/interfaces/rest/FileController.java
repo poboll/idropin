@@ -29,6 +29,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -46,6 +47,7 @@ public class FileController {
     private final FileService fileService;
     private final StorageService storageService;
     private final TaskSubmissionMapper taskSubmissionMapper;
+    private final com.idropin.infrastructure.persistence.mapper.FileSubmissionMapper fileSubmissionMapper;
 
     @PostMapping("/upload")
     @Operation(summary = "单文件上传")
@@ -257,34 +259,38 @@ public class FileController {
             @AuthenticationPrincipal UserDetails userDetails) {
         String userId = getUserIdOrNull(userDetails);
         String taskKey = (String) options.get("key");
-        Number id = (Number) options.get("id");
+        Object idObj = options.get("id");
         String filename = (String) options.get("filename");
         
-        log.info("Withdrawing file: taskKey={}, id={}, filename={}, userId={}", taskKey, id, filename, userId);
+        log.info("Withdrawing file: taskKey={}, id={}, filename={}, userId={}", taskKey, idObj, filename, userId);
         
         if (taskKey == null || taskKey.isEmpty()) {
             throw new com.idropin.common.exception.BusinessException("任务key不能为空");
         }
-        if (filename == null || filename.isEmpty()) {
-            throw new com.idropin.common.exception.BusinessException("文件名不能为空");
+        
+        // 先尝试从file_submission表删除（新的提交记录）
+        if (idObj != null) {
+            String submissionId = idObj.toString();
+            com.idropin.domain.entity.FileSubmission fileSubmission = fileSubmissionMapper.selectById(submissionId);
+            if (fileSubmission != null && fileSubmission.getTaskId().equals(taskKey)) {
+                fileSubmissionMapper.deleteById(submissionId);
+                log.info("File submission deleted from file_submission: id={}", submissionId);
+                return Result.success(null);
+            }
         }
         
-        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<TaskSubmission> wrapper = 
-            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
-        wrapper.eq(TaskSubmission::getTaskKey, taskKey)
-               .eq(TaskSubmission::getFileName, filename)
-               .eq(TaskSubmission::getStatus, 0);
-        
-        TaskSubmission submission = taskSubmissionMapper.selectOne(wrapper);
-        if (submission == null) {
-            throw new com.idropin.common.exception.BusinessException("未找到可撤回的提交记录，可能已被撤回或不存在");
+        // 如果file_submission表没有找到，再尝试task_submission表（旧的提交记录）
+        if (filename != null && !filename.isEmpty()) {
+            TaskSubmission submission = taskSubmissionMapper.findByTaskKeyAndFileName(taskKey, filename);
+            if (submission != null) {
+                submission.setStatus(1);
+                taskSubmissionMapper.updateById(submission);
+                log.info("File submission withdrawn from task_submission: id={}", submission.getId());
+                return Result.success(null);
+            }
         }
         
-        submission.setStatus(1);
-        taskSubmissionMapper.updateById(submission);
-        log.info("File submission withdrawn: id={}", submission.getId());
-        
-        return Result.success(null);
+        throw new com.idropin.common.exception.BusinessException("未找到可撤回的提交记录，可能已被撤回或不存在");
     }
 
     /**
@@ -301,14 +307,34 @@ public class FileController {
         
         log.info("Checking submit status: taskKey={}, name={}", taskKey, name);
         
-        // 查询提交记录
-        List<TaskSubmission> submissions = taskSubmissionMapper.findByTaskKeyAndSubmitterName(taskKey, name);
+        // 查询file_submission表（新的提交记录）
+        List<com.idropin.domain.entity.FileSubmission> fileSubmissions = fileSubmissionMapper.selectList(
+            new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.idropin.domain.entity.FileSubmission>()
+                .eq("task_id", taskKey)
+                .eq("submitter_name", name)
+        );
+        
+        // 如果新表没有记录，再查询task_submission表（旧的提交记录）
+        boolean hasSubmission = !fileSubmissions.isEmpty();
+        int count = fileSubmissions.size();
+        LocalDateTime lastSubmitTime = null;
+        
+        if (!hasSubmission) {
+            List<TaskSubmission> taskSubmissions = taskSubmissionMapper.findByTaskKeyAndSubmitterName(taskKey, name);
+            hasSubmission = !taskSubmissions.isEmpty();
+            count = taskSubmissions.size();
+            if (!taskSubmissions.isEmpty()) {
+                lastSubmitTime = taskSubmissions.get(0).getCreatedAt();
+            }
+        } else {
+            lastSubmitTime = fileSubmissions.get(0).getSubmittedAt();
+        }
         
         java.util.Map<String, Object> result = new java.util.HashMap<>();
-        result.put("isSubmit", !submissions.isEmpty());
-        if (!submissions.isEmpty()) {
-            result.put("count", submissions.size());
-            result.put("lastSubmitTime", submissions.get(0).getCreatedAt());
+        result.put("isSubmit", hasSubmission);
+        if (hasSubmission) {
+            result.put("count", count);
+            result.put("lastSubmitTime", lastSubmitTime);
         }
         
         return Result.success(result);
