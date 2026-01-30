@@ -118,10 +118,7 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
 
   @Override
   public List<CollectionTask> getUserTasks(String userId) {
-    LambdaQueryWrapper<CollectionTask> wrapper = new LambdaQueryWrapper<>();
-    wrapper.eq(CollectionTask::getCreatedBy, userId)
-        .orderByDesc(CollectionTask::getCreatedAt);
-    return taskMapper.selectList(wrapper);
+    return taskMapper.selectByCreatedBy(userId);
   }
 
   @Override
@@ -144,8 +141,13 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
     if (StringUtils.hasText(request.getTitle())) {
       task.setTitle(request.getTitle());
     }
-    if (request.getDescription() != null) {
+    // Only update description if it's explicitly provided and not empty
+    // Empty string should be treated as "no description"
+    if (request.getDescription() != null && StringUtils.hasText(request.getDescription())) {
       task.setDescription(request.getDescription());
+    } else if (request.getDescription() != null && request.getDescription().isEmpty()) {
+      // If explicitly set to empty string, clear the description
+      task.setDescription(null);
     }
     if (request.getDeadline() != null) {
       try {

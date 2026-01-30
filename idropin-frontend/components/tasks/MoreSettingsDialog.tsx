@@ -352,9 +352,10 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
     setSaving(true);
     try {
       const currentTask = await TaskApi.getTask(task.key);
+      // Only update deadline if it has changed
+      // Don't send description to avoid overwriting it with incorrect values
       await TaskApi.updateTask(task.key, {
         title: currentTask.title,
-        description: currentTask.description,
         deadline: deadline ? deadline.toISOString() : null,
         allowAnonymous: currentTask.allowAnonymous,
         requireLogin: currentTask.requireLogin,

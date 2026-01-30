@@ -62,6 +62,7 @@ public class AuthServiceImpl implements AuthService {
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setStatus("ACTIVE");
+        user.setRole("USER"); // 默认角色为普通用户
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
 
@@ -99,6 +100,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(user.getEmail())
                 .avatarUrl(user.getAvatarUrl())
                 .status(user.getStatus())
+                .role(user.getRole())
                 .createdAt(user.getCreatedAt())
                 .build();
 

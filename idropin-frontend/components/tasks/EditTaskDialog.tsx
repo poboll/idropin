@@ -15,12 +15,14 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({ task, open, onCl
   const { categoryList } = useCategoryStore();
   
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (task && open) {
       setName(task.name);
+      setDescription(task.description || '');
       setCategory(task.category);
     }
   }, [task, open]);
@@ -30,7 +32,7 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({ task, open, onCl
 
     setLoading(true);
     try {
-      await updateTask(task.key, name, category);
+      await updateTask(task.key, name, category, description);
       onClose();
     } catch (e) {
       console.error(e);
@@ -58,6 +60,17 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({ task, open, onCl
             onChange={(e) => setName(e.target.value)}
             className="input"
             placeholder="输入任务名称"
+          />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">任务描述</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+            className="input resize-none"
+            placeholder="请详细描述任务要求..."
           />
         </div>
 

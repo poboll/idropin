@@ -25,12 +25,32 @@ export function MessagePanel({ isOpen, onClose }: MessagePanelProps) {
   } = useMessageStore();
 
   const listRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
       fetchMessages(true);
     }
   }, [isOpen, fetchMessages]);
+
+  // 点击外部关闭面板
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      // 延迟添加监听器，避免立即触发
+      setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+      }, 0);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [isOpen, onClose]);
 
   const handleScroll = useCallback(() => {
     if (!listRef.current || loading || !hasMore) return;
@@ -57,15 +77,9 @@ export function MessagePanel({ isOpen, onClose }: MessagePanelProps) {
   if (!isOpen) return null;
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
-        onClick={onClose}
-      />
-      
-      {/* Panel */}
-      <div className="fixed right-4 top-16 w-96 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 rounded-xl shadow-2xl z-50 flex flex-col max-h-[80vh] border border-gray-200 dark:border-gray-800">
+    <div 
+      ref={panelRef}
+      className="fixed right-4 top-16 w-96 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 rounded-xl shadow-2xl z-50 flex flex-col max-h-[80vh] border border-gray-200 dark:border-gray-800">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800">
           <h2 className="text-base font-semibold text-gray-900 dark:text-white">消息</h2>
@@ -134,7 +148,6 @@ export function MessagePanel({ isOpen, onClose }: MessagePanelProps) {
           )}
         </div>
       </div>
-    </>
   );
 }
 

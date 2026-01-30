@@ -42,10 +42,12 @@ public class FileShareServiceImpl implements FileShareService {
       throw new BusinessException("无权限分享此文件");
     }
 
-    LambdaQueryWrapper<FileShare> existWrapper = new LambdaQueryWrapper<>();
-    existWrapper.eq(FileShare::getFileId, file.getId());
-    existWrapper.eq(FileShare::getCreatedBy, userId);
-    if (shareMapper.selectCount(existWrapper) > 0) {
+    // Check if share already exists for this file by this user
+    List<FileShare> existingShares = shareMapper.selectByCreatedBy(userId);
+    boolean shareExists = existingShares.stream()
+        .anyMatch(share -> share.getFileId().equals(file.getId()));
+    
+    if (shareExists) {
       throw new BusinessException("该文件已存在分享");
     }
 
@@ -111,10 +113,7 @@ public class FileShareServiceImpl implements FileShareService {
 
   @Override
   public List<FileShare> getUserShares(String userId) {
-    LambdaQueryWrapper<FileShare> wrapper = new LambdaQueryWrapper<>();
-    wrapper.eq(FileShare::getCreatedBy, userId)
-        .orderByDesc(FileShare::getCreatedAt);
-    return shareMapper.selectList(wrapper);
+    return shareMapper.selectByCreatedBy(userId);
   }
 
   @Override

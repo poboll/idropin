@@ -24,6 +24,14 @@
         WHERE id = CAST(#{id} AS VARCHAR)
     </select>
 
+    <select id="selectByCreatedBy" resultMap="BaseResultMap">
+        SELECT id, title, description, deadline, allow_anonymous, require_login, 
+               max_file_size, allowed_types, created_by, status, created_at, updated_at
+        FROM collection_task
+        WHERE CAST(created_by AS VARCHAR) = #{createdBy}
+        ORDER BY created_at DESC
+    </select>
+
     <insert id="insert" parameterType="com.idropin.domain.entity.CollectionTask">
         INSERT INTO collection_task (
             id,

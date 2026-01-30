@@ -51,14 +51,16 @@ export const useAuthStore = create<AuthStore>()(
           // Handle successful login
           if (response && response.token && response.user) {
             setToken(response.token);
+            const isSuperAdmin = response.user.role === 'SUPER_ADMIN';
+            const isAdmin = response.user.role === 'ADMIN' || isSuperAdmin;
             set({
               user: response.user,
               token: response.token,
               isAuthenticated: true,
               isLoading: false,
               error: null,
-              isSuperAdmin: false,
-              system: false,
+              isSuperAdmin,
+              system: isAdmin,
             });
           } else {
             // Handle unexpected response format
@@ -119,11 +121,15 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true });
         try {
           const user = await authApi.getCurrentUser();
+          const isSuperAdmin = user.role === 'SUPER_ADMIN';
+          const isAdmin = user.role === 'ADMIN' || isSuperAdmin;
           set({
             user,
             token,
             isAuthenticated: true,
             isLoading: false,
+            isSuperAdmin,
+            system: isAdmin,
           });
         } catch {
           // Token invalid, clear state

@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
 
     const apiUrl = `https://dl.caiths.com/api/create/shorturl?url=${encodeURIComponent(url)}`;
     
-    const token = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtZG8iLCJpYXQiOjE3NjkzMzA2MzIsImV4cCI6MTc2OTM2NjYzMn0.nXbpqMYoR4hZ350Us0sc3_Velpc2gu2Z5qHJiQ27L98';
+    const token = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtZG8iLCJpYXQiOjE3Njk3NjM0NjYsImV4cCI6MTc2OTc5OTQ2Nn0.-fc9bqJPVJxmwKWMXgPYFb90yY1NM1GOj1kAIhZGH3Y';
 
     const response = await fetch(apiUrl, {
       method: 'POST',

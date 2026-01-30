@@ -65,6 +65,7 @@ public class UserServiceImpl implements UserService {
                 .email(user.getEmail())
                 .avatarUrl(user.getAvatarUrl())
                 .status(user.getStatus())
+                .role(user.getRole())
                 .createdAt(user.getCreatedAt())
                 .build();
     }
@@ -130,6 +131,7 @@ public class UserServiceImpl implements UserService {
                 .email(user.getEmail())
                 .avatarUrl(user.getAvatarUrl())
                 .status(user.getStatus())
+                .role(user.getRole())
                 .createdAt(user.getCreatedAt())
                 .build();
     }

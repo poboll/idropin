@@ -58,13 +58,13 @@ export const CategoryPanel: React.FC<CategoryPanelProps> = ({
     const isActive = selectedCategory === id;
     
     return (
-      <button
-        onClick={() => onSelect(id)}
-        className={`group w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors ${
+      <div
+        className={`group w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors cursor-pointer ${
           isActive
             ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white'
         }`}
+        onClick={() => onSelect(id)}
       >
         <div className="flex items-center gap-2">
           <Icon className="w-4 h-4" />
@@ -84,12 +84,13 @@ export const CategoryPanel: React.FC<CategoryPanelProps> = ({
             <button
               onClick={(e) => handleDelete(e, id)}
               className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-all"
+              aria-label="删除分类"
             >
               <X className="w-3 h-3" />
             </button>
           )}
         </div>
-      </button>
+      </div>
     );
   };
 

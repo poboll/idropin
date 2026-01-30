@@ -115,7 +115,16 @@ export default function TaskSubmissionPage() {
 
         const moreInfo = await getTaskMoreInfoPublic(taskKey);
         setTaskMoreInfo(moreInfo);
-        setInfos(parseInfo(moreInfo.info || ''));
+        
+        // 解析必填信息字段，如果为空则默认添加"姓名"字段
+        const parsedInfos = parseInfo(moreInfo.info || '');
+        if (parsedInfos.length === 0) {
+          // 默认添加姓名字段
+          setInfos([{ type: 'input', text: '姓名', value: '' }]);
+        } else {
+          setInfos(parsedInfos);
+        }
+        
         setFormatConfig(parseFileFormat(moreInfo.format || ''));
 
         if (moreInfo.tip) {
@@ -389,7 +398,7 @@ export default function TaskSubmissionPage() {
               </h1>
               
               {/* Task Description */}
-              {taskInfo.description && (
+              {taskInfo.description && taskInfo.description.trim() && (
                 <p className="text-gray-600 dark:text-gray-400 text-base leading-relaxed whitespace-pre-wrap">
                   {taskInfo.description}
                 </p>

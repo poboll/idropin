@@ -44,6 +44,11 @@ public class UserVO {
     private String status;
 
     /**
+     * 用户角色
+     */
+    private String role;
+
+    /**
      * 创建时间
      */
     private LocalDateTime createdAt;

@@ -97,9 +97,10 @@ export const useTaskStore = create<TaskStore>()(
         get().getTask();
       },
 
-      updateTask: async (key: string, name: string, category: string) => {
+      updateTask: async (key: string, name: string, category: string, description?: string) => {
         const res = await taskApi.updateTask(key, {
           title: name,
+          description: description,
         });
         get().getTask();
         return res;

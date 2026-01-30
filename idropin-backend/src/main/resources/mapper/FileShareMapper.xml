@@ -8,4 +8,11 @@
         WHERE share_code = #{shareCode}
     </select>
 
+    <select id="selectByCreatedBy" resultType="com.idropin.domain.entity.FileShare">
+        SELECT id, file_id, share_code, password, expire_at, download_limit, download_count, created_by, created_at
+        FROM file_share
+        WHERE CAST(created_by AS VARCHAR) = #{createdBy}
+        ORDER BY created_at DESC
+    </select>
+
 </mapper>

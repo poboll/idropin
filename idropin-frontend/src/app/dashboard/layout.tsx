@@ -22,6 +22,7 @@ import {
 import { useAuthStore } from '@/lib/stores/auth';
 import { MessageButton } from '@/components/layout/MessageButton';
 import { FeedbackButton } from '@/components/feedback/FeedbackButton';
+import { HitokotoDisplay } from '@/components/layout/HitokotoDisplay';
 
 const navItems = [
   { href: '/dashboard/files', label: '文件', icon: FolderOpen },
@@ -59,12 +60,13 @@ export default function DashboardLayout({
   useEffect(() => {
     const handleClickOutside = () => {
       setIsProfileOpen(false);
+      setIsMobileMenuOpen(false);
     };
-    if (isProfileOpen) {
+    if (isProfileOpen || isMobileMenuOpen) {
       document.addEventListener('click', handleClickOutside);
       return () => document.removeEventListener('click', handleClickOutside);
     }
-  }, [isProfileOpen]);
+  }, [isProfileOpen, isMobileMenuOpen]);
 
   const isActive = (href: string) => {
     if (href === '/dashboard/files' && pathname === '/dashboard') return true;
@@ -124,6 +126,9 @@ export default function DashboardLayout({
 
           {/* Right: Actions */}
           <div className="flex items-center gap-2">
+            {/* Hitokoto */}
+            <HitokotoDisplay />
+            
             {/* Messages */}
             <MessageButton />
 

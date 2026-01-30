@@ -14,23 +14,23 @@ export function useStatistics() {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiClient.get('/statistics/file-stats');
-      const data = response.data.data;
+      const response = await apiClient.get('/statistics/files');
+      const data = response.data;
       
       const statisticsData: StatisticsData = {
         totalFiles: data.totalFiles || 0,
-        totalStorageSize: data.totalSize || 0,
+        totalStorageSize: data.totalStorageSize || 0,
         todayUploads: data.todayUploads || 0,
         weekUploads: data.weekUploads || 0,
         monthUploads: data.monthUploads || 0,
-        fileTypeDistribution: data.typeDistribution || [],
+        fileTypeDistribution: data.fileTypeDistribution || [],
         uploadTrend: data.uploadTrend || [],
-        categoryStatistics: data.categoryStats || [],
-        storageUsage: {
-          used: data.usedStorage || 0,
-          total: data.totalStorage || 10737418240,
-          percentage: data.storagePercentage || 0,
-          remaining: (data.totalStorage || 10737418240) - (data.usedStorage || 0),
+        categoryStatistics: data.categoryStatistics || [],
+        storageUsage: data.storageUsage || {
+          used: 0,
+          total: 10737418240,
+          percentage: 0,
+          remaining: 10737418240,
         },
       };
       

@@ -40,6 +40,7 @@ public class AuthController {
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .status(user.getStatus())
+                .role(user.getRole())
                 .createdAt(user.getCreatedAt())
                 .build();
         return Result.success(userVO);
