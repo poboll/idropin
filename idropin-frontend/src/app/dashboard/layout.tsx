@@ -42,14 +42,16 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { user, logout, isSuperAdmin } = useAuthStore();
+  const { user, logout, isSuperAdmin, fetchCurrentUser } = useAuthStore();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    // Refresh user info on mount to get latest role/permissions
+    fetchCurrentUser();
+  }, [fetchCurrentUser]);
 
   const handleLogout = () => {
     logout();

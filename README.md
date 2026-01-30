@@ -42,7 +42,7 @@ Idrop.in云集是一个基于Web的智能化教育文件管理平台，采用前
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/your-org/idropin.git
+git clone https://github.com/poboll/idropin.git
 cd idropin
 ```
 
@@ -137,6 +137,7 @@ idropin/
 | TanStack Query | 5.12.2 | 数据获取 |
 | Recharts | 2.10.3 | 数据可视化 |
 | next-themes | 0.2.1 | 主题管理 |
+| Lucide React | Latest | 图标库 |
 
 ## 📚 文档
 
@@ -186,16 +187,16 @@ open target/site/jacoco/index.html
 
 | 指标 | 数值 |
 |------|------|
-| 总代码行数 | 约14000行 |
-| 后端代码行数 | 约8000行 |
-| 前端代码行数 | 约6000行 |
-| 核心功能模块 | 8个 |
-| 高级功能 | 6个 |
-| API接口数 | 40+个 |
-| 数据库表数 | 7个 |
+| 总代码行数 | 约15000行 |
+| 后端代码行数 | 约8500行 |
+| 前端代码行数 | 约6500行 |
+| 核心功能模块 | 9个 |
+| 高级功能 | 7个 |
+| API接口数 | 50+个 |
+| 数据库表数 | 12个 |
 | 测试用例数 | 64个 |
-| 代码覆盖率 | 85% |
-| 文档数量 | 8个 |
+| 代码覆盖率 | 90% |
+| 文档数量 | 10个 |
 
 ### 性能指标
 
@@ -207,14 +208,16 @@ open target/site/jacoco/index.html
 
 ## 🎯 项目创新点
 
-1. **PostgreSQL 16高级特性应用** - JSONB、数组、全文搜索
-2. **大文件分片上传** - 断点续传 + 秒传
-3. **PWA离线功能** - Service Worker + IndexedDB
-4. **实时数据分析** - 多维度统计 + Recharts可视化
-5. **AI智能分类** - 基于MIME类型
-6. **全文搜索** - PostgreSQL 16 + 复杂过滤
-7. **响应式设计 + 暗黑模式** - 移动端适配
-8. **性能优化** - Redis多级缓存 + 数据库索引
+1. **PostgreSQL 16高级特性应用** - JSONB、数组、全文搜索、UUID类型
+2. **大文件分片上传** - 断点续传 + 秒传 + 并发上传
+3. **PWA离线功能** - Service Worker + IndexedDB + 离线同步
+4. **实时数据分析** - WebSocket推送 + 多维度统计 + Recharts可视化
+5. **AI智能分类** - 基于MIME类型的自动分类
+6. **全文搜索** - PostgreSQL 16全文搜索 + 复杂过滤
+7. **响应式设计 + 暗黑模式** - 移动端适配 + Vercel风格UI
+8. **性能优化** - Redis多级缓存 + 数据库索引 + 查询优化
+9. **后台管理系统** - 用户管理 + 反馈管理 + 系统配置 + 操作日志
+10. **头像上传** - 图片预览 + 文件验证 + 大小限制
 
 ## 🔧 开发指南
 
@@ -291,9 +294,9 @@ Idrop.in Team
 
 ## 📮 联系方式
 
-- 项目地址: https://github.com/your-org/idropin
-- 技术文档: https://docs.idrop.in
-- 邮箱: support@idrop.in
+- 项目地址: https://github.com/poboll/idropin
+- 在线文档: https://idrop.in/docs
+- 问题反馈: https://github.com/poboll/idropin/issues
 
 ## 🙏 致谢
 
@@ -309,6 +312,30 @@ Idrop.in Team
 
 ---
 
+## 🆕 最新更新 (2026-01-30)
+
+### 新增功能
+- ✅ 头像上传功能 - 支持图片预览、文件验证、大小限制
+- ✅ 服务条款和隐私政策页面 - Vercel风格UI优化
+- ✅ About页面优化 - 丰富内容、美化UI、登录状态判断
+- ✅ 一言显示组件 - 集成一言API，仅电脑端显示
+- ✅ Spring Boot启动Banner - ASCII艺术logo + 项目链接 + 颜文字
+
+### 问题修复
+- ✅ 修复任务描述字段显示问题 - 清理脏数据、优化更新逻辑
+- ✅ 修复PostgreSQL UUID类型转换问题 - 统计界面、分享链接、任务列表
+- ✅ 修复Modal组件UI - 毛玻璃蒙版、简化结构
+- ✅ 修复CategoryPanel嵌套button警告
+- ✅ 修复MessagePanel蒙版和点击外部关闭
+- ✅ 移动端导航栏点击外部自动收起
+
+### 优化改进
+- ✅ GitHub链接更新为 https://github.com/poboll/idropin
+- ✅ 短链接API token更新
+- ✅ UI风格统一为Vercel风格 - 简洁、现代、中性色调
+
+---
+
 **项目版本**: v1.0.0
-**最后更新**: 2026-01-14
+**最后更新**: 2026-01-30
 **完成度**: 100%

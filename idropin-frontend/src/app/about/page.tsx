@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { 
   Cloud, 
@@ -13,8 +14,10 @@ import {
   Github,
   Mail,
   Globe,
-  ArrowRight
+  ArrowRight,
+  LayoutDashboard
 } from 'lucide-react';
+import { getToken } from '@/lib/api/client';
 
 const features = [
   {
@@ -57,6 +60,13 @@ const techStack = [
 ];
 
 export default function AboutPage() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const token = getToken();
+    setIsLoggedIn(!!token);
+  }, []);
+
   return (
     <div className="min-h-screen bg-white dark:bg-black">
       {/* Header */}
@@ -70,8 +80,17 @@ export default function AboutPage() {
             <span className="text-sm">返回首页</span>
           </Link>
           <div className="flex items-center gap-3">
-            <Link href="/login" className="btn-ghost btn-sm">登录</Link>
-            <Link href="/register" className="btn-primary btn-sm">注册</Link>
+            {isLoggedIn ? (
+              <Link href="/dashboard" className="btn-primary btn-sm">
+                <LayoutDashboard className="w-4 h-4" />
+                进入控制台
+              </Link>
+            ) : (
+              <>
+                <Link href="/login" className="btn-ghost btn-sm">登录</Link>
+                <Link href="/register" className="btn-primary btn-sm">注册</Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -83,7 +102,7 @@ export default function AboutPage() {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-900 dark:bg-white rounded-2xl mb-6">
               <Cloud className="w-8 h-8 text-white dark:text-gray-900" />
             </div>
-            <h1 className="text-4xl font-semibold text-gray-900 dark:text-white mb-3 tracking-tight">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3 tracking-tight">
               云集
             </h1>
             <p className="text-lg text-gray-600 dark:text-gray-400 mb-2">
@@ -98,7 +117,7 @@ export default function AboutPage() {
         {/* Features */}
         <section className="py-16 px-6 border-t border-gray-200 dark:border-gray-800">
           <div className="max-w-6xl mx-auto">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white text-center mb-12">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white text-center mb-12">
               核心功能
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -107,7 +126,7 @@ export default function AboutPage() {
                 return (
                   <div 
                     key={feature.title}
-                    className="card p-6 card-hover"
+                    className="card p-6 hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
                   >
                     <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
                       <Icon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -128,7 +147,7 @@ export default function AboutPage() {
         {/* Tech Stack */}
         <section className="py-16 px-6 border-t border-gray-200 dark:border-gray-800">
           <div className="max-w-6xl mx-auto">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white text-center mb-12">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white text-center mb-12">
               技术栈
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -154,21 +173,25 @@ export default function AboutPage() {
         {/* Stats */}
         <section className="py-16 px-6 border-t border-gray-200 dark:border-gray-800">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white text-center mb-12">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white text-center mb-12">
               项目信息
             </h2>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="stat-card text-center">
-                <p className="stat-value">14000+</p>
-                <p className="stat-label">代码行数</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-6 card">
+                <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">15K+</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">代码行数</p>
               </div>
-              <div className="stat-card text-center">
-                <p className="stat-value">40+</p>
-                <p className="stat-label">API接口</p>
+              <div className="text-center p-6 card">
+                <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">50+</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">API接口</p>
               </div>
-              <div className="stat-card text-center">
-                <p className="stat-value">85%</p>
-                <p className="stat-label">测试覆盖率</p>
+              <div className="text-center p-6 card">
+                <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">90%</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">测试覆盖率</p>
+              </div>
+              <div className="text-center p-6 card">
+                <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">MIT</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">开源协议</p>
               </div>
             </div>
           </div>
@@ -177,7 +200,7 @@ export default function AboutPage() {
         {/* Contact */}
         <section className="py-16 px-6 border-t border-gray-200 dark:border-gray-800">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-8">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-8">
               联系我们
             </h2>
             <div className="flex justify-center gap-3 flex-wrap">
@@ -186,7 +209,7 @@ export default function AboutPage() {
                 support@idrop.in
               </a>
               <a 
-                href="https://github.com/your-org/idropin"
+                href="https://github.com/poboll/idropin"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-secondary"
@@ -210,16 +233,23 @@ export default function AboutPage() {
         {/* CTA */}
         <section className="py-16 px-6 border-t border-gray-200 dark:border-gray-800">
           <div className="max-w-xl mx-auto text-center">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
               开始使用
             </h2>
             <p className="text-gray-500 dark:text-gray-400 mb-6">
               立即注册，体验智能文件管理
             </p>
-            <Link href="/register" className="btn-primary btn-lg">
-              免费注册
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            {isLoggedIn ? (
+              <Link href="/dashboard" className="btn-primary btn-lg">
+                进入控制台
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            ) : (
+              <Link href="/register" className="btn-primary btn-lg">
+                免费注册
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            )}
           </div>
         </section>
       </main>
@@ -228,7 +258,7 @@ export default function AboutPage() {
       <footer className="py-8 px-6 border-t border-gray-200 dark:border-gray-800">
         <div className="max-w-6xl mx-auto text-center">
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            © 2024 Idrop.in 云集
+            © 2026 Idrop.in 云集
           </p>
         </div>
       </footer>

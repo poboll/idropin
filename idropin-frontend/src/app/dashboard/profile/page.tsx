@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAuthStore } from '@/lib/stores';
 import { apiClient, extractApiError } from '@/lib/api/client';
-import { User, Mail, Calendar, Key, Camera, Lock, Loader2, ChevronDown } from 'lucide-react';
+import { User, Mail, Calendar, Key, Camera, Lock, Loader2, ChevronDown, Upload as UploadIcon } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
 export default function ProfilePage() {
-  const { user } = useAuthStore();
+  const { user, fetchCurrentUser } = useAuthStore();
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [verifyType, setVerifyType] = useState<'password' | 'email' | 'phone'>('password');
   const [oldPassword, setOldPassword] = useState('');
@@ -15,8 +15,10 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [verifyCode, setVerifyCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +57,60 @@ export default function ProfilePage() {
     }
   };
 
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 验证文件类型
+    if (!file.type.startsWith('image/')) {
+      setError('请选择图片文件');
+      return;
+    }
+
+    // 验证文件大小 (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('图片大小不能超过5MB');
+      return;
+    }
+
+    setUploadingAvatar(true);
+    setError(null);
+
+    try {
+      // 上传文件
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const uploadResponse = await apiClient.post('/files/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const fileUrl = uploadResponse.data.data.url;
+
+      // 更新头像
+      await apiClient.put('/user/avatar', null, {
+        params: { avatarUrl: fileUrl },
+      });
+
+      // 刷新用户信息
+      await fetchCurrentUser();
+      
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      const apiError = extractApiError(err);
+      setError(apiError.message || '头像上传失败');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="page-header">
@@ -63,14 +119,51 @@ export default function ProfilePage() {
       </div>
 
       <div className="card p-8">
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          </div>
+        )}
+        {success && (
+          <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <p className="text-sm text-green-600 dark:text-green-400">操作成功！</p>
+          </div>
+        )}
+        
         <div className="flex flex-col md:flex-row items-center gap-6 pb-6 border-b border-gray-200 dark:border-gray-800">
-          <div className="relative group cursor-pointer">
-            <div className="w-20 h-20 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900 text-2xl font-semibold">
-              {user?.username?.[0]?.toUpperCase() || 'U'}
-            </div>
-            <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <Camera className="w-6 h-6 text-white" />
-            </div>
+          <div className="relative">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+            />
+            <button
+              onClick={handleAvatarClick}
+              disabled={uploadingAvatar}
+              className="relative group cursor-pointer"
+            >
+              {user?.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt="Avatar"
+                  className="w-20 h-20 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900 text-2xl font-semibold">
+                  {user?.username?.[0]?.toUpperCase() || 'U'}
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                {uploadingAvatar ? (
+                  <Loader2 className="w-6 h-6 text-white animate-spin" />
+                ) : (
+                  <Camera className="w-6 h-6 text-white" />
+                )}
+              </div>
+            </button>
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">点击上传头像</p>
           </div>
           
           <div className="flex-1 text-center md:text-left">

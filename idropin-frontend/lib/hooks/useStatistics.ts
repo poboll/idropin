@@ -36,9 +36,10 @@ export function useStatistics() {
       
       setStatistics(statisticsData);
       setConnected(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch statistics:', err);
-      setError('获取统计数据失败，请稍后重试');
+      const errorMessage = err?.response?.data?.message || err?.message || '获取统计数据失败，请稍后重试';
+      setError(errorMessage);
       setConnected(false);
     } finally {
       setLoading(false);
