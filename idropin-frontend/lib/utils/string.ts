@@ -254,5 +254,5 @@ export function getTipImageKey(
   name: string,
   uid?: number | string
 ): string {
-  return `easypicker2/tip/${key}/${uid || Date.now()}/${name}`;
+  return `idropin/tip/${key}/${uid || Date.now()}/${name}`;
 }

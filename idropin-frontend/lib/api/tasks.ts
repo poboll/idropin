@@ -151,6 +151,7 @@ export interface TaskInfo {
   template?: string;
   bindField?: string;
   rewrite?: boolean;
+  autoRename?: boolean;
 }
 
 export async function getTaskInfo(key: string): Promise<CollectionTask> {

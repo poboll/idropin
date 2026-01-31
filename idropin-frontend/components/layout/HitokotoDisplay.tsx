@@ -53,20 +53,20 @@ export function HitokotoDisplay() {
   if (!hitokoto) return null;
 
   return (
-    <div className="hidden md:flex items-center gap-2 max-w-xs mr-2">
+    <div className="hidden md:flex items-center gap-2 md:max-w-[140px] lg:max-w-[200px] mr-2 group">
       <button
         onClick={fetchHitokoto}
         disabled={loading}
-        className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+        className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50 opacity-0 group-hover:opacity-100 flex-shrink-0"
         title="换一句"
       >
         <RefreshCw className={`w-3.5 h-3.5 text-gray-400 ${loading ? 'animate-spin' : ''}`} />
       </button>
-      <div className="flex flex-col min-w-0">
-        <p className="text-xs text-gray-600 dark:text-gray-400 truncate" title={hitokoto.content}>
+      <div className="flex flex-col min-w-0 flex-1 overflow-hidden">
+        <p className="text-xs text-gray-600 dark:text-gray-400 truncate whitespace-nowrap" title={hitokoto.content}>
           {hitokoto.content}
         </p>
-        <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
+        <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate whitespace-nowrap">
           —— {hitokoto.name} 《{hitokoto.origin}》
         </p>
       </div>

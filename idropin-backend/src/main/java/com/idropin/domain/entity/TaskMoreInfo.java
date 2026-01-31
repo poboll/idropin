@@ -61,6 +61,11 @@ public class TaskMoreInfo {
     private Boolean rewrite;
 
     /**
+     * 是否使用提交信息自动更新文件名
+     */
+    private Boolean autoRename;
+
+    /**
      * 创建时间
      */
     @TableField(fill = FieldFill.INSERT)

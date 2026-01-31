@@ -56,6 +56,9 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
   const [maxFileCount, setMaxFileCount] = useState<number>(10);
   const [maxFileSizeValue, setMaxFileSizeValue] = useState<number>(0);
   
+  // Auto rename state
+  const [autoRename, setAutoRename] = useState<boolean>(true); // 默认开启
+  
   // Task import dialog state
   const [showTaskImportDialog, setShowTaskImportDialog] = useState(false);
   const [availableTasks, setAvailableTasks] = useState<TaskWithCreatedAt[]>([]);
@@ -87,6 +90,9 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
       
       const info = await TaskApi.getTaskMoreInfo(key);
       setTaskInfo(info);
+      
+      // 加载自动重命名设置（默认为true）
+      setAutoRename(info.autoRename !== undefined ? info.autoRename : true);
       
       // 解析必填字段
       if (info.info) {
@@ -417,6 +423,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
           nameList: nameListData // 名单列表
         }),
         rewrite: taskInfo.rewrite,
+        autoRename: autoRename, // 保存自动重命名设置
         info: JSON.stringify(requiredFields.map(f => f.name)) // 只保存字段名称数组
       });
       
@@ -873,6 +880,42 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                   <div>
                     <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200 mb-2">文件属性管理</h3>
                     <p className="text-sm text-slate-500">设置文件上传的限制条件。</p>
+                  </div>
+
+                  {/* 自动更新文件名 */}
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                      使用提交信息自动更新文件名
+                    </label>
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => setAutoRename(true)}
+                        className={`flex-1 py-3 rounded-lg font-medium transition-all ${
+                          autoRename
+                            ? 'bg-green-500 text-white shadow-lg'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        开启
+                      </button>
+                      <button
+                        onClick={() => setAutoRename(false)}
+                        className={`flex-1 py-3 rounded-lg font-medium transition-all ${
+                          !autoRename
+                            ? 'bg-red-500 text-white shadow-lg'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        关闭
+                      </button>
+                    </div>
+                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <p className="text-xs text-blue-800 dark:text-blue-400">
+                        开启后，文件名将自动更新为：<span className="font-mono font-medium">任务名_必填信息_原文件名</span>
+                        <br />
+                        例如：<span className="font-mono font-medium">智协_25-26社团骨干备案表_朱思鑫.docx</span>
+                      </p>
+                    </div>
                   </div>
 
                   {/* 文件类型限制 */}

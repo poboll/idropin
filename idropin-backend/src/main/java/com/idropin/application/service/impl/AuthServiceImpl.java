@@ -1,6 +1,7 @@
 package com.idropin.application.service.impl;
 
 import com.idropin.application.service.AuthService;
+import com.idropin.application.service.OperationLogService;
 import com.idropin.common.exception.BusinessException;
 import com.idropin.domain.dto.LoginRequest;
 import com.idropin.domain.dto.LoginResponse;
@@ -39,13 +40,14 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenUtil jwtTokenUtil;
     private final EmailService emailService;
+    private final OperationLogService operationLogService;
 
     @Value("${jwt.expiration}")
     private Long jwtExpiration;
 
     @Override
     @Transactional
-    public User register(RegisterRequest request) {
+    public User register(RegisterRequest request, String ipAddress) {
         // 检查用户名是否已存在
         if (userMapper.existsByUsername(request.getUsername())) {
             throw new BusinessException(400, "用户名已存在");
@@ -69,11 +71,21 @@ public class AuthServiceImpl implements AuthService {
         userMapper.insert(user);
         log.info("用户注册成功: {}", user.getUsername());
 
+        // 记录操作日志
+        operationLogService.log(
+            user.getId(),
+            "USER_REGISTER",
+            "USER",
+            user.getId(),
+            "用户注册: " + user.getUsername(),
+            ipAddress
+        );
+
         return user;
     }
 
     @Override
-    public LoginResponse login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request, String ipAddress) {
         // 查找用户
         User user = userMapper.findByUsername(request.getUsername());
         if (user == null) {
@@ -105,6 +117,16 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         log.info("用户登录成功: {}", user.getUsername());
+
+        // 记录操作日志
+        operationLogService.log(
+            user.getId(),
+            "USER_LOGIN",
+            "USER",
+            user.getId(),
+            "用户登录: " + user.getUsername(),
+            ipAddress
+        );
 
         return LoginResponse.builder()
                 .token(token)

@@ -8,7 +8,7 @@ import { TaskInfoCard } from '@/components/tasks/TaskInfoCard';
 import CreateTaskForm from '@/components/tasks/CreateTaskForm';
 import { ShareDialog } from '@/components/tasks/ShareDialog';
 import { EditTaskDialog } from '@/components/tasks/EditTaskDialog';
-import MoreSettingsDialog from '../../../components/tasks/MoreSettingsDialog';
+import { MoreSettingsDialog } from '@/components/tasks/MoreSettingsDialog';
 import { Inbox, Plus, X, Loader2 } from 'lucide-react';
 import AuthGuard from '@/components/auth/AuthGuard';
 

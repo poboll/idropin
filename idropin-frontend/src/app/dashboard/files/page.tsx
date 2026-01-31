@@ -28,7 +28,7 @@ import { formatDate, formatSize, parseInfo, InfoItem, getFileSuffix } from '@/li
 import { copyRes } from '@/lib/utils/string';
 
 interface FileRecord {
-  id: number;
+  id: string | number;
   date: string;
   task_key: string;
   task_name: string;
@@ -70,29 +70,74 @@ function FilesPageContent() {
   const loadFiles = async () => {
     setIsLoading(true);
     try {
+      // 加载通用文件（file表）
       const { getFiles } = await import('@/lib/api/files');
-      const response = await getFiles({ page: 1, size: 100 });
+      const response = await getFiles({ page: 1, size: 1000 });
       
+      const apiFiles: FileRecord[] = [];
+      
+      // 添加通用文件
       if (response && response.records) {
-        const apiFiles: FileRecord[] = response.records.map((f: any, index: number) => ({
-          id: index + 1,
-          date: f.createdAt || new Date().toISOString(),
-          task_key: f.categoryId || 'default',
-          task_name: f.categoryId ? `任务 ${f.categoryId}` : '默认任务',
-          name: f.originalName || '未命名文件',
-          origin_name: f.originalName,
-          size: f.fileSize || 0,
-          people: f.uploaderId || '-',
-          info: '[]',
-          cover: f.mimeType?.startsWith('image/') ? f.url : undefined,
-          downloadCount: 0,
-          fileId: f.id,
-          mimeType: f.mimeType,
-        }));
-        setFiles(apiFiles);
-      } else {
-        setFiles([]);
+        response.records.forEach((f: any, index: number) => {
+          apiFiles.push({
+            id: `file-${index}`,
+            date: f.createdAt || new Date().toISOString(),
+            task_key: f.categoryId || 'default',
+            task_name: f.categoryId ? `任务 ${f.categoryId}` : '默认任务',
+            name: f.originalName || '未命名文件',
+            origin_name: f.originalName,
+            size: f.fileSize || 0,
+            people: f.uploaderId || '-',
+            info: '[]',
+            cover: f.mimeType?.startsWith('image/') ? f.url : undefined,
+            downloadCount: 0,
+            fileId: f.id,
+            mimeType: f.mimeType,
+          });
+        });
       }
+      
+      // 加载任务提交文件（遍历所有任务）
+      if (tasks && tasks.length > 0) {
+        const token = localStorage.getItem('token');
+        for (const task of tasks) {
+          try {
+            const submissionResponse = await fetch(
+              `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api'}/collection-tasks/${task.key}/submissions`,
+              {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                },
+              }
+            );
+            
+            if (submissionResponse.ok) {
+              const submissionData = await submissionResponse.json();
+              if (submissionData.data && Array.isArray(submissionData.data)) {
+                submissionData.data.forEach((s: any) => {
+                  apiFiles.push({
+                    id: `submission-${s.id}`,
+                    date: s.submittedAt || new Date().toISOString(),
+                    task_key: task.key,
+                    task_name: task.name,
+                    name: s.submitterName ? `${task.name}_${s.submitterName}` : task.name,
+                    origin_name: s.submitterName,
+                    size: 0,
+                    people: s.submitterName || '-',
+                    info: '[]',
+                    downloadCount: 0,
+                    fileId: s.fileId,
+                  });
+                });
+              }
+            }
+          } catch (error) {
+            console.warn(`加载任务 ${task.key} 的提交记录失败:`, error);
+          }
+        }
+      }
+      
+      setFiles(apiFiles);
     } catch (error) {
       console.error('加载文件失败', error);
       setFiles([]);

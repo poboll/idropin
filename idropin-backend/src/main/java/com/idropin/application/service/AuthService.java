@@ -18,17 +18,19 @@ public interface AuthService {
      * 用户注册
      *
      * @param request 注册请求
+     * @param ipAddress 客户端IP地址
      * @return 注册成功的用户
      */
-    User register(RegisterRequest request);
+    User register(RegisterRequest request, String ipAddress);
 
     /**
      * 用户登录
      *
      * @param request 登录请求
+     * @param ipAddress 客户端IP地址
      * @return 登录响应（包含Token和用户信息）
      */
-    LoginResponse login(LoginRequest request);
+    LoginResponse login(LoginRequest request, String ipAddress);
 
     /**
      * 验证Token

@@ -407,19 +407,19 @@ export default function TaskSubmissionPage() {
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 hover:opacity-70 transition-opacity">
-            <div className="relative h-8 w-24">
+            <div className="relative h-10 w-32">
               <Image
                 src="https://pic.imgdb.cn/item/668cd877d9c307b7e99e9061.png"
-                alt="EasyPicker"
+                alt="IdropIn"
                 fill
-                sizes="96px"
+                sizes="128px"
                 className="object-contain"
                 priority
               />
             </div>
           </Link>
           <a
-            href="https://docs.ep.sugarat.top/"
+            href="https://idrop.caiths.com"
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"

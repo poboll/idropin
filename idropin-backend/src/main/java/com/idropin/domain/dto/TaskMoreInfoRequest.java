@@ -48,4 +48,9 @@ public class TaskMoreInfoRequest {
      * 是否允许重写
      */
     private Boolean rewrite;
+
+    /**
+     * 是否使用提交信息自动更新文件名
+     */
+    private Boolean autoRename;
 }

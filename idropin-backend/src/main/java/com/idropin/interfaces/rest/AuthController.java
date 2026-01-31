@@ -11,6 +11,7 @@ import com.idropin.domain.entity.User;
 import com.idropin.domain.vo.UserVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -33,8 +34,9 @@ public class AuthController {
      */
     @Operation(summary = "用户注册", description = "新用户注册账号")
     @PostMapping("/register")
-    public Result<UserVO> register(@Valid @RequestBody RegisterRequest request) {
-        User user = authService.register(request);
+    public Result<UserVO> register(@Valid @RequestBody RegisterRequest request, HttpServletRequest httpRequest) {
+        String ipAddress = getClientIp(httpRequest);
+        User user = authService.register(request, ipAddress);
         UserVO userVO = UserVO.builder()
                 .id(user.getId())
                 .username(user.getUsername())
@@ -51,8 +53,9 @@ public class AuthController {
      */
     @Operation(summary = "用户登录", description = "用户登录获取Token")
     @PostMapping("/login")
-    public Result<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        LoginResponse response = authService.login(request);
+    public Result<LoginResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+        String ipAddress = getClientIp(httpRequest);
+        LoginResponse response = authService.login(request, ipAddress);
         return Result.success(response);
     }
 
@@ -74,5 +77,29 @@ public class AuthController {
     public Result<Void> confirmPasswordReset(@Valid @RequestBody PasswordResetConfirmRequest request) {
         authService.confirmPasswordReset(request);
         return Result.<Void>success("密码重置成功", null);
+    }
+
+    /**
+     * 获取客户端IP地址
+     */
+    private String getClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("WL-Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("X-Real-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        // 多个代理时取第一个IP
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        return ip;
     }
 }
