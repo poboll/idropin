@@ -279,8 +279,16 @@ export default function TaskSubmissionPage() {
               throw new Error(error || '上传失败');
             }
 
+            const result = await response.json();
+            const submissionId = result.data?.id; // 获取返回的submission ID
+
             setFiles(prev => prev.map(f => 
-              f.id === uploadFile.id ? { ...f, status: 'success' as const, progress: 100 } : f
+              f.id === uploadFile.id ? { 
+                ...f, 
+                status: 'success' as const, 
+                progress: 100,
+                submissionId: submissionId // 保存submission ID用于撤回
+              } : f
             ));
 
             if (taskMoreInfo.people) {
@@ -326,7 +334,7 @@ export default function TaskSubmissionPage() {
       try {
         await withdrawFile({
           key: taskKey,
-          id: parseInt(file.id),
+          id: (file as any).submissionId || parseInt(file.id), // 优先使用submissionId
           filename: fileName,
         });
 

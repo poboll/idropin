@@ -209,9 +209,10 @@ export const getUploadToken = async (): Promise<string> => {
   }
 };
 
-export const addFile = async (options: AddFileOptions): Promise<void> => {
+export const addFile = async (options: AddFileOptions): Promise<{ submissionId: number; fileName: string }> => {
   try {
-    await apiClient.post<ApiResponse<void>>('/files/add', options);
+    const response = await apiClient.post<ApiResponse<{ submissionId: number; fileName: string }>>('/files/add', options);
+    return response.data.data;
   } catch (error) {
     throw extractApiError(error);
   }

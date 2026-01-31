@@ -1,7 +1,7 @@
 import React from 'react';
 import { Task } from '@/lib/stores/task';
 import { formatDate } from '@/lib/utils/string';
-import { Edit3, Share2, Trash2, MoreHorizontal, FileText, Clock, ExternalLink } from 'lucide-react';
+import { Edit3, Share2, Trash2, MoreHorizontal, FileText, Clock, ExternalLink, FolderOpen, FileCheck } from 'lucide-react';
 import Link from 'next/link';
 
 interface TaskInfoCardProps {
@@ -26,9 +26,24 @@ export const TaskInfoCard: React.FC<TaskInfoCardProps> = ({
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1 min-w-0 pr-4">
-          <h3 className="font-medium text-gray-900 dark:text-white truncate" title={task.name}>
-            {task.name}
-          </h3>
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <h3 className="font-medium text-gray-900 dark:text-white truncate" title={task.name}>
+              {task.name}
+            </h3>
+            {/* Collection Type Badge */}
+            {task.collectionType === 'FILE' && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs font-medium rounded border border-blue-200 dark:border-blue-800 flex-shrink-0">
+                <FolderOpen className="w-3 h-3" />
+                收集文件
+              </span>
+            )}
+            {task.collectionType === 'INFO' && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-xs font-medium rounded border border-green-200 dark:border-green-800 flex-shrink-0">
+                <FileCheck className="w-3 h-3" />
+                收集信息
+              </span>
+            )}
+          </div>
           {task.description && (
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
               {task.description}

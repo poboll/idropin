@@ -19,7 +19,8 @@ import {
   Copy,
   ExternalLink,
   Edit3,
-  Eye
+  Eye,
+  Share2
 } from 'lucide-react';
 import { AuthGuard } from '@/components/auth';
 import { useCategoryStore } from '@/lib/stores/category';
@@ -57,9 +58,15 @@ function FilesPageContent() {
   const [pageSize, setPageSize] = useState(10);
   const [pageCurrent, setPageCurrent] = useState(1);
 
-  const [activeModal, setActiveModal] = useState<'info' | 'rename' | 'download' | null>(null);
+  const [activeModal, setActiveModal] = useState<'info' | 'rename' | 'download' | 'share' | null>(null);
   const [currentFile, setCurrentFile] = useState<FileRecord | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [shareFormData, setShareFormData] = useState({
+    password: '',
+    expireAt: '',
+    downloadLimit: '',
+  });
+  const [shareResult, setShareResult] = useState<{ shareCode: string; url: string } | null>(null);
 
   useEffect(() => {
     fetchCategories();
@@ -232,6 +239,39 @@ function FilesPageContent() {
   const handleDownload = (file: FileRecord) => {
     setCurrentFile(file);
     setActiveModal('download');
+  };
+
+  const handleShare = (file: FileRecord) => {
+    if (!file.fileId) {
+      alert('此文件无法分享');
+      return;
+    }
+    setCurrentFile(file);
+    setShareFormData({ password: '', expireAt: '', downloadLimit: '' });
+    setShareResult(null);
+    setActiveModal('share');
+  };
+
+  const handleCreateShare = async () => {
+    if (!currentFile?.fileId) return;
+    
+    try {
+      const { createShare } = await import('@/lib/api/shares');
+      const share = await createShare({
+        fileId: currentFile.fileId,
+        password: shareFormData.password || undefined,
+        expireAt: shareFormData.expireAt || undefined,
+        downloadLimit: shareFormData.downloadLimit ? parseInt(shareFormData.downloadLimit) : undefined,
+      });
+      
+      const baseUrl = window.location.origin;
+      setShareResult({
+        shareCode: share.shareCode,
+        url: `${baseUrl}/share/${share.shareCode}`,
+      });
+    } catch (error: any) {
+      alert(error.message || '创建分享失败');
+    }
   };
 
   return (
@@ -415,6 +455,14 @@ function FilesPageContent() {
                           title="查看信息"
                         >
                           <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleShare(file)}
+                          disabled={!file.fileId}
+                          className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                          title="分享"
+                        >
+                          <Share2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleRename(file)}

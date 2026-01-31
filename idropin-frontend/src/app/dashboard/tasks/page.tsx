@@ -105,43 +105,67 @@ export default function TasksPage() {
           {/* Task List */}
           <div className="lg:col-span-3">
             {/* Collection Type Filter */}
-            <div className="card mb-4">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">
-                  筛选：
+            <div className="card mb-4 p-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  筛选任务
                 </span>
-                <button
-                  onClick={() => setCollectionTypeFilter('all')}
-                  className={`px-3 py-1.5 text-sm rounded-lg transition-all ${
-                    collectionTypeFilter === 'all'
-                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  全部 ({taskCounts.all})
-                </button>
-                <button
-                  onClick={() => setCollectionTypeFilter('FILE')}
-                  className={`px-3 py-1.5 text-sm rounded-lg transition-all flex items-center gap-1.5 ${
-                    collectionTypeFilter === 'FILE'
-                      ? 'bg-blue-500 text-white font-medium'
-                      : 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30'
-                  }`}
-                >
-                  <span>📁</span>
-                  <span>文件收集 ({taskCounts.FILE})</span>
-                </button>
-                <button
-                  onClick={() => setCollectionTypeFilter('INFO')}
-                  className={`px-3 py-1.5 text-sm rounded-lg transition-all flex items-center gap-1.5 ${
-                    collectionTypeFilter === 'INFO'
-                      ? 'bg-green-500 text-white font-medium'
-                      : 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/30'
-                  }`}
-                >
-                  <span>📝</span>
-                  <span>信息收集 ({taskCounts.INFO})</span>
-                </button>
+                <div className="h-4 w-px bg-gray-200 dark:bg-gray-700"></div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => setCollectionTypeFilter('all')}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                      collectionTypeFilter === 'all'
+                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    全部
+                    <span className={`ml-1.5 px-1.5 py-0.5 rounded text-xs ${
+                      collectionTypeFilter === 'all'
+                        ? 'bg-white/20 dark:bg-gray-900/20'
+                        : 'bg-gray-200 dark:bg-gray-700'
+                    }`}>
+                      {taskCounts.all}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setCollectionTypeFilter('FILE')}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 ${
+                      collectionTypeFilter === 'FILE'
+                        ? 'bg-blue-500 text-white shadow-md shadow-blue-500/30'
+                        : 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-800'
+                    }`}
+                  >
+                    <span className="text-base">📁</span>
+                    <span>文件收集</span>
+                    <span className={`px-1.5 py-0.5 rounded text-xs ${
+                      collectionTypeFilter === 'FILE'
+                        ? 'bg-white/20'
+                        : 'bg-blue-100 dark:bg-blue-800'
+                    }`}>
+                      {taskCounts.FILE}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setCollectionTypeFilter('INFO')}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 ${
+                      collectionTypeFilter === 'INFO'
+                        ? 'bg-green-500 text-white shadow-md shadow-green-500/30'
+                        : 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/30 border border-green-200 dark:border-green-800'
+                    }`}
+                  >
+                    <span className="text-base">📝</span>
+                    <span>信息收集</span>
+                    <span className={`px-1.5 py-0.5 rounded text-xs ${
+                      collectionTypeFilter === 'INFO'
+                        ? 'bg-white/20'
+                        : 'bg-green-100 dark:bg-green-800'
+                    }`}>
+                      {taskCounts.INFO}
+                    </span>
+                  </button>
+                </div>
               </div>
             </div>
 

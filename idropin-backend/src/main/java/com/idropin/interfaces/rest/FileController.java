@@ -222,7 +222,7 @@ public class FileController {
      */
     @PostMapping("/add")
     @Operation(summary = "添加文件记录")
-    public Result<Void> addFile(
+    public Result<java.util.Map<String, Object>> addFile(
             @RequestBody java.util.Map<String, Object> options,
             @AuthenticationPrincipal UserDetails userDetails) {
         String userId = getUserIdOrNull(userDetails);
@@ -249,7 +249,12 @@ public class FileController {
         taskSubmissionMapper.insert(submission);
         log.info("File submission record created: id={}", submission.getId());
         
-        return Result.success(null);
+        // 返回submission ID供前端撤回使用
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("submissionId", submission.getId());
+        result.put("fileName", name);
+        
+        return Result.success(result);
     }
 
     /**
@@ -271,25 +276,44 @@ public class FileController {
             throw new com.idropin.common.exception.BusinessException("任务key不能为空");
         }
         
-        // 先尝试从file_submission表删除（新的提交记录）
-        if (idObj != null) {
-            String submissionId = idObj.toString();
-            com.idropin.domain.entity.FileSubmission fileSubmission = fileSubmissionMapper.selectById(submissionId);
-            if (fileSubmission != null && fileSubmission.getTaskId().equals(taskKey)) {
-                fileSubmissionMapper.deleteById(submissionId);
-                log.info("File submission deleted from file_submission: id={}", submissionId);
-                return Result.success(null);
-            }
-        }
-        
-        // 如果file_submission表没有找到，再尝试task_submission表（旧的提交记录）
+        // 先尝试从task_submission表删除（使用filename查询）
         if (filename != null && !filename.isEmpty()) {
             TaskSubmission submission = taskSubmissionMapper.findByTaskKeyAndFileName(taskKey, filename);
             if (submission != null) {
+                // 软删除：设置status为1表示已撤回
                 submission.setStatus(1);
                 taskSubmissionMapper.updateById(submission);
                 log.info("File submission withdrawn from task_submission: id={}", submission.getId());
                 return Result.success(null);
+            }
+        }
+        
+        // 如果task_submission表没有找到，尝试使用ID查询（兼容旧逻辑）
+        if (idObj != null) {
+            try {
+                // 尝试作为Long类型的ID查询task_submission
+                Long submissionId = null;
+                if (idObj instanceof Number) {
+                    submissionId = ((Number) idObj).longValue();
+                } else if (idObj instanceof String) {
+                    try {
+                        submissionId = Long.parseLong((String) idObj);
+                    } catch (NumberFormatException e) {
+                        // 不是数字，忽略
+                    }
+                }
+                
+                if (submissionId != null) {
+                    TaskSubmission submission = taskSubmissionMapper.selectById(submissionId);
+                    if (submission != null && submission.getTaskKey().equals(taskKey)) {
+                        submission.setStatus(1);
+                        taskSubmissionMapper.updateById(submission);
+                        log.info("File submission withdrawn by ID from task_submission: id={}", submissionId);
+                        return Result.success(null);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to withdraw by ID: {}", e.getMessage());
             }
         }
         
