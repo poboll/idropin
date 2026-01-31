@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.idropin.application.service.AccessLogService;
 import com.idropin.application.service.AdminService;
 import com.idropin.application.service.MessageService;
 import com.idropin.application.service.OperationLogService;
@@ -40,6 +41,7 @@ public class AdminServiceImpl implements AdminService {
     private final UserMapper userMapper;
     private final MessageService messageService;
     private final OperationLogService operationLogService;
+    private final AccessLogService accessLogService;
     private final PasswordEncoder passwordEncoder;
     private final TokenCacheService tokenCacheService;
 
@@ -64,11 +66,11 @@ public class AdminServiceImpl implements AdminService {
         stats.setLogCount(operationLogService.countLogs());
         stats.setLogCountYesterday(operationLogService.countLogsYesterday());
         
-        // PV/UV统计 (简化实现)
-        stats.setPvCount(0L);
-        stats.setUvCount(0L);
-        stats.setHistoryPvCount(0L);
-        stats.setHistoryUvCount(0L);
+        // PV/UV统计
+        stats.setPvCount(accessLogService.getTodayPV());
+        stats.setUvCount(accessLogService.getTodayUV());
+        stats.setHistoryPvCount(accessLogService.getTotalPV());
+        stats.setHistoryUvCount(accessLogService.getTotalUV());
         
         // 归档和无效文件统计
         stats.setArchivedFileCount(userMapper.countArchivedFiles());

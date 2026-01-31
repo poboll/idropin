@@ -16,22 +16,31 @@ export function HitokotoDisplay() {
   const fetchHitokoto = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://dl.caiths.com/api/one', {
+      // 使用官方一言API（支持CORS）
+      const response = await fetch('https://v1.hitokoto.cn/?c=i&c=k', {
         headers: {
-          'accept': 'application/json, text/plain, */*',
-          'accept-language': 'zh-CN,zh;q=0.9',
+          'accept': 'application/json',
         },
       });
-      const data = await response.json();
-      if (data.code === 200 && data.data) {
-        setHitokoto({
-          content: data.data.content,
-          name: data.data.name,
-          origin: data.data.origin,
-        });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch');
       }
+      
+      const data = await response.json();
+      setHitokoto({
+        content: data.hitokoto.length > 30 ? data.hitokoto.substring(0, 30) + '...' : data.hitokoto,
+        name: data.from_who || '佚名',
+        origin: data.from || '未知',
+      });
     } catch (error) {
       console.error('Failed to fetch hitokoto:', error);
+      // 使用默认一言
+      setHitokoto({
+        content: '生活明朗，万物可爱',
+        name: '佚名',
+        origin: '默认',
+      });
     } finally {
       setLoading(false);
     }
@@ -44,7 +53,7 @@ export function HitokotoDisplay() {
   if (!hitokoto) return null;
 
   return (
-    <div className="hidden xl:flex items-center gap-2 max-w-xs mr-2">
+    <div className="hidden md:flex items-center gap-2 max-w-xs mr-2">
       <button
         onClick={fetchHitokoto}
         disabled={loading}

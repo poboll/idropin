@@ -34,6 +34,7 @@ public class User {
   /**
    * 头像URL
    */
+  @TableField("avatar_url")
   private String avatarUrl;
 
   /**

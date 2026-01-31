@@ -10,7 +10,7 @@ import InfosForm from '@/components/forms/InfosForm';
 import SubmissionUploader, { UploadFile } from '@/components/submission/SubmissionUploader';
 import { getTaskInfoPublic, getTaskMoreInfoPublic, TaskInfo } from '@/lib/api/tasks';
 import { checkPeopleIsExist, updatePeopleStatus } from '@/lib/api/people';
-import { getUploadToken, addFile, withdrawFile, checkSubmitStatus, getTemplateUrl } from '@/lib/api/files';
+import { getUploadToken, withdrawFile, checkSubmitStatus, getTemplateUrl } from '@/lib/api/files';
 import { 
   formatDate, 
   parseInfo, 
@@ -29,6 +29,7 @@ interface TaskBasicInfo {
   limitUpload?: boolean;
   deadline?: string;
   creatorName?: string;
+  creatorAvatarUrl?: string;
   collectionType?: 'INFO' | 'FILE'; // 收集类型
 }
 
@@ -105,12 +106,15 @@ export default function TaskSubmissionPage() {
       setIsLoading(true);
       try {
         const info = await getTaskInfoPublic(taskKey);
+        console.log('Task info from API:', info); // 调试日志
+        console.log('Creator avatar URL:', info.creatorAvatarUrl); // 调试日志
         setTaskInfo({
           name: info.title || '',
           description: info.description || '',
           limitUpload: false,
           deadline: info.deadline || '',
           creatorName: info.creatorName || '',
+          creatorAvatarUrl: info.creatorAvatarUrl || undefined,
           collectionType: info.collectionType || 'FILE', // 默认为收集文件
         });
         setDisabledUpload(false);
@@ -216,7 +220,7 @@ export default function TaskSubmissionPage() {
         formData.append('submitterEmail', '');
         // 将表单信息序列化为JSON
         const infoData = infos.reduce((acc, item) => {
-          acc[item.text] = item.value;
+          acc[item.text] = item.value || '';
           return acc;
         }, {} as Record<string, string>);
         formData.append('infoData', JSON.stringify(infoData));
@@ -430,9 +434,21 @@ export default function TaskSubmissionPage() {
         <div className="bg-white dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-800 p-8 mb-6 shadow-sm">
           <div className="flex items-start justify-between gap-4 mb-4">
             <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
-                {taskInfo.name}
-              </h1>
+              <div className="flex items-center gap-3 mb-3 flex-wrap">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                  {taskInfo.name}
+                </h1>
+                {/* Collection Type Badge - Notion Highlighter Style with Rounded Corners */}
+                {taskInfo.collectionType && (
+                  <span className={`px-2 py-0.5 text-sm font-medium rounded-md ${
+                    taskInfo.collectionType === 'FILE'
+                      ? 'bg-blue-200/60 dark:bg-blue-400/30 text-blue-900 dark:text-blue-100'
+                      : 'bg-green-200/60 dark:bg-green-400/30 text-green-900 dark:text-green-100'
+                  }`}>
+                    {taskInfo.collectionType === 'FILE' ? '📁 收集文件' : '📝 收集信息'}
+                  </span>
+                )}
+              </div>
               
               {/* Task Description */}
               {taskInfo.description && taskInfo.description.trim() && (
@@ -447,9 +463,17 @@ export default function TaskSubmissionPage() {
           <div className="flex flex-wrap gap-6 pt-4 border-t border-gray-100 dark:border-gray-800">
             {taskInfo.creatorName && (
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center">
-                  <Users className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                </div>
+                {taskInfo.creatorAvatarUrl ? (
+                  <img
+                    src={taskInfo.creatorAvatarUrl}
+                    alt={taskInfo.creatorName}
+                    className="w-8 h-8 rounded-full object-cover shadow-sm"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 font-medium text-sm shadow-sm">
+                    {taskInfo.creatorName.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div>
                   <p className="text-xs text-gray-500 dark:text-gray-500">收件人</p>
                   <p className="text-sm font-medium text-gray-900 dark:text-white">{taskInfo.creatorName}</p>

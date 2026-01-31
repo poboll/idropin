@@ -165,7 +165,17 @@ export async function getTaskInfo(key: string): Promise<CollectionTask> {
 /**
  * 获取任务基本信息（公开接口，用于收集链接，不需要登录）
  */
-export async function getTaskInfoPublic(key: string): Promise<any> {
+export async function getTaskInfoPublic(key: string): Promise<{
+  id: string;
+  title: string;
+  description?: string;
+  status: string;
+  deadline?: string;
+  createdBy: string;
+  creatorName?: string;
+  creatorAvatarUrl?: string;
+  collectionType?: 'INFO' | 'FILE';
+}> {
   try {
     const response = await apiClient.get<ApiResponse<any>>(`/tasks/${key}/public-info`);
     return response.data.data;

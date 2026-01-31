@@ -60,6 +60,7 @@ public class SecurityConfig {
                         .requestMatchers("/files/check-submit").permitAll() // 公开提交状态查询
                         .requestMatchers("/files/upload/token").permitAll() // 公开上传token
                         .requestMatchers("/files/template").permitAll() // 公开模板文件下载
+                        .requestMatchers("/access/log").permitAll() // 公开访问日志记录
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/doc.html", "/swagger-ui/**", "/v3/api-docs/**", "/webjars/**").permitAll()
                         .anyRequest().authenticated())

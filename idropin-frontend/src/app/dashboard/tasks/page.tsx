@@ -8,7 +8,7 @@ import { TaskInfoCard } from '@/components/tasks/TaskInfoCard';
 import CreateTaskForm from '@/components/tasks/CreateTaskForm';
 import { ShareDialog } from '@/components/tasks/ShareDialog';
 import { EditTaskDialog } from '@/components/tasks/EditTaskDialog';
-import { MoreSettingsDialog } from '@/components/tasks/MoreSettingsDialog';
+import MoreSettingsDialog from '../../../components/tasks/MoreSettingsDialog';
 import { Inbox, Plus, X, Loader2 } from 'lucide-react';
 import AuthGuard from '@/components/auth/AuthGuard';
 
@@ -17,6 +17,7 @@ export default function TasksPage() {
   const { taskList, getTask, deleteTask } = useTaskStore();
 
   const [selectedCategory, setSelectedCategory] = useState('default');
+  const [collectionTypeFilter, setCollectionTypeFilter] = useState<'all' | 'FILE' | 'INFO'>('all');
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
@@ -39,8 +40,24 @@ export default function TasksPage() {
   const filteredTasks = useMemo(() => {
     return taskList.filter((t) => {
       const taskCat = t.category || 'default';
+      const matchesCategory = taskCat === selectedCategory;
+      const matchesType = collectionTypeFilter === 'all' || t.collectionType === collectionTypeFilter;
+      return matchesCategory && matchesType;
+    });
+  }, [taskList, selectedCategory, collectionTypeFilter]);
+
+  // 统计各类型任务数量
+  const taskCounts = useMemo(() => {
+    const categoryTasks = taskList.filter((t) => {
+      const taskCat = t.category || 'default';
       return taskCat === selectedCategory;
     });
+    
+    return {
+      all: categoryTasks.length,
+      FILE: categoryTasks.filter(t => t.collectionType === 'FILE').length,
+      INFO: categoryTasks.filter(t => t.collectionType === 'INFO').length,
+    };
   }, [taskList, selectedCategory]);
 
   const handleDeleteTask = async (key: string, isTrash: boolean) => {
@@ -87,6 +104,47 @@ export default function TasksPage() {
 
           {/* Task List */}
           <div className="lg:col-span-3">
+            {/* Collection Type Filter */}
+            <div className="card mb-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">
+                  筛选：
+                </span>
+                <button
+                  onClick={() => setCollectionTypeFilter('all')}
+                  className={`px-3 py-1.5 text-sm rounded-lg transition-all ${
+                    collectionTypeFilter === 'all'
+                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  全部 ({taskCounts.all})
+                </button>
+                <button
+                  onClick={() => setCollectionTypeFilter('FILE')}
+                  className={`px-3 py-1.5 text-sm rounded-lg transition-all flex items-center gap-1.5 ${
+                    collectionTypeFilter === 'FILE'
+                      ? 'bg-blue-500 text-white font-medium'
+                      : 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+                  }`}
+                >
+                  <span>📁</span>
+                  <span>文件收集 ({taskCounts.FILE})</span>
+                </button>
+                <button
+                  onClick={() => setCollectionTypeFilter('INFO')}
+                  className={`px-3 py-1.5 text-sm rounded-lg transition-all flex items-center gap-1.5 ${
+                    collectionTypeFilter === 'INFO'
+                      ? 'bg-green-500 text-white font-medium'
+                      : 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/30'
+                  }`}
+                >
+                  <span>📝</span>
+                  <span>信息收集 ({taskCounts.INFO})</span>
+                </button>
+              </div>
+            </div>
+
             {filteredTasks.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filteredTasks.map((task) => (

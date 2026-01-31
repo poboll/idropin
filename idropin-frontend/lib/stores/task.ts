@@ -8,6 +8,7 @@ export interface Task {
   description?: string;
   category: string;
   taskType?: 'FILE_COLLECTION' | 'INFO_COLLECTION';
+  collectionType?: 'FILE' | 'INFO'; // 收集类型
   createdAt?: string;
   recentLog: string[];
 }
@@ -20,7 +21,7 @@ interface TaskActions {
   getTask: () => Promise<void>;
   createTask: (name: string, category: string) => Promise<taskApi.CollectionTask>;
   deleteTask: (key: string) => Promise<void>;
-  updateTask: (key: string, name: string, category: string) => Promise<taskApi.CollectionTask>;
+  updateTask: (key: string, name: string, category: string, description?: string, collectionType?: 'FILE' | 'INFO') => Promise<taskApi.CollectionTask>;
 }
 
 type TaskStore = TaskState & TaskActions;
@@ -43,6 +44,7 @@ export const useTaskStore = create<TaskStore>()(
             description: t.description,
             category: 'default',
             taskType: t.taskType,
+            collectionType: t.collectionType,
             createdAt: t.createdAt,
             recentLog: [],
           }));
@@ -97,10 +99,11 @@ export const useTaskStore = create<TaskStore>()(
         get().getTask();
       },
 
-      updateTask: async (key: string, name: string, category: string, description?: string) => {
+      updateTask: async (key: string, name: string, category: string, description?: string, collectionType?: 'FILE' | 'INFO') => {
         const res = await taskApi.updateTask(key, {
           title: name,
           description: description,
+          collectionType: collectionType,
         });
         get().getTask();
         return res;

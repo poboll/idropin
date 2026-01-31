@@ -286,12 +286,19 @@ public class CollectionTaskController {
       return Result.error(4001, "任务不存在");
     }
     
-    // 获取创建者用户名
+    // 获取创建者用户名和头像
     String creatorName = "";
+    String creatorAvatarUrl = null;
     if (task.getCreatedBy() != null) {
       com.idropin.domain.entity.User creator = userMapper.selectById(task.getCreatedBy());
       if (creator != null) {
         creatorName = creator.getUsername();
+        creatorAvatarUrl = creator.getAvatarUrl();
+        System.out.println("DEBUG: Creator found - username: " + creatorName + ", avatarUrl: " + creatorAvatarUrl);
+        log.info("Creator found: username={}, avatarUrl={}", creatorName, creatorAvatarUrl);
+      } else {
+        System.out.println("DEBUG: Creator not found for task: " + taskId);
+        log.warn("Creator not found for task: {}, createdBy={}", taskId, task.getCreatedBy());
       }
     }
     
@@ -303,7 +310,11 @@ public class CollectionTaskController {
     result.put("deadline", task.getDeadline());
     result.put("createdBy", task.getCreatedBy());
     result.put("creatorName", creatorName);
+    result.put("creatorAvatarUrl", creatorAvatarUrl);
     result.put("collectionType", task.getCollectionType()); // 添加收集类型
+    
+    System.out.println("DEBUG: Returning creatorAvatarUrl: " + creatorAvatarUrl);
+    log.info("Returning public task info: creatorAvatarUrl={}", creatorAvatarUrl);
     
     return Result.success(result);
   }

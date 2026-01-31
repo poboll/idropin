@@ -182,6 +182,10 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
     if (request.getAllowedTypes() != null) {
       task.setAllowedTypes(request.getAllowedTypes().toArray(new String[0]));
     }
+    // 更新收集类型
+    if (request.getCollectionType() != null) {
+      task.setCollectionType(request.getCollectionType());
+    }
 
     task.setUpdatedAt(LocalDateTime.now());
     taskMapper.updateById(task);
