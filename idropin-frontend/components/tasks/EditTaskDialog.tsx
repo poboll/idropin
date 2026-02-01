@@ -36,9 +36,10 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({ task, open, onCl
     try {
       await updateTask(task.key, name, category, description, collectionType);
       onClose();
-    } catch (e) {
-      console.error(e);
-      alert('更新失败');
+    } catch (error: any) {
+      console.error(error);
+      const errorMessage = error.message || error.response?.data?.message || '更新失败';
+      alert(`更新失败: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

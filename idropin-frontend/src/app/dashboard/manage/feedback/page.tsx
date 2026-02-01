@@ -82,9 +82,10 @@ export default function FeedbackManagePage() {
       });
       setReplyContent('');
       fetchFeedbacks();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to reply:', error);
-      alert('回复失败');
+      const errorMessage = error.message || error.response?.data?.message || '回复失败';
+      alert(`回复失败: ${errorMessage}`);
     } finally {
       setReplyLoading(false);
     }
@@ -96,9 +97,10 @@ export default function FeedbackManagePage() {
       await updateFeedbackStatus(selectedFeedback.id, status);
       setSelectedFeedback({ ...selectedFeedback, status: status as any });
       fetchFeedbacks();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update status:', error);
-      alert('状态更新失败');
+      const errorMessage = error.message || error.response?.data?.message || '状态更新失败';
+      alert(`状态更新失败: ${errorMessage}`);
     }
   };
 

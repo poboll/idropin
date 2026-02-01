@@ -6,8 +6,11 @@ import com.idropin.common.exception.BusinessException;
 import com.idropin.domain.dto.CreateShareRequest;
 import com.idropin.domain.entity.File;
 import com.idropin.domain.entity.FileShare;
+import com.idropin.domain.entity.User;
+import com.idropin.domain.vo.ShareInfoVO;
 import com.idropin.infrastructure.persistence.mapper.FileMapper;
 import com.idropin.infrastructure.persistence.mapper.FileShareMapper;
+import com.idropin.infrastructure.persistence.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,6 +32,49 @@ public class FileShareServiceImpl implements FileShareService {
 
   private final FileShareMapper shareMapper;
   private final FileMapper fileMapper;
+  private final UserMapper userMapper;
+
+  @Override
+  public ShareInfoVO getShareInfo(String shareCode) {
+    FileShare share = shareMapper.findByShareCode(shareCode);
+    if (share == null) {
+      throw new BusinessException("分享不存在");
+    }
+
+    if (share.getExpireAt() != null && share.getExpireAt().isBefore(LocalDateTime.now())) {
+      throw new BusinessException("分享已过期");
+    }
+
+    if (share.getDownloadLimit() != null && share.getDownloadCount() >= share.getDownloadLimit()) {
+      throw new BusinessException("下载次数已用完");
+    }
+
+    File file = fileMapper.selectById(share.getFileId());
+    if (file == null) {
+      throw new BusinessException("文件不存在");
+    }
+
+    ShareInfoVO info = new ShareInfoVO();
+    info.setShareCode(share.getShareCode());
+    info.setFileName(file.getOriginalName());
+    info.setFileSize(file.getFileSize());
+    info.setFileType(file.getMimeType());
+    info.setHasPassword(share.getPassword() != null && !share.getPassword().isEmpty());
+    info.setExpireAt(share.getExpireAt());
+    info.setDownloadLimit(share.getDownloadLimit());
+    info.setDownloadCount(share.getDownloadCount());
+    
+    // 获取创建者用户名 - 规范化UUID格式（移除连字符）
+    String normalizedCreatedBy = share.getCreatedBy() != null ? share.getCreatedBy().replace("-", "") : null;
+    if (normalizedCreatedBy != null) {
+      User creator = userMapper.findById(normalizedCreatedBy);
+      if (creator != null) {
+        info.setCreatorUsername(creator.getUsername());
+      }
+    }
+
+    return info;
+  }
 
   @Override
   @Transactional
@@ -38,7 +84,11 @@ public class FileShareServiceImpl implements FileShareService {
       throw new BusinessException("文件不存在");
     }
 
-    if (!file.getUploaderId().equals(userId)) {
+    // 规范化UUID格式进行比较（移除连字符）
+    String normalizedUploaderId = file.getUploaderId() != null ? file.getUploaderId().replace("-", "") : "";
+    String normalizedUserId = userId != null ? userId.replace("-", "") : "";
+    
+    if (!normalizedUploaderId.equals(normalizedUserId)) {
       throw new BusinessException("无权限分享此文件");
     }
 

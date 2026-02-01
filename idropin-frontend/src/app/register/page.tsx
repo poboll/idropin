@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Upload, Loader2, Check } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth';
 import { RouteGuard } from '@/components/RouteGuard';
+import { ErrorToast, SuccessToast } from '@/components/ui/ErrorDisplay';
 
 function RegisterForm() {
   const router = useRouter();
@@ -24,6 +25,8 @@ function RegisterForm() {
   const [success, setSuccess] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [isSendingCode, setIsSendingCode] = useState(false);
+  const [errorToast, setErrorToast] = useState<string | null>(null);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -42,12 +45,27 @@ function RegisterForm() {
     }
   }, [countdown]);
 
+  // 自动关闭Toast
+  useEffect(() => {
+    if (errorToast) {
+      const timer = setTimeout(() => setErrorToast(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [errorToast]);
+
+  useEffect(() => {
+    if (successToast) {
+      const timer = setTimeout(() => setSuccessToast(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [successToast]);
+
   const validatePhone = (phone: string) => /^1[3-9]\d{9}$/.test(phone);
   const validateCode = (code: string) => /^\d{4,6}$/.test(code);
 
   const handleSendCode = async () => {
     if (!validatePhone(formData.phone)) {
-      setLocalError('请输入正确的手机号');
+      setErrorToast('请输入正确的手机号');
       return;
     }
     
@@ -57,9 +75,9 @@ function RegisterForm() {
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
       setCountdown(120);
-      alert('验证码已发送，请注意查看手机短信');
+      setSuccessToast('验证码已发送，请注意查看手机短信');
     } catch {
-      setLocalError('发送验证码失败，请重试');
+      setErrorToast('发送验证码失败，请重试');
     } finally {
       setIsSendingCode(false);
     }
@@ -366,6 +384,22 @@ function RegisterForm() {
           © 2024 Idrop.in 云集
         </p>
       </footer>
+
+      {/* Error Toast */}
+      {errorToast && (
+        <ErrorToast
+          message={errorToast}
+          onClose={() => setErrorToast(null)}
+        />
+      )}
+
+      {/* Success Toast */}
+      {successToast && (
+        <SuccessToast
+          message={successToast}
+          onClose={() => setSuccessToast(null)}
+        />
+      )}
     </div>
   );
 }

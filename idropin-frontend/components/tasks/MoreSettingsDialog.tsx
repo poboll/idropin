@@ -256,9 +256,10 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
         }));
       setAvailableTasks(mappedTasks);
       setShowTaskImportDialog(true);
-    } catch (e) {
-      console.error(e);
-      alert('获取任务列表失败');
+    } catch (error: any) {
+      console.error(error);
+      const errorMessage = error.message || error.response?.data?.message || '获取任务列表失败';
+      alert(`获取任务列表失败: ${errorMessage}`);
     }
   };
 
@@ -284,9 +285,10 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
       } else {
         alert('该任务没有名单数据');
       }
-    } catch (e) {
-      console.error(e);
-      alert('导入失败');
+    } catch (error: any) {
+      console.error(error);
+      const errorMessage = error.message || error.response?.data?.message || '导入失败';
+      alert(`导入失败: ${errorMessage}`);
     }
   };
 

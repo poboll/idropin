@@ -8,6 +8,7 @@ import { Download, Loader2, X, Clock, Users, FileText, Upload, CheckCircle2, Ale
 import HomeFooter from '@/components/layout/HomeFooter';
 import InfosForm from '@/components/forms/InfosForm';
 import SubmissionUploader, { UploadFile } from '@/components/submission/SubmissionUploader';
+import ErrorDisplay, { ErrorToast, SuccessToast } from '@/components/ui/ErrorDisplay';
 import { getTaskInfoPublic, getTaskMoreInfoPublic, TaskInfo } from '@/lib/api/tasks';
 import { checkPeopleIsExist, updatePeopleStatus } from '@/lib/api/people';
 import { getUploadToken, withdrawFile, checkSubmitStatus, getTemplateUrl } from '@/lib/api/files';
@@ -48,6 +49,11 @@ export default function TaskSubmissionPage() {
   const [isWithdrawMode, setIsWithdrawMode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [disabledUpload, setDisabledUpload] = useState(false);
+  
+  // 错误状态
+  const [loadError, setLoadError] = useState<{ message: string; details?: string } | null>(null);
+  const [errorToast, setErrorToast] = useState<string | null>(null);
+  const [successToast, setSuccessToast] = useState<{ message: string; details?: string } | null>(null);
 
   const [waitTime, setWaitTime] = useState(0);
   const isOver = waitTime <= 0 && !!taskMoreInfo.ddl;
@@ -58,6 +64,26 @@ export default function TaskSubmissionPage() {
   });
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  // 自动关闭ErrorToast
+  useEffect(() => {
+    if (errorToast) {
+      const timer = setTimeout(() => {
+        setErrorToast(null);
+      }, 5000); // 5秒后自动关闭
+      return () => clearTimeout(timer);
+    }
+  }, [errorToast]);
+
+  // 自动关闭SuccessToast
+  useEffect(() => {
+    if (successToast) {
+      const timer = setTimeout(() => {
+        setSuccessToast(null);
+      }, 5000); // 5秒后自动关闭
+      return () => clearTimeout(timer);
+    }
+  }, [successToast]);
 
   const limitBindField = (() => {
     const field = taskMoreInfo.bindField;
@@ -152,9 +178,17 @@ export default function TaskSubmissionPage() {
           }
         }
       } catch (err: unknown) {
-        const error = err as { code?: number };
+        console.error('加载任务信息失败:', err);
+        const error = err as { code?: number; message?: string };
         if (error.code === 4001) {
           setTaskInfo({ name: '任务不存在' });
+        } else {
+          // 设置错误状态，显示美观的错误UI
+          const errorMessage = error.message || 'Network Error';
+          setLoadError({
+            message: '加载任务信息失败',
+            details: errorMessage
+          });
         }
       } finally {
         setIsLoading(false);
@@ -193,8 +227,9 @@ export default function TaskSubmissionPage() {
         return false;
       }
       return true;
-    } catch {
-      alert('验证失败，请重试');
+    } catch (error: any) {
+      const errorMessage = error.message || error.response?.data?.message || '验证失败，请重试';
+      alert(`验证失败: ${errorMessage}`);
       return false;
     }
   };
@@ -226,21 +261,29 @@ export default function TaskSubmissionPage() {
         formData.append('infoData', JSON.stringify(infoData));
 
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api'}/tasks/${taskKey}/submit-info`, {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081'}/api/tasks/${taskKey}/submit-info`, {
             method: 'POST',
             body: formData,
             credentials: 'include',
           });
 
+          // 检查 HTTP 状态码
           if (!response.ok) {
             const error = await response.text();
             throw new Error(error || '提交失败');
           }
 
+          // 检查响应体中的业务错误码
+          const result = await response.json();
+          if (result.code && result.code !== 200) {
+            throw new Error(result.message || '提交失败');
+          }
+
           alert('信息提交成功！');
         } catch (error) {
           console.error('Submit failed:', error);
-          alert('提交失败，请重试');
+          const errorMessage = (error as any).message || '提交失败，请重试';
+          alert(`提交失败: ${errorMessage}`);
         }
       } else {
         // 原有的文件上传逻辑
@@ -251,35 +294,42 @@ export default function TaskSubmissionPage() {
             f.id === uploadFile.id ? { ...f, status: 'uploading' as const, progress: 0 } : f
           ));
 
-          let fileName = uploadFile.name;
-          const originName = fileName;
-
-          if (taskMoreInfo.rewrite) {
-            fileName = infos.map(v => v.value).join(formatConfig?.splitChar || '-') + getFileSuffix(fileName);
-          }
-          fileName = normalizeFileName(fileName);
+          const originName = uploadFile.name;
 
           try {
-            // First upload the actual file content to storage
+            // 准备表单数据
             const formData = new FormData();
             formData.append('file', uploadFile.file);
-            formData.append('taskKey', taskKey);
             formData.append('submitterName', isSameFieldName?.value || peopleName || '');
             formData.append('submitterEmail', '');
             
+            // 将必填信息序列化为JSON并传递给后端
+            const infoDataObj = infos.reduce((acc, item) => {
+              acc[item.text] = item.value || '';
+              return acc;
+            }, {} as Record<string, string>);
+            formData.append('infoData', JSON.stringify(infoDataObj));
+            
             // Use the proper task submission endpoint that uploads file AND creates submission record
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api'}/tasks/${taskKey}/submit`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081'}/api/tasks/${taskKey}/submit`, {
               method: 'POST',
               body: formData,
               credentials: 'include',
             });
 
+            // 检查 HTTP 状态码
             if (!response.ok) {
-              const error = await response.text();
-              throw new Error(error || '上传失败');
+              const errorData = await response.json().catch(() => null);
+              const errorMessage = errorData?.message || await response.text() || '上传失败';
+              throw new Error(errorMessage);
             }
 
+            // 检查响应体中的业务错误码
             const result = await response.json();
+            if (result.code && result.code !== 200) {
+              throw new Error(result.message || '上传失败');
+            }
+
             const submissionId = result.data?.id; // 获取返回的submission ID
 
             setFiles(prev => prev.map(f => 
@@ -293,21 +343,25 @@ export default function TaskSubmissionPage() {
 
             if (taskMoreInfo.people) {
               const name = isSameFieldName?.value || peopleName;
-              await updatePeopleStatus(taskKey, fileName, name, uploadFile.md5!);
+              // 注意：这里不再需要手动重命名文件，后端会自动处理
+              await updatePeopleStatus(taskKey, originName, name, uploadFile.md5!);
             }
 
             alert(`文件: ${originName} 提交成功`);
-          } catch (error) {
+          } catch (error: any) {
             console.error('Upload failed:', error);
-            setFiles(prev => prev.map(f => 
-              f.id === uploadFile.id ? { ...f, status: 'fail' as const, error: '上传失败' } : f
+            const errorMessage = error.message || '上传失败';
+            alert(`提交失败: ${errorMessage}`);
+            setFiles(prev => prev.map(f =>
+              f.id === uploadFile.id ? { ...f, status: 'fail' as const, error: errorMessage } : f
             ));
           }
         }
       }
-    } catch (err) {
-      alert('提交失败');
-      console.error(err);
+    } catch (error: any) {
+      const errorMessage = error.message || error.response?.data?.message || '提交失败';
+      alert(`提交失败: ${errorMessage}`);
+      console.error(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -343,15 +397,18 @@ export default function TaskSubmissionPage() {
         ));
 
         alert(`文件: ${file.name} 撤回成功`);
-      } catch {
-        alert(`撤回失败: 没有文件 ${file.name} 对应提交记录`);
+      } catch (error: any) {
+        // 显示后端返回的真实错误信息
+        const errorMessage = error.message || error.response?.data?.message || '撤回失败';
+        alert(`撤回失败: ${errorMessage}`);
+        console.error('Withdraw error:', error);
       }
     }
   };
 
   const handleCheckStatus = async () => {
     if (!isWriteFinish) {
-      alert('请先完成必要信息的填写，需和提交时信息完全一致');
+      setErrorToast('请先完成必要信息的填写，需和提交时信息完全一致');
       return;
     }
 
@@ -361,12 +418,30 @@ export default function TaskSubmissionPage() {
     try {
       const result = await checkSubmitStatus(taskKey, infos, isSameFieldName?.value || peopleName);
       if (result.isSubmit) {
-        alert('已经提交过啦');
+        // 显示详细的提交信息 - 使用SuccessToast
+        let message = `已提交 ${result.count || 1} 次`;
+        let details = '';
+        if (result.lastSubmitTime) {
+          const submitDate = new Date(result.lastSubmitTime);
+          const formattedTime = submitDate.toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          });
+          details = `最后提交时间：\n${formattedTime}`;
+        }
+        setSuccessToast({ message, details });
       } else {
-        alert('还未提交过哟');
+        setSuccessToast({ message: '还未提交过哟' });
       }
-    } catch {
-      alert('查询失败');
+    } catch (error: any) {
+      console.error('查询提交状态失败:', error);
+      const errorMessage = error.message || error.response?.data?.message || 'Network Error';
+      setErrorToast(`查询失败: ${errorMessage}`);
     }
   };
 
@@ -389,23 +464,30 @@ export default function TaskSubmissionPage() {
     );
   }
 
+  // Error state - Vercel style
+  if (loadError) {
+    return (
+      <ErrorDisplay
+        title="加载失败"
+        message={loadError.message}
+        details={loadError.details}
+        onRetry={() => {
+          setLoadError(null);
+          window.location.reload();
+        }}
+        showHomeButton
+      />
+    );
+  }
+
   // Task not found
   if (!taskKey || taskInfo.name === '任务不存在') {
     return (
-      <div className="min-h-screen bg-white dark:bg-black">
-        <div className="max-w-2xl mx-auto px-4 pt-20">
-          <div className="text-center py-20">
-            <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
-              <AlertCircle className="w-8 h-8 text-gray-400" />
-            </div>
-            <h1 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
-              任务不存在
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">请检查链接是否正确</p>
-          </div>
-        </div>
-        <HomeFooter type="simple" />
-      </div>
+      <ErrorDisplay
+        title="任务不存在"
+        message="请检查链接是否正确，或联系任务发起人"
+        showHomeButton
+      />
     );
   }
 
@@ -805,6 +887,23 @@ export default function TaskSubmissionPage() {
             />
           </div>
         </div>
+      )}
+
+      {/* Error Toast */}
+      {errorToast && (
+        <ErrorToast
+          message={errorToast}
+          onClose={() => setErrorToast(null)}
+        />
+      )}
+
+      {/* Success Toast */}
+      {successToast && (
+        <SuccessToast
+          message={successToast.message}
+          details={successToast.details}
+          onClose={() => setSuccessToast(null)}
+        />
       )}
     </div>
   );

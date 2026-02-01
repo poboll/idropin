@@ -91,7 +91,7 @@ export default function DashboardLayout({
               <div className="w-7 h-7 bg-gray-900 dark:bg-white rounded-md flex items-center justify-center">
                 <Upload className="w-3.5 h-3.5 text-white dark:text-gray-900" />
               </div>
-              <span className="text-base font-semibold text-gray-900 dark:text-white hidden sm:block">云集</span>
+              <span className="text-base font-semibold text-gray-900 dark:text-white">云集</span>
             </Link>
 
             {/* Desktop Navigation */}

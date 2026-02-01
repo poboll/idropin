@@ -54,6 +54,7 @@ public class SecurityConfig {
                         .requestMatchers("/tasks/*/submit").permitAll() // 公开文件提交
                         .requestMatchers("/tasks/*/submit-info").permitAll() // 公开信息提交
                         .requestMatchers("/tasks/*/public-submit").permitAll() // 公开文件提交
+                        .requestMatchers("/tasks/*/submissions").permitAll() // 公开任务提交记录查询
                         .requestMatchers("/people/check").permitAll() // 公开名单验证
                         .requestMatchers("/files/add").permitAll() // 公开文件添加
                         .requestMatchers("/files/withdraw").permitAll() // 公开文件撤回
@@ -61,6 +62,9 @@ public class SecurityConfig {
                         .requestMatchers("/files/upload/token").permitAll() // 公开上传token
                         .requestMatchers("/files/template").permitAll() // 公开模板文件下载
                         .requestMatchers("/access/log").permitAll() // 公开访问日志记录
+                        .requestMatchers("/shares/*/info").permitAll() // 公开分享信息查询
+                        .requestMatchers("/shares/*/download").permitAll() // 公开分享文件下载
+                        .requestMatchers("/shares/access/**").permitAll() // 公开分享访问
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/doc.html", "/swagger-ui/**", "/v3/api-docs/**", "/webjars/**").permitAll()
                         .anyRequest().authenticated())

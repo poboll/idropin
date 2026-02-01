@@ -18,18 +18,21 @@ public class FileSubmission {
   private String id;
 
   /**
-   * 任务ID
+   * 任务ID (数据库中为UUID类型)
    */
+  @TableField(typeHandler = org.apache.ibatis.type.StringTypeHandler.class)
   private String taskId;
 
   /**
-   * 文件ID
+   * 文件ID (数据库中为UUID类型)
    */
+  @TableField(typeHandler = org.apache.ibatis.type.StringTypeHandler.class)
   private String fileId;
 
   /**
-   * 提交者ID
+   * 提交者ID (数据库中为UUID类型)
    */
+  @TableField(typeHandler = org.apache.ibatis.type.StringTypeHandler.class)
   private String submitterId;
 
 

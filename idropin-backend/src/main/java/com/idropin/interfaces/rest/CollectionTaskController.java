@@ -112,10 +112,11 @@ public class CollectionTaskController {
       @RequestParam("file") MultipartFile file,
       @RequestParam(value = "submitterName", required = false) String submitterName,
       @RequestParam(value = "submitterEmail", required = false) String submitterEmail,
+      @RequestParam(value = "infoData", required = false) String infoData,
       @AuthenticationPrincipal UserDetails userDetails) {
     
-    log.info("Received file submission for task: {}, file: {}, submitterName: {}", 
-        taskId, file.getOriginalFilename(), submitterName);
+    log.info("Received file submission for task: {}, file: {}, submitterName: {}, infoData: {}", 
+        taskId, file.getOriginalFilename(), submitterName, infoData);
     
     // 验证文件不为空
     if (file.isEmpty()) {
@@ -124,10 +125,68 @@ public class CollectionTaskController {
     }
     
     String userId = getUserIdOrNull(userDetails);
+    
+    // 获取任务信息
+    CollectionTask task = taskService.getTaskPublic(taskId);
+    if (task == null) {
+      throw new BusinessException("任务不存在");
+    }
+    
+    // 获取任务更多信息
+    TaskMoreInfo moreInfo = taskMoreInfoMapper.selectByTaskId(taskId);
+    
+    // 计算新文件名（如果需要重命名）
+    String newFilename = file.getOriginalFilename();
+    
+    if (moreInfo != null && (Boolean.TRUE.equals(moreInfo.getRewrite()) || Boolean.TRUE.equals(moreInfo.getAutoRename()))) {
+      String originalFilename = file.getOriginalFilename();
+      
+      // 解析必填信息
+      String infoString = "";
+      if (infoData != null && !infoData.isEmpty()) {
+        try {
+          // 解析JSON格式的infoData
+          com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+          java.util.Map<String, String> infoMap = objectMapper.readValue(infoData, new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, String>>() {});
+          
+          // 按顺序拼接必填信息的值
+          java.util.List<String> infoValues = new java.util.ArrayList<>();
+          for (String value : infoMap.values()) {
+            if (value != null && !value.trim().isEmpty()) {
+              infoValues.add(value.trim());
+            }
+          }
+          infoString = String.join("-", infoValues);
+        } catch (Exception e) {
+          log.warn("Failed to parse infoData: {}", e.getMessage());
+          infoString = submitterName != null ? submitterName : "";
+        }
+      } else if (submitterName != null && !submitterName.isEmpty()) {
+        infoString = submitterName;
+      }
+      
+      // 构建新文件名：任务名_必填信息_原文件名
+      String taskName = task.getTitle().replaceAll("[\\\\/:*?\"<>|]", "_"); // 替换非法字符
+      String fileExtension = "";
+      String baseFilename = originalFilename;
+      int lastDotIndex = originalFilename.lastIndexOf('.');
+      if (lastDotIndex > 0) {
+        fileExtension = originalFilename.substring(lastDotIndex);
+        baseFilename = originalFilename.substring(0, lastDotIndex);
+      }
+      
+      if (!infoString.isEmpty()) {
+        newFilename = taskName + "_" + infoString + "_" + baseFilename + fileExtension;
+      } else {
+        newFilename = taskName + "_" + baseFilename + fileExtension;
+      }
+      
+      log.info("File will be renamed from '{}' to '{}'", originalFilename, newFilename);
+    }
 
-    // 上传文件到存储
-    com.idropin.domain.entity.File uploadedFile = fileService.uploadFile(file, userId);
-    log.info("File uploaded successfully with ID: {}", uploadedFile.getId());
+    // 上传文件到存储（传递新文件名）
+    com.idropin.domain.entity.File uploadedFile = fileService.uploadFileWithCustomName(file, userId, newFilename);
+    log.info("File uploaded successfully with ID: {} and name: {}", uploadedFile.getId(), uploadedFile.getOriginalName());
 
     // 创建提交记录
     FileSubmission submission = taskService.submitFile(
@@ -183,11 +242,11 @@ public class CollectionTaskController {
 
   @GetMapping("/{taskId}/submissions")
   @Operation(summary = "获取任务的提交记录")
-  public Result<List<FileSubmission>> getTaskSubmissions(
+  public Result<List<com.idropin.domain.vo.FileSubmissionVO>> getTaskSubmissions(
       @PathVariable String taskId,
       @AuthenticationPrincipal UserDetails userDetails) {
     String userId = getUserId(userDetails);
-    List<FileSubmission> submissions = taskService.getTaskSubmissions(taskId, userId);
+    List<com.idropin.domain.vo.FileSubmissionVO> submissions = taskService.getTaskSubmissions(taskId, userId);
     return Result.success(submissions);
   }
 

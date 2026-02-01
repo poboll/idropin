@@ -33,9 +33,10 @@ export function FeedbackButton() {
         setContent('');
         setContact('');
       }, 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to submit feedback:', error);
-      alert('提交失败，请稍后重试');
+      const errorMessage = error.message || error.response?.data?.message || '提交失败，请稍后重试';
+      alert(`提交失败: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

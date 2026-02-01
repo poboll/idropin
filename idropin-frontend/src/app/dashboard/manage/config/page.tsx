@@ -38,9 +38,10 @@ export default function ConfigManagePage() {
       setRoutes(routes.map(r => 
         r.id === route.id ? { ...r, isEnabled: !r.isEnabled } : r
       ));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update route:', error);
-      alert('更新失败');
+      const errorMessage = error.message || error.response?.data?.message || '更新失败';
+      alert(`更新失败: ${errorMessage}`);
     } finally {
       setUpdating(null);
     }

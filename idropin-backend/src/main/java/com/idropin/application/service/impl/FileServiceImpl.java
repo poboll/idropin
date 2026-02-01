@@ -50,10 +50,16 @@ public class FileServiceImpl implements FileService {
     @Override
     @Transactional
     public File uploadFile(MultipartFile multipartFile, String userId) {
+        return uploadFileWithCustomName(multipartFile, userId, multipartFile.getOriginalFilename());
+    }
+
+    @Override
+    @Transactional
+    public File uploadFileWithCustomName(MultipartFile multipartFile, String userId, String customFilename) {
         validateFile(multipartFile);
 
         try {
-            String originalFilename = multipartFile.getOriginalFilename();
+            String originalFilename = customFilename != null ? customFilename : multipartFile.getOriginalFilename();
             String extension = getFileExtension(originalFilename);
             String storagePath = generateStoragePath(userId, extension);
 

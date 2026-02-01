@@ -25,6 +25,15 @@ public interface UserMapper extends BaseMapper<User> {
      */
     @Select("SELECT * FROM sys_user WHERE username = #{username}")
     User findByUsername(@Param("username") String username);
+    
+    /**
+     * 根据ID查找用户（规范化UUID格式）
+     *
+     * @param id 用户ID（无连字符格式）
+     * @return 用户实体
+     */
+    @Select("SELECT * FROM sys_user WHERE REPLACE(CAST(id AS VARCHAR), '-', '') = #{id}")
+    User findById(@Param("id") String id);
 
     /**
      * 根据邮箱查找用户

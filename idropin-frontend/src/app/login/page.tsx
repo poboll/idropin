@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Upload, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth';
+import { ErrorToast, SuccessToast } from '@/components/ui/ErrorDisplay';
 
 type LoginMode = 'account' | 'sms';
 
@@ -23,6 +24,8 @@ export default function LoginPage() {
   const [localError, setLocalError] = useState('');
   const [countdown, setCountdown] = useState(0);
   const [isSendingCode, setIsSendingCode] = useState(false);
+  const [errorToast, setErrorToast] = useState<string | null>(null);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -37,8 +40,10 @@ export default function LoginPage() {
         const { username, password, remember } = JSON.parse(savedUserInfo);
         setFormData(prev => ({ ...prev, username, password }));
         setRememberMe(remember);
-      } catch {
-        // ignore
+      } catch (error) {
+        console.error('解析保存的用户信息失败:', error);
+        // 清除损坏的数据
+        localStorage.removeItem('userinfo');
       }
     }
   }, []);
@@ -54,13 +59,28 @@ export default function LoginPage() {
     }
   }, [countdown]);
 
+  // 自动关闭Toast
+  useEffect(() => {
+    if (errorToast) {
+      const timer = setTimeout(() => setErrorToast(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [errorToast]);
+
+  useEffect(() => {
+    if (successToast) {
+      const timer = setTimeout(() => setSuccessToast(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [successToast]);
+
   const validatePhone = (phone: string) => /^1[3-9]\d{9}$/.test(phone);
   const validateCode = (code: string) => /^\d{4,6}$/.test(code);
   const validatePassword = (pwd: string) => pwd.length >= 6 && pwd.length <= 16;
 
   const handleSendCode = async () => {
     if (!validatePhone(formData.phone)) {
-      setLocalError('请输入正确的手机号');
+      setErrorToast('请输入正确的手机号');
       return;
     }
     
@@ -70,9 +90,11 @@ export default function LoginPage() {
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
       setCountdown(120);
-      alert('验证码已发送，请注意查看手机短信');
-    } catch {
-      setLocalError('发送验证码失败，请重试');
+      setSuccessToast('验证码已发送，请注意查看手机短信');
+    } catch (error: any) {
+      console.error('发送验证码失败:', error);
+      const errorMessage = error.message || '发送验证码失败，请重试';
+      setErrorToast(errorMessage);
     } finally {
       setIsSendingCode(false);
     }
@@ -84,11 +106,11 @@ export default function LoginPage() {
 
     if (loginMode === 'account') {
       if (!formData.username.trim()) {
-        setLocalError('请输入用户名/手机号');
+        setErrorToast('请输入用户名/手机号');
         return;
       }
       if (!validatePassword(formData.password)) {
-        setLocalError('密码格式不正确(6-16位)');
+        setErrorToast('密码格式不正确(6-16位)');
         return;
       }
 
@@ -106,25 +128,29 @@ export default function LoginPage() {
         }
         
         router.push('/dashboard');
-      } catch {
-        // error handled in store
+      } catch (error: any) {
+        console.error('登录失败:', error);
+        const errorMessage = error.message || error.response?.data?.message || '登录失败，请检查用户名和密码';
+        setErrorToast(errorMessage);
       }
     } else {
       if (!validatePhone(formData.phone)) {
-        setLocalError('请输入正确的手机号');
+        setErrorToast('请输入正确的手机号');
         return;
       }
       if (!validateCode(formData.code)) {
-        setLocalError('验证码格式不正确(4-6位数字)');
+        setErrorToast('验证码格式不正确(4-6位数字)');
         return;
       }
 
       try {
         await new Promise(resolve => setTimeout(resolve, 1000));
-        alert('短信验证码登录成功');
-        router.push('/dashboard');
-      } catch {
-        setLocalError('验证码不正确');
+        setSuccessToast('短信验证码登录成功');
+        setTimeout(() => router.push('/dashboard'), 1000);
+      } catch (error: any) {
+        console.error('验证码登录失败:', error);
+        const errorMessage = error.message || '验证码不正确或已过期';
+        setErrorToast(errorMessage);
       }
     }
   };
@@ -354,6 +380,22 @@ export default function LoginPage() {
           © 2024 Idrop.in 云集
         </p>
       </footer>
+
+      {/* Error Toast */}
+      {errorToast && (
+        <ErrorToast
+          message={errorToast}
+          onClose={() => setErrorToast(null)}
+        />
+      )}
+
+      {/* Success Toast */}
+      {successToast && (
+        <SuccessToast
+          message={successToast}
+          onClose={() => setSuccessToast(null)}
+        />
+      )}
     </div>
   );
 }

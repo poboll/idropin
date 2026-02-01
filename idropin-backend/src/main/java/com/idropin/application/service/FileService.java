@@ -23,6 +23,11 @@ public interface FileService {
     File uploadFile(MultipartFile file, String userId);
 
     /**
+     * 上传单个文件（使用自定义文件名）
+     */
+    File uploadFileWithCustomName(MultipartFile file, String userId, String customFilename);
+
+    /**
      * 上传多个文件
      */
     List<FileUploadResult> uploadFiles(List<MultipartFile> files, String userId);

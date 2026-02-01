@@ -1,7 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 
 // API 基础配置
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081';
 
 // 创建 Axios 实例
 export const apiClient = axios.create({
@@ -47,9 +47,27 @@ apiClient.interceptors.request.use(
   }
 );
 
-// 响应拦截器 - 处理 401 错误
+// 响应拦截器 - 处理 401 错误和业务错误码
 apiClient.interceptors.response.use(
-  (response: AxiosResponse) => response,
+  (response: AxiosResponse) => {
+    // 检查响应体中的业务错误码
+    // 后端可能返回 HTTP 200，但在 body 中包含 code != 200 表示业务错误
+    if (response.data && typeof response.data === 'object') {
+      const { code, message } = response.data;
+      if (code !== undefined && code !== 200) {
+        // 将业务错误转换为 axios 错误，这样会被 catch 块捕获
+        const error: any = new Error(message || '请求失败');
+        error.response = {
+          ...response,
+          status: code,
+          data: response.data
+        };
+        error.isBusinessError = true;
+        return Promise.reject(error);
+      }
+    }
+    return response;
+  },
   (error: AxiosError) => {
     if (error.response?.status === 401) {
       // 清除 Token

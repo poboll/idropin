@@ -6,6 +6,7 @@ import com.idropin.domain.dto.CreateShareRequest;
 import com.idropin.domain.entity.File;
 import com.idropin.domain.entity.FileShare;
 import com.idropin.domain.vo.FileVO;
+import com.idropin.domain.vo.ShareInfoVO;
 import com.idropin.infrastructure.security.CustomUserDetails;
 import com.idropin.infrastructure.storage.StorageService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -83,6 +84,30 @@ public class FileShareController {
     return Result.success(null);
   }
 
+  @GetMapping("/{shareCode}/info")
+  @Operation(summary = "获取分享信息（公开接口）")
+  public Result<ShareInfoVO> getShareInfo(@PathVariable String shareCode) {
+    ShareInfoVO info = shareService.getShareInfo(shareCode);
+    return Result.success(info);
+  }
+
+  @PostMapping("/{shareCode}/download")
+  @Operation(summary = "下载分享文件（公开接口）")
+  public Result<FileDownloadVO> downloadShare(
+      @PathVariable String shareCode,
+      @RequestBody(required = false) SharePasswordRequest request) {
+    String password = request != null ? request.getPassword() : null;
+    File file = shareService.accessShare(shareCode, password);
+    String url = storageService.getFileUrl(file.getStoragePath());
+    
+    FileDownloadVO downloadVO = new FileDownloadVO();
+    downloadVO.setDownloadUrl(url);
+    downloadVO.setFileName(file.getOriginalName());
+    downloadVO.setFileSize(file.getFileSize());
+    
+    return Result.success(downloadVO);
+  }
+
   @GetMapping("/access/{shareCode}")
   @Operation(summary = "访问分享链接（公开接口）")
   public Result<FileVO> accessShare(
@@ -91,6 +116,49 @@ public class FileShareController {
     File file = shareService.accessShare(shareCode, password);
     String url = storageService.getFileUrl(file.getStoragePath());
     return Result.success(FileVO.fromEntity(file, url));
+  }
+  
+  // DTO classes
+  static class SharePasswordRequest {
+    private String password;
+    
+    public String getPassword() {
+      return password;
+    }
+    
+    public void setPassword(String password) {
+      this.password = password;
+    }
+  }
+  
+  static class FileDownloadVO {
+    private String downloadUrl;
+    private String fileName;
+    private Long fileSize;
+    
+    public String getDownloadUrl() {
+      return downloadUrl;
+    }
+    
+    public void setDownloadUrl(String downloadUrl) {
+      this.downloadUrl = downloadUrl;
+    }
+    
+    public String getFileName() {
+      return fileName;
+    }
+    
+    public void setFileName(String fileName) {
+      this.fileName = fileName;
+    }
+    
+    public Long getFileSize() {
+      return fileSize;
+    }
+    
+    public void setFileSize(Long fileSize) {
+      this.fileSize = fileSize;
+    }
   }
 
   private String getUserId(UserDetails userDetails) {

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Message, getMessages, getUnreadCount, markAsRead, markAllAsRead, deleteMessage } from '../api/messages';
+import { getToken } from '../api/client';
 
 interface MessageState {
   messages: Message[];
@@ -52,10 +53,22 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   },
 
   fetchUnreadCount: async () => {
+    // 如果用户未登录，不发起请求，避免403错误
+    const token = getToken();
+    if (!token) {
+      set({ unreadCount: 0 });
+      return;
+    }
+
     try {
       const count = await getUnreadCount();
       set({ unreadCount: count });
     } catch (error) {
+      // 静默处理认证错误，避免控制台污染
+      if ((error as any)?.response?.status === 401 || (error as any)?.response?.status === 403) {
+        set({ unreadCount: 0 });
+        return;
+      }
       console.error('Failed to fetch unread count:', error);
     }
   },

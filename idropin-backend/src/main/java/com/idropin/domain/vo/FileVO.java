@@ -4,6 +4,7 @@ import com.idropin.domain.entity.File;
 import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -38,7 +39,7 @@ public class FileVO {
         vo.setFileSize(file.getFileSize());
         vo.setMimeType(file.getMimeType());
         vo.setUrl(url);
-        vo.setTags(file.getTags() != null ? Arrays.asList(file.getTags()) : List.of());
+        vo.setTags(file.getTags() != null ? Arrays.asList(file.getTags()) : Collections.emptyList());
         vo.setCategoryId(file.getCategoryId());
         vo.setStatus(file.getStatus());
         vo.setCreatedAt(file.getCreatedAt());

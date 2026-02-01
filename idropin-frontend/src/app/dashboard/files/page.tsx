@@ -53,7 +53,7 @@ function FilesPageContent() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedTask, setSelectedTask] = useState('all');
   const [searchWord, setSearchWord] = useState('');
-  const [selectedItems, setSelectedItems] = useState<number[]>([]);
+  const [selectedItems, setSelectedItems] = useState<(string | number)[]>([]);
 
   const [pageSize, setPageSize] = useState(10);
   const [pageCurrent, setPageCurrent] = useState(1);
@@ -110,7 +110,7 @@ function FilesPageContent() {
         for (const task of tasks) {
           try {
             const submissionResponse = await fetch(
-              `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api'}/collection-tasks/${task.key}/submissions`,
+              `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api'}/tasks/${task.key}/submissions`,
               {
                 headers: {
                   'Authorization': `Bearer ${token}`,
@@ -120,6 +120,11 @@ function FilesPageContent() {
             
             if (submissionResponse.ok) {
               const submissionData = await submissionResponse.json();
+              // 检查业务错误码
+              if (submissionData.code && submissionData.code !== 200) {
+                console.error(`Failed to load submissions for task ${task.key}:`, submissionData.message);
+                continue;
+              }
               if (submissionData.data && Array.isArray(submissionData.data)) {
                 submissionData.data.forEach((s: any) => {
                   apiFiles.push({
@@ -127,13 +132,15 @@ function FilesPageContent() {
                     date: s.submittedAt || new Date().toISOString(),
                     task_key: task.key,
                     task_name: task.name,
-                    name: s.submitterName ? `${task.name}_${s.submitterName}` : task.name,
-                    origin_name: s.submitterName,
-                    size: 0,
+                    name: s.fileName || (s.submitterName ? `${task.name}_${s.submitterName}` : task.name),
+                    origin_name: s.fileName,
+                    size: s.fileSize || 0,
                     people: s.submitterName || '-',
                     info: '[]',
                     downloadCount: 0,
                     fileId: s.fileId,
+                    mimeType: s.mimeType,
+                    cover: s.mimeType?.startsWith('image/') ? s.fileUrl : undefined,
                   });
                 });
               }
@@ -187,7 +194,7 @@ function FilesPageContent() {
 
   const totalSize = useMemo(() => formatSize(files.reduce((acc, f) => acc + f.size, 0)), [files]);
 
-  const handleSelectItem = (id: number, checked: boolean) => {
+  const handleSelectItem = (id: string | number, checked: boolean) => {
     if (checked) {
       setSelectedItems(prev => [...prev, id]);
     } else {
@@ -647,6 +654,128 @@ function FilesPageContent() {
                 <ExternalLink className="w-4 h-4" />
                 打开下载
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {activeModal === 'share' && currentFile && (
+        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
+          <div className="modal max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">创建分享</h3>
+              <button onClick={() => setActiveModal(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="modal-body space-y-4">
+              {!shareResult ? (
+                <>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                      文件: {currentFile.name}
+                    </p>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">分享密码（可选）</label>
+                    <input
+                      type="text"
+                      value={shareFormData.password}
+                      onChange={(e) => setShareFormData({ ...shareFormData, password: e.target.value })}
+                      className="input"
+                      placeholder="留空则无需密码"
+                      maxLength={20}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">过期时间（可选）</label>
+                    <input
+                      type="datetime-local"
+                      value={shareFormData.expireAt}
+                      onChange={(e) => setShareFormData({ ...shareFormData, expireAt: e.target.value })}
+                      className="input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">下载次数限制（可选）</label>
+                    <input
+                      type="number"
+                      value={shareFormData.downloadLimit}
+                      onChange={(e) => setShareFormData({ ...shareFormData, downloadLimit: e.target.value })}
+                      className="input"
+                      placeholder="留空则不限制"
+                      min="1"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-700 dark:text-green-400 mb-2">
+                      <Check className="w-5 h-5" />
+                      <span className="font-medium">分享创建成功</span>
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">分享链接</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={shareResult.url}
+                        readOnly
+                        className="input flex-1"
+                      />
+                      <button
+                        onClick={() => {
+                          copyRes(shareResult.url);
+                          alert('链接已复制');
+                        }}
+                        className="btn-secondary"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">分享码</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={shareResult.shareCode}
+                        readOnly
+                        className="input flex-1"
+                      />
+                      <button
+                        onClick={() => {
+                          copyRes(shareResult.shareCode);
+                          alert('分享码已复制');
+                        }}
+                        className="btn-secondary"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="modal-footer">
+              {!shareResult ? (
+                <>
+                  <button onClick={() => setActiveModal(null)} className="btn-secondary">
+                    取消
+                  </button>
+                  <button onClick={handleCreateShare} className="btn-primary">
+                    <Share2 className="w-4 h-4" />
+                    创建分享
+                  </button>
+                </>
+              ) : (
+                <button onClick={() => setActiveModal(null)} className="btn-primary w-full">
+                  完成
+                </button>
+              )}
             </div>
           </div>
         </div>

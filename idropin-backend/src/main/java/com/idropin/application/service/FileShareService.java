@@ -3,6 +3,7 @@ package com.idropin.application.service;
 import com.idropin.domain.dto.CreateShareRequest;
 import com.idropin.domain.entity.File;
 import com.idropin.domain.entity.FileShare;
+import com.idropin.domain.vo.ShareInfoVO;
 
 import java.util.List;
 
@@ -12,6 +13,11 @@ import java.util.List;
  * @author Idrop.in Team
  */
 public interface FileShareService {
+
+  /**
+   * 获取分享信息（不需要密码）
+   */
+  ShareInfoVO getShareInfo(String shareCode);
 
   /**
    * 创建文件分享

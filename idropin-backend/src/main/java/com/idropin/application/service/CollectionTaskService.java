@@ -48,7 +48,7 @@ public interface CollectionTaskService {
   /**
    * 获取任务的提交记录
    */
-  List<FileSubmission> getTaskSubmissions(String taskId, String userId);
+  List<com.idropin.domain.vo.FileSubmissionVO> getTaskSubmissions(String taskId, String userId);
 
   /**
    * 获取任务统计

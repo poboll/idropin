@@ -171,16 +171,16 @@ export const deleteFiles = async (ids: string[]): Promise<void> => {
  * 获取文件下载URL
  */
 export const getDownloadUrl = (id: string): string => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
-  return `${baseUrl}/files/${id}/download`;
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081';
+  return `${baseUrl}/api/files/${id}/download`;
 };
 
 /**
  * 获取文件预览URL
  */
 export const getPreviewUrl = (id: string): string => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
-  return `${baseUrl}/files/${id}/preview`;
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081';
+  return `${baseUrl}/api/files/${id}/preview`;
 };
 
 export interface AddFileOptions {
@@ -219,8 +219,8 @@ export const addFile = async (options: AddFileOptions): Promise<{ submissionId: 
 };
 
 export const getTemplateUrl = (template: string, key: string): string => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
-  return `${baseUrl}/files/template?template=${template}&key=${key}`;
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081';
+  return `${baseUrl}/api/files/template?template=${template}&key=${key}`;
 };
 
 export const batchDownload = async (ids: number[], zipName?: string): Promise<any> => {

@@ -75,9 +75,10 @@ export default function UsersManagePage() {
     try {
       const newPassword = await resetUserPassword(user.id);
       alert(`密码已重置为: ${newPassword}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to reset password:', error);
-      alert('重置密码失败');
+      const errorMessage = error.message || error.response?.data?.message || '重置密码失败';
+      alert(`重置密码失败: ${errorMessage}`);
     }
   };
 
@@ -86,9 +87,10 @@ export default function UsersManagePage() {
     try {
       await forceUserLogout(user.id);
       alert('用户已被强制下线');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to force logout:', error);
-      alert('操作失败');
+      const errorMessage = error.message || error.response?.data?.message || '操作失败';
+      alert(`操作失败: ${errorMessage}`);
     }
   };
 
@@ -131,9 +133,10 @@ export default function UsersManagePage() {
         alert('消息已发送');
       }
       closeDialog();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to send message:', error);
-      alert('发送失败');
+      const errorMessage = error.message || error.response?.data?.message || '发送失败';
+      alert(`发送失败: ${errorMessage}`);
     } finally {
       setActionLoading(false);
     }
@@ -147,9 +150,10 @@ export default function UsersManagePage() {
       alert('手机号已绑定');
       closeDialog();
       fetchUsers();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to bind phone:', error);
-      alert('绑定失败');
+      const errorMessage = error.message || error.response?.data?.message || '绑定失败';
+      alert(`绑定失败: ${errorMessage}`);
     } finally {
       setActionLoading(false);
     }
@@ -165,9 +169,10 @@ export default function UsersManagePage() {
       alert('配额已更新');
       closeDialog();
       fetchUsers();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update quota:', error);
-      alert('更新失败');
+      const errorMessage = error.message || error.response?.data?.message || '更新失败';
+      alert(`更新失败: ${errorMessage}`);
     } finally {
       setActionLoading(false);
     }

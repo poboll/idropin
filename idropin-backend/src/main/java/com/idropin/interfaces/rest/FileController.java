@@ -334,12 +334,8 @@ public class FileController {
         
         log.info("Checking submit status: taskKey={}, name={}", taskKey, name);
         
-        // 查询file_submission表（新的提交记录）
-        List<com.idropin.domain.entity.FileSubmission> fileSubmissions = fileSubmissionMapper.selectList(
-            new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.idropin.domain.entity.FileSubmission>()
-                .eq("task_id", taskKey)
-                .eq("submitter_name", name)
-        );
+        // 查询file_submission表（新的提交记录）- 使用自定义方法避免类型转换问题
+        List<com.idropin.domain.entity.FileSubmission> fileSubmissions = fileSubmissionMapper.findByTaskIdAndSubmitterName(taskKey, name);
         
         // 如果新表没有记录，再查询task_submission表（旧的提交记录）
         boolean hasSubmission = !fileSubmissions.isEmpty();

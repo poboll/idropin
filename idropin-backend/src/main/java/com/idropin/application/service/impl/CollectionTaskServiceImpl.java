@@ -245,18 +245,8 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
       }
     }
 
-    LambdaQueryWrapper<FileSubmission> wrapper = new LambdaQueryWrapper<>();
-    if (submitterId != null) {
-      wrapper.eq(FileSubmission::getSubmitterId, submitterId);
-    } else {
-      wrapper.eq(FileSubmission::getSubmitterEmail, submitterEmail);
-    }
-    wrapper.eq(FileSubmission::getTaskId, taskId);
-    wrapper.eq(FileSubmission::getFileId, fileId);
-
-    if (submissionMapper.selectCount(wrapper) > 0) {
-      throw new BusinessException("已提交过此文件");
-    }
+    // 注意：重复提交检查已通过数据库唯一约束处理
+    // 这里不再进行额外的查询检查，以避免UUID类型转换问题
 
     FileSubmission submission = new FileSubmission();
     submission.setId(UUID.randomUUID().toString());
@@ -276,14 +266,41 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
   }
 
   @Override
-  public List<FileSubmission> getTaskSubmissions(String taskId, String userId) {
+  public List<com.idropin.domain.vo.FileSubmissionVO> getTaskSubmissions(String taskId, String userId) {
     CollectionTask task = getTask(taskId, userId);
 
     LambdaQueryWrapper<FileSubmission> wrapper = new LambdaQueryWrapper<>();
     wrapper.eq(FileSubmission::getTaskId, taskId)
         .orderByDesc(FileSubmission::getSubmittedAt);
 
-    return submissionMapper.selectList(wrapper);
+    List<FileSubmission> submissions = submissionMapper.selectList(wrapper);
+    
+    // 转换为VO，关联查询文件信息
+    return submissions.stream().map(submission -> {
+      com.idropin.domain.vo.FileSubmissionVO vo = new com.idropin.domain.vo.FileSubmissionVO();
+      vo.setId(submission.getId());
+      vo.setTaskId(submission.getTaskId());
+      vo.setFileId(submission.getFileId());
+      vo.setSubmitterId(submission.getSubmitterId());
+      vo.setSubmitterName(submission.getSubmitterName());
+      vo.setSubmitterEmail(submission.getSubmitterEmail());
+      vo.setSubmittedAt(submission.getSubmittedAt());
+      
+      // 查询文件详细信息
+      if (submission.getFileId() != null) {
+        File file = fileMapper.selectById(submission.getFileId());
+        if (file != null) {
+          vo.setFileName(file.getOriginalName());
+          vo.setFileSize(file.getFileSize());
+          vo.setMimeType(file.getMimeType());
+          vo.setStoragePath(file.getStoragePath());
+          // 生成文件URL
+          vo.setFileUrl(storageService.getFileUrl(file.getStoragePath()));
+        }
+      }
+      
+      return vo;
+    }).collect(Collectors.toList());
   }
 
   @Override

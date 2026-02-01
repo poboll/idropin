@@ -2,6 +2,21 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.idropin.infrastructure.persistence.mapper.FileShareMapper">
 
+    <insert id="insert" parameterType="com.idropin.domain.entity.FileShare">
+        INSERT INTO file_share (id, file_id, share_code, password, expire_at, download_limit, download_count, created_by, created_at)
+        VALUES (
+            CAST(#{id} AS UUID),
+            CAST(#{fileId} AS UUID),
+            #{shareCode},
+            #{password},
+            #{expireAt},
+            #{downloadLimit},
+            #{downloadCount},
+            CAST(#{createdBy} AS UUID),
+            #{createdAt}
+        )
+    </insert>
+
     <select id="findByShareCode" resultType="com.idropin.domain.entity.FileShare">
         SELECT id, file_id, share_code, password, expire_at, download_limit, download_count, created_by, created_at
         FROM file_share
@@ -11,7 +26,7 @@
     <select id="selectByCreatedBy" resultType="com.idropin.domain.entity.FileShare">
         SELECT id, file_id, share_code, password, expire_at, download_limit, download_count, created_by, created_at
         FROM file_share
-        WHERE CAST(created_by AS VARCHAR) = #{createdBy}
+        WHERE REPLACE(CAST(created_by AS VARCHAR), '-', '') = REPLACE(#{createdBy}, '-', '')
         ORDER BY created_at DESC
     </select>
 
