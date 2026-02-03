@@ -43,7 +43,7 @@ export async function submitFeedback(data: {
   content: string;
   contact?: string;
 }): Promise<Feedback> {
-  const response = await apiClient.post('/api/feedback', data);
+  const response = await apiClient.post('/feedback', data);
   return response.data.data;
 }
 
@@ -54,7 +54,7 @@ export async function getMyFeedback(params: {
   page?: number;
   size?: number;
 }): Promise<FeedbackPage> {
-  const response = await apiClient.get('/api/feedback/my', { params });
+  const response = await apiClient.get('/feedback/my', { params });
   return response.data.data;
 }
 
@@ -62,7 +62,7 @@ export async function getMyFeedback(params: {
  * 获取反馈详情（包含回复）
  */
 export async function getFeedbackDetail(id: string): Promise<FeedbackDetail> {
-  const response = await apiClient.get(`/api/feedback/${id}`);
+  const response = await apiClient.get(`/feedback/${id}`);
   return response.data.data;
 }
 
@@ -75,7 +75,7 @@ export async function getAllFeedback(params: {
   page?: number;
   size?: number;
 }): Promise<FeedbackPage> {
-  const response = await apiClient.get('/api/feedback/admin/list', { params });
+  const response = await apiClient.get('/feedback/admin/list', { params });
   return response.data.data;
 }
 
@@ -83,7 +83,7 @@ export async function getAllFeedback(params: {
  * 管理员回复反馈
  */
 export async function replyFeedback(id: string, content: string): Promise<FeedbackReply> {
-  const response = await apiClient.post(`/api/feedback/${id}/reply`, { content });
+  const response = await apiClient.post(`/feedback/${id}/reply`, { content });
   return response.data.data;
 }
 
@@ -91,7 +91,7 @@ export async function replyFeedback(id: string, content: string): Promise<Feedba
  * 管理员更新反馈状态
  */
 export async function updateFeedbackStatus(id: string, status: string): Promise<void> {
-  await apiClient.put(`/api/feedback/${id}/status`, { status });
+  await apiClient.put(`/feedback/${id}/status`, { status });
 }
 
 /**

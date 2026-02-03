@@ -27,7 +27,7 @@ export async function getMessages(params: {
   page?: number;
   size?: number;
 }): Promise<MessagePage> {
-  const response = await apiClient.get('/api/messages', { params });
+  const response = await apiClient.get('/messages', { params });
   return response.data.data;
 }
 
@@ -35,7 +35,7 @@ export async function getMessages(params: {
  * 获取未读消息数量
  */
 export async function getUnreadCount(): Promise<number> {
-  const response = await apiClient.get('/api/messages/unread-count');
+  const response = await apiClient.get('/messages/unread-count');
   return response.data.data;
 }
 
@@ -43,19 +43,19 @@ export async function getUnreadCount(): Promise<number> {
  * 标记消息为已读
  */
 export async function markAsRead(messageId: string): Promise<void> {
-  await apiClient.put(`/api/messages/${messageId}/read`);
+  await apiClient.put(`/messages/${messageId}/read`);
 }
 
 /**
  * 标记所有消息为已读
  */
 export async function markAllAsRead(): Promise<void> {
-  await apiClient.put('/api/messages/read-all');
+  await apiClient.put('/messages/read-all');
 }
 
 /**
  * 删除消息
  */
 export async function deleteMessage(messageId: string): Promise<void> {
-  await apiClient.delete(`/api/messages/${messageId}`);
+  await apiClient.delete(`/messages/${messageId}`);
 }

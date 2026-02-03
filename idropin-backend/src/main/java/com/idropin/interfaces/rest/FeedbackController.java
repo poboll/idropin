@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "需求反馈", description = "需求反馈相关接口")
 @RestController
-@RequestMapping("/api/feedback")
+@RequestMapping("/feedback")
 @RequiredArgsConstructor
 public class FeedbackController {
 
