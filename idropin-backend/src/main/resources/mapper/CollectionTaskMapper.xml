@@ -15,24 +15,60 @@
         <result column="created_by" property="createdBy" jdbcType="VARCHAR"/>
         <result column="status" property="status" jdbcType="VARCHAR"/>
         <result column="collection_type" property="collectionType" jdbcType="VARCHAR"/>
+        <result column="deleted" property="deleted" jdbcType="BOOLEAN"/>
         <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
         <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
     </resultMap>
 
     <select id="selectByIdString" resultMap="BaseResultMap">
         SELECT id, title, description, deadline, allow_anonymous, require_login, 
-               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, created_at, updated_at
+               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, created_at, updated_at
         FROM collection_task
         WHERE id = CAST(#{id} AS VARCHAR)
     </select>
 
     <select id="selectByCreatedBy" resultMap="BaseResultMap">
         SELECT id, title, description, deadline, allow_anonymous, require_login, 
-               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, created_at, updated_at
+               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, created_at, updated_at
         FROM collection_task
         WHERE CAST(created_by AS VARCHAR) = #{createdBy}
+          AND (deleted = false OR deleted IS NULL)
         ORDER BY created_at DESC
     </select>
+
+    <select id="selectDeletedByCreatedBy" resultMap="BaseResultMap">
+        SELECT id, title, description, deadline, allow_anonymous, require_login,
+               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, created_at, updated_at
+        FROM collection_task
+        WHERE CAST(created_by AS VARCHAR) = #{createdBy}
+          AND deleted = true
+        ORDER BY updated_at DESC
+    </select>
+
+    <update id="softDeleteByIdAndCreatedBy">
+        UPDATE collection_task
+        SET deleted = true,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = CAST(#{id} AS VARCHAR)
+          AND CAST(created_by AS VARCHAR) = #{createdBy}
+          AND (deleted = false OR deleted IS NULL)
+    </update>
+
+    <update id="restoreByIdAndCreatedBy">
+        UPDATE collection_task
+        SET deleted = false,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = CAST(#{id} AS VARCHAR)
+          AND CAST(created_by AS VARCHAR) = #{createdBy}
+          AND deleted = true
+    </update>
+
+    <delete id="deletePermanentlyByIdAndCreatedBy">
+        DELETE FROM collection_task
+        WHERE id = CAST(#{id} AS VARCHAR)
+          AND CAST(created_by AS VARCHAR) = #{createdBy}
+          AND deleted = true
+    </delete>
 
     <insert id="insert" parameterType="com.idropin.domain.entity.CollectionTask">
         INSERT INTO collection_task (
