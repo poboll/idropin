@@ -35,14 +35,19 @@ public class CollectionTask {
   private LocalDateTime deadline;
 
   /**
-   * 是否允许匿名
+   * 是否需要登录
+   */
+  private Boolean requireLogin;
+
+  /**
+   * 是否允许匿名提交（与 requireLogin 互补；用于任务列表/详情展示）
    */
   private Boolean allowAnonymous;
 
   /**
-   * 是否需要登录
+   * 限制每个IP/设备只能提交一次
    */
-  private Boolean requireLogin;
+  private Boolean limitOnePerDevice;
 
   /**
    * 最大文件大小
@@ -79,6 +84,11 @@ public class CollectionTask {
    * 收集类型: INFO（仅收集信息）, FILE（收集文件）
    */
   private String collectionType;
+
+  /**
+   * 软删除标记（回收站）
+   */
+  private Boolean deleted;
 
   /**
    * 创建时间
