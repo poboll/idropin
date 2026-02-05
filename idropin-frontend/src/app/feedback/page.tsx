@@ -3,6 +3,7 @@
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, MessageSquare, Send, Check, Loader2 } from 'lucide-react';
+import { submitFeedback } from '@/lib/api/feedback';
 
 export default function FeedbackPage() {
   const [formData, setFormData] = useState({
@@ -31,11 +32,17 @@ export default function FeedbackPage() {
     setIsSubmitting(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await submitFeedback({
+        title: formData.title.trim(),
+        content: formData.des.trim(),
+        contact: formData.contact.trim() || undefined
+      });
       setIsSuccess(true);
       setFormData({ title: '', des: '', contact: '' });
-    } catch {
-      setError('提交失败，请重试');
+    } catch (err: any) {
+      console.error('Failed to submit feedback:', err);
+      const errorMessage = err.message || err.response?.data?.message || '提交失败，请稍后重试';
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -202,7 +209,7 @@ export default function FeedbackPage() {
 
       <footer className="py-6 text-center border-t border-gray-200 dark:border-gray-800">
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          © 2024 Idrop.in 云集
+          © 2024 在虎
         </p>
       </footer>
     </div>

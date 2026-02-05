@@ -11,10 +11,13 @@ export function FeedbackButton() {
   const [contact, setContact] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
+    setError(null);
+
     if (!title.trim() || !content.trim()) {
-      alert('请填写标题和内容');
+      setError('请填写标题和详细描述');
       return;
     }
 
@@ -32,11 +35,12 @@ export function FeedbackButton() {
         setTitle('');
         setContent('');
         setContact('');
+        setError(null);
       }, 2000);
     } catch (error: any) {
       console.error('Failed to submit feedback:', error);
       const errorMessage = error.message || error.response?.data?.message || '提交失败，请稍后重试';
-      alert(`提交失败: ${errorMessage}`);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -47,12 +51,13 @@ export function FeedbackButton() {
       {/* Floating button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-40 p-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full shadow-lg hover:scale-105 transition-transform group"
-        title="提交反馈"
+        className="fixed bottom-6 right-6 z-40 p-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 group"
+        title="反馈与建议"
+        aria-label="反馈与建议"
       >
         <MessageSquarePlus className="w-5 h-5" />
         <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-          提交反馈
+          有想法？点这里
         </span>
       </button>
 
@@ -76,8 +81,8 @@ export function FeedbackButton() {
                 {/* Header */}
                 <div className="modal-header">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">提交反馈</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">告诉我们您的需求或问题</p>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">反馈与建议</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">想要的功能、遇到的问题都可以告诉我们</p>
                   </div>
                   <button 
                     onClick={() => setIsOpen(false)}
@@ -127,6 +132,12 @@ export function FeedbackButton() {
                       className="input"
                     />
                   </div>
+
+                  {error && (
+                    <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/40 rounded-md px-3 py-2">
+                      {error}
+                    </div>
+                  )}
                 </div>
 
                 {/* Footer */}
