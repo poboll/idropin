@@ -61,16 +61,16 @@ export default function Modal({
   }
 
   return (
-    <>
+    <div className="modal-container">
       {/* 背景遮罩 - 完全覆盖整个视口 */}
       <div
         className="modal-overlay"
         onClick={onClose}
       />
 
-      {/* 模态框内容 - 使用 fixed 定位居中 */}
+      {/* 模态框内容 */}
       <div
-        className={`modal ${sizeClasses[size]}`}
+        className={`modal-card ${sizeClasses[size]}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* 标题栏 */}
@@ -96,6 +96,6 @@ export default function Modal({
           {children}
         </div>
       </div>
-    </>
+    </div>
   );
 }

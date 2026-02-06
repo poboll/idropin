@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createTask, type CreateTaskRequest } from '@/lib/api/tasks';
-import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { XCircle, Loader2 } from 'lucide-react';
 
 interface CreateTaskFormProps {
   activeCategory?: string;
@@ -15,13 +15,12 @@ export default function CreateTaskForm({ activeCategory, onSuccess, onCancel }: 
     title: '',
     description: '',
     category: activeCategory || 'default',
-    allowAnonymous: false,
-    requireLogin: true,
-    collectionType: 'FILE', // 默认为收集文件
+    requireLogin: false,
+    limitOnePerDevice: true,
+    collectionType: 'FILE',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     if (activeCategory) {
@@ -32,7 +31,6 @@ export default function CreateTaskForm({ activeCategory, onSuccess, onCancel }: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setSuccess(false);
 
     if (!formData.title.trim()) {
       setError('请输入任务标题');
@@ -42,19 +40,15 @@ export default function CreateTaskForm({ activeCategory, onSuccess, onCancel }: 
     try {
       setLoading(true);
       await createTask(formData);
-      setSuccess(true);
       setFormData({
         title: '',
         description: '',
         category: activeCategory || 'default',
-        allowAnonymous: false,
-        requireLogin: true,
-        collectionType: 'FILE', // 重置为默认值
+        requireLogin: false,
+        limitOnePerDevice: true,
+        collectionType: 'FILE',
       });
-      setTimeout(() => {
-        setSuccess(false);
-        onSuccess?.();
-      }, 2000);
+      onSuccess?.();
     } catch (err: any) {
       console.error('创建任务失败:', err);
       setError(err.message || '创建任务失败，请重试');
@@ -65,14 +59,6 @@ export default function CreateTaskForm({ activeCategory, onSuccess, onCancel }: 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {/* 成功提示 */}
-      {success && (
-        <div className="alert alert-success">
-          <CheckCircle className="w-4 h-4 flex-shrink-0" />
-          <span className="text-sm font-medium">任务创建成功！</span>
-        </div>
-      )}
-
       {/* 错误提示 */}
       {error && (
         <div className="alert alert-error">
@@ -248,8 +234,8 @@ export default function CreateTaskForm({ activeCategory, onSuccess, onCancel }: 
           <div className="relative">
             <input
               type="checkbox"
-              checked={formData.allowAnonymous}
-              onChange={(e) => setFormData({ ...formData, allowAnonymous: e.target.checked })}
+              checked={formData.limitOnePerDevice}
+              onChange={(e) => setFormData({ ...formData, limitOnePerDevice: e.target.checked })}
               className="peer sr-only"
             />
             <div className="w-5 h-5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900 peer-checked:bg-gray-900 dark:peer-checked:bg-white peer-checked:border-gray-900 dark:peer-checked:border-white transition-colors">
@@ -258,9 +244,14 @@ export default function CreateTaskForm({ activeCategory, onSuccess, onCancel }: 
               </svg>
             </div>
           </div>
-          <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
-            允许匿名提交
-          </span>
+          <div>
+            <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+              每个IP/设备限提交一次
+            </span>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              防止同一设备重复提交
+            </p>
+          </div>
         </label>
 
         <label className="flex items-center gap-3 cursor-pointer group">

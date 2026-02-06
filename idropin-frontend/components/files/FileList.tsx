@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FileItem, deleteFile, getDownloadUrl, getPreviewUrl } from '@/lib/api/files';
+import { FileItem, getDownloadUrl, getPreviewUrl, moveToTrash } from '@/lib/api/files';
 import { getToken } from '@/lib/api/client';
 
 interface FileListProps {
@@ -13,6 +13,25 @@ interface FileListProps {
 
 export function FileList({ files, onDelete, onSelect, loading }: FileListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const fetchFileBlob = async (url: string): Promise<Blob> => {
+    const token = getToken();
+    if (!token) {
+      throw new Error('未登录或登录已过期');
+    }
+
+    const resp = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!resp.ok) {
+      throw new Error(`请求失败(${resp.status})`);
+    }
+
+    return await resp.blob();
+  };
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 B';
@@ -76,33 +95,52 @@ export function FileList({ files, onDelete, onSelect, loading }: FileListProps) 
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确定要删除这个文件吗？')) return;
+    if (!confirm('确定将此文件移至回收站吗？')) return;
     setDeletingId(id);
     try {
-      await deleteFile(id);
+      await moveToTrash(id);
       onDelete?.(id);
     } catch (error) {
-      console.error('删除失败', error);
-      alert('删除失败');
+      console.error('移至回收站失败', error);
+      alert('移至回收站失败');
     } finally {
       setDeletingId(null);
     }
   };
 
-  const handleDownload = (file: FileItem) => {
-    const token = getToken();
-    const url = getDownloadUrl(file.id);
-    // 创建带 token 的下载链接
-    const link = document.createElement('a');
-    link.href = `${url}?token=${token}`;
-    link.download = file.originalName;
-    link.click();
+  const handleDownload = async (file: FileItem) => {
+    try {
+      const url = getDownloadUrl(file.id);
+      const blob = await fetchFileBlob(url);
+      const objectUrl = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = file.originalName;
+      link.click();
+
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      console.error('下载失败', error);
+      alert('下载失败，请确认登录状态或稍后重试');
+    }
   };
 
-  const handlePreview = (file: FileItem) => {
-    const token = getToken();
-    const url = getPreviewUrl(file.id);
-    window.open(`${url}?token=${token}`, '_blank');
+  const handlePreview = async (file: FileItem) => {
+    try {
+      const url = getPreviewUrl(file.id);
+      const blob = await fetchFileBlob(url);
+      const objectUrl = URL.createObjectURL(blob);
+
+      const opened = window.open(objectUrl, '_blank');
+      if (!opened) {
+        // Popup blocked: fall back to current tab.
+        window.location.href = objectUrl;
+      }
+    } catch (error) {
+      console.error('预览失败', error);
+      alert('预览失败，请确认登录状态或稍后重试');
+    }
   };
 
   const isPreviewable = (mimeType: string) => {
