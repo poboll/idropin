@@ -14,6 +14,7 @@ build/
 .idea/
 .vscode/
 .kiro/
+.claude/
 *.iml
 *.swp
 *.swo
@@ -135,5 +136,20 @@ fix-database.sh
 # Project overview (AI generated)
 PROJECT_OVERVIEW.md
 
+# OpenSpec artifacts
+openspec/
+
 # Docker
 docker-compose.yml
+
+# Database backups
+database-backups/
+
+# Test results and Playwright artifacts
+test-results/
+playwright-report/
+playwright.config.ts
+
+# Submission and task directories (temporary)
+# idropin-frontend/src/app/dashboard/submissions/
+# idropin-frontend/src/app/dashboard/tasks/[id]/
