@@ -153,3 +153,11 @@ playwright.config.ts
 # Submission and task directories (temporary)
 # idropin-frontend/src/app/dashboard/submissions/
 # idropin-frontend/src/app/dashboard/tasks/[id]/
+
+# Sisyphus plans (AI assistant artifacts)
+.sisyphus/
+
+# Legacy code directories
+idropin-backend-legacy/
+idropin-frontend-legacy/
+idropin-server-legacy/
