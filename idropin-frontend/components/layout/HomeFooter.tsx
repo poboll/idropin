@@ -14,7 +14,7 @@ export default function HomeFooter({ type = 'default' }: HomeFooterProps) {
       <footer className="py-6 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border-t border-slate-200/50 dark:border-slate-800/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            &copy; {currentYear} Idrop.in 云集. All rights reserved.
+            &copy; 2024 在虎. All rights reserved.
           </p>
         </div>
       </footer>
@@ -51,7 +51,7 @@ export default function HomeFooter({ type = 'default' }: HomeFooterProps) {
           </div>
 
           <div className="text-sm text-slate-400">
-            &copy; {currentYear} Idrop.in Team
+            &copy; 2024 在虎
           </div>
         </div>
       </div>

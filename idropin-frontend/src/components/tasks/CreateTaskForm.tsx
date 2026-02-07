@@ -21,8 +21,8 @@ function CreateTaskForm({ activeCategory, onSuccess, onCancel }: CreateTaskFormP
     category: activeCategory || 'default',
     taskType: 'FILE_COLLECTION',
     deadline: null,
-    allowAnonymous: false,
     requireLogin: false,
+    limitOnePerDevice: true,
     maxFileSize: 104857600,
     allowedTypes: [],
   });
@@ -158,11 +158,11 @@ function CreateTaskForm({ activeCategory, onSuccess, onCancel }: CreateTaskFormP
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
-              checked={formData.allowAnonymous}
-              onChange={(e) => handleChange('allowAnonymous', e.target.checked)}
+              checked={formData.limitOnePerDevice}
+              onChange={(e) => handleChange('limitOnePerDevice', e.target.checked)}
               className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
             />
-            <span className="text-sm text-gray-700 dark:text-gray-300">允许匿名提交</span>
+            <span className="text-sm text-gray-700 dark:text-gray-300">每个IP/设备限提交一次</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input

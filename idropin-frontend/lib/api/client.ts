@@ -1,7 +1,8 @@
 import axios, { AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 
 // API 基础配置
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081';
+// Back-end runs on 8081 with context-path "/api" (see idropin-backend application.yml).
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api';
 
 // 创建 Axios 实例
 export const apiClient = axios.create({
@@ -62,6 +63,7 @@ apiClient.interceptors.response.use(
           status: code,
           data: response.data
         };
+        error.code = code;
         error.isBusinessError = true;
         return Promise.reject(error);
       }
@@ -69,11 +71,13 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error: AxiosError) => {
+    // 只在真正的401 HTTP状态码时才重定向，避免业务错误码导致的重定向
     if (error.response?.status === 401) {
       // 清除 Token
       clearToken();
       // 重定向到登录页（仅在客户端）
-      if (typeof window !== 'undefined') {
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        console.log('401 error, redirecting to login');
         window.location.href = '/login';
       }
     }

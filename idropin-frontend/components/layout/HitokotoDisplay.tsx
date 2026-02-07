@@ -53,7 +53,7 @@ export function HitokotoDisplay() {
   if (!hitokoto) return null;
 
   return (
-    <div className="hidden md:flex items-center gap-2 md:max-w-[140px] lg:max-w-[200px] mr-2 group">
+    <div className="hidden md:flex items-center gap-2 md:max-w-[200px] lg:max-w-none lg:w-auto mr-2 group">
       <button
         onClick={fetchHitokoto}
         disabled={loading}

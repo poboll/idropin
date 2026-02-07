@@ -171,16 +171,17 @@ export const deleteFiles = async (ids: string[]): Promise<void> => {
  * 获取文件下载URL
  */
 export const getDownloadUrl = (id: string): string => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081';
-  return `${baseUrl}/api/files/${id}/download`;
+  // NEXT_PUBLIC_API_URL in this repo includes "/api".
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api';
+  return `${baseUrl}/files/${id}/download`;
 };
 
 /**
  * 获取文件预览URL
  */
 export const getPreviewUrl = (id: string): string => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081';
-  return `${baseUrl}/api/files/${id}/preview`;
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api';
+  return `${baseUrl}/files/${id}/preview`;
 };
 
 export interface AddFileOptions {
@@ -219,8 +220,8 @@ export const addFile = async (options: AddFileOptions): Promise<{ submissionId: 
 };
 
 export const getTemplateUrl = (template: string, key: string): string => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081';
-  return `${baseUrl}/api/files/template?template=${template}&key=${key}`;
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api';
+  return `${baseUrl}/files/template?template=${template}&key=${key}`;
 };
 
 export const batchDownload = async (ids: number[], zipName?: string): Promise<any> => {
@@ -287,3 +288,76 @@ export const updateFilename = async (id: number, newName: string): Promise<void>
   }
 };
 
+export const moveToTrash = async (id: string): Promise<void> => {
+  try {
+    await apiClient.post(`/files/${id}/trash`);
+  } catch (error) {
+    throw extractApiError(error);
+  }
+};
+
+export const batchMoveToTrash = async (ids: string[]): Promise<void> => {
+  try {
+    await apiClient.post('/files/batch/trash', ids);
+  } catch (error) {
+    throw extractApiError(error);
+  }
+};
+
+export const restoreFromTrash = async (id: string): Promise<void> => {
+  try {
+    await apiClient.post(`/files/${id}/restore`);
+  } catch (error) {
+    throw extractApiError(error);
+  }
+};
+
+export const batchRestoreFromTrash = async (ids: string[]): Promise<void> => {
+  try {
+    await apiClient.post('/files/batch/restore', ids);
+  } catch (error) {
+    throw extractApiError(error);
+  }
+};
+
+export const permanentDeleteFile = async (id: string): Promise<void> => {
+  try {
+    await apiClient.delete(`/files/${id}/permanent`);
+  } catch (error) {
+    throw extractApiError(error);
+  }
+};
+
+export const batchPermanentDelete = async (ids: string[]): Promise<void> => {
+  try {
+    await apiClient.delete('/files/batch/permanent', { data: ids });
+  } catch (error) {
+    throw extractApiError(error);
+  }
+};
+
+export const emptyTrash = async (): Promise<void> => {
+  try {
+    await apiClient.delete('/files/trash/empty');
+  } catch (error) {
+    throw extractApiError(error);
+  }
+};
+
+export const getTrashFiles = async (params: { page?: number; size?: number } = {}): Promise<PageResponse<FileItem>> => {
+  try {
+    const response = await apiClient.get<ApiResponse<PageResponse<FileItem>>>('/files/trash', { params });
+    return response.data.data;
+  } catch (error) {
+    throw extractApiError(error);
+  }
+};
+
+export const getTrashCount = async (): Promise<number> => {
+  try {
+    const response = await apiClient.get<ApiResponse<number>>('/files/trash/count');
+    return response.data.data;
+  } catch (error) {
+    throw extractApiError(error);
+  }
+};

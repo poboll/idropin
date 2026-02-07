@@ -189,7 +189,7 @@ export default function PrivacyPage() {
               如有任何隐私相关问题，请联系我们：
             </p>
             <p className="text-gray-600 dark:text-gray-400">
-              邮箱：<a href="mailto:privacy@idrop.in" className="text-gray-900 dark:text-white hover:underline">privacy@idrop.in</a>
+              邮箱：<a href="mailto:i@caiths.com" className="text-gray-900 dark:text-white hover:underline">i@caiths.com</a>
             </p>
           </section>
         </div>
@@ -199,7 +199,7 @@ export default function PrivacyPage() {
       <footer className="py-8 px-6 border-t border-gray-200 dark:border-gray-800">
         <div className="max-w-4xl mx-auto text-center">
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            © 2026 Idrop.in 云集
+            © 2024 在虎
           </p>
         </div>
       </footer>

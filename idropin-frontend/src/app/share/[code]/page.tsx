@@ -280,7 +280,7 @@ export default function SharePage() {
         {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-sm text-gray-500 mb-2">
-            使用 Idrop.in 云集 安全分享文件
+            © 2024 在虎 安全分享文件
           </p>
           <a
             href="/"

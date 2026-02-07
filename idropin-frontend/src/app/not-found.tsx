@@ -81,7 +81,7 @@ export default function NotFound() {
         </div>
 
         <p className="text-slate-400 text-sm mt-8">
-          © 2024 Idrop.in 云集
+          © 2024 在虎
         </p>
       </div>
     </div>

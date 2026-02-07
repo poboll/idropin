@@ -15,19 +15,20 @@ export function useToast() {
 
   const addToast = useCallback((toast: Omit<Toast, 'id'>) => {
     const id = Math.random().toString(36).substr(2, 9);
+    const duration = toast.duration ?? 5000;
     const newToast: Toast = {
       ...toast,
       id,
-      duration: toast.duration || 5000,
+      duration,
     };
 
     setToasts(prev => [...prev, newToast]);
 
     // 自动移除
-    if (newToast.duration > 0) {
+    if (duration > 0) {
       setTimeout(() => {
         removeToast(id);
-      }, newToast.duration);
+      }, duration);
     }
 
     return id;

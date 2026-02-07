@@ -48,28 +48,30 @@ export const useAuthStore = create<AuthStore>()(
         try {
           const response = await authApi.login(data);
 
-          // Handle successful login
-          if (response && response.token && response.user) {
-            setToken(response.token);
-            const isSuperAdmin = response.user.role === 'SUPER_ADMIN';
-            const isAdmin = response.user.role === 'ADMIN' || isSuperAdmin;
-            set({
-              user: response.user,
-              token: response.token,
-              isAuthenticated: true,
-              isLoading: false,
-              error: null,
-              isSuperAdmin,
-              system: isAdmin,
-            });
-          } else {
-            // Handle unexpected response format
+          // Backward/forward compatible: some backends return { token } only.
+          if (!response || !response.token) {
             set({
               isLoading: false,
               error: '登录失败，服务器返回了无效的响应',
             });
             throw new Error('登录失败，服务器返回了无效的响应');
           }
+
+          setToken(response.token);
+
+          const user = response.user ?? (await authApi.getCurrentUser());
+          const isSuperAdmin = user.role === 'SUPER_ADMIN';
+          const isAdmin = user.role === 'ADMIN' || isSuperAdmin;
+
+          set({
+            user,
+            token: response.token,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+            isSuperAdmin,
+            system: isAdmin,
+          });
         } catch (error) {
           // Handle API errors (extracted from backend response)
           const apiError = error as { message?: string; response?: { data?: { message?: string } } };

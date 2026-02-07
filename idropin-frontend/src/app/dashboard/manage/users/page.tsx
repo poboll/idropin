@@ -5,15 +5,15 @@ import Link from 'next/link';
 import { 
   Search, RefreshCw, Send, Key, Phone, MessageSquare, 
   HardDrive, LogOut, MoreHorizontal, Check, X, User,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Shield
 } from 'lucide-react';
 import { 
   getUsers, updateUserStatus, resetUserPassword, bindUserPhone,
   sendMessageToUser, updateUserQuota, forceUserLogout, broadcastMessage,
-  formatFileSize, AdminUser
+  formatFileSize, AdminUser, updateUserRole
 } from '@/lib/api/admin';
 
-type DialogType = 'message' | 'quota' | 'phone' | 'broadcast' | null;
+type DialogType = 'message' | 'quota' | 'phone' | 'broadcast' | 'role' | null;
 
 export default function UsersManagePage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -33,6 +33,7 @@ export default function UsersManagePage() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [storageLimit, setStorageLimit] = useState('');
   const [taskLimit, setTaskLimit] = useState('');
+  const [selectedRole, setSelectedRole] = useState('');
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -103,6 +104,7 @@ export default function UsersManagePage() {
         setStorageLimit(String(Math.round(user.storageLimit / 1024 / 1024)));
         setTaskLimit(String(user.taskLimit));
       }
+      if (type === 'role') setSelectedRole(user.role);
     }
     setMessageTitle('');
     setMessageContent('');
@@ -116,6 +118,7 @@ export default function UsersManagePage() {
     setPhoneNumber('');
     setStorageLimit('');
     setTaskLimit('');
+    setSelectedRole('');
   };
 
   const handleSendMessage = async () => {
@@ -171,6 +174,23 @@ export default function UsersManagePage() {
       fetchUsers();
     } catch (error: any) {
       console.error('Failed to update quota:', error);
+      const errorMessage = error.message || error.response?.data?.message || '更新失败';
+      alert(`更新失败: ${errorMessage}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUpdateRole = async () => {
+    if (!selectedUser || !selectedRole) return;
+    setActionLoading(true);
+    try {
+      await updateUserRole(selectedUser.id, selectedRole);
+      alert('角色已更新');
+      closeDialog();
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Failed to update role:', error);
       const errorMessage = error.message || error.response?.data?.message || '更新失败';
       alert(`更新失败: ${errorMessage}`);
     } finally {
@@ -255,6 +275,7 @@ export default function UsersManagePage() {
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">账号</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">角色</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">手机号</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">最后登录</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
@@ -264,13 +285,13 @@ export default function UsersManagePage() {
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center">
+                  <td colSpan={7} className="px-4 py-8 text-center">
                     <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">暂无用户数据</td>
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">暂无用户数据</td>
                 </tr>
               ) : (
                 users.map((user) => (
@@ -286,6 +307,17 @@ export default function UsersManagePage() {
                           <p className="text-xs text-gray-500">{user.email}</p>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        user.role === 'SUPER_ADMIN' 
+                          ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                          : user.role === 'ADMIN'
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                          : 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
+                      }`}>
+                        {user.role === 'SUPER_ADMIN' ? '超级管理员' : user.role === 'ADMIN' ? '管理员' : '普通用户'}
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{user.phone || '-'}</td>
                     <td className="px-4 py-3">
@@ -309,6 +341,13 @@ export default function UsersManagePage() {
                           title={user.status === 'active' ? '禁用' : '启用'}
                         >
                           {user.status === 'active' ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={() => openDialog('role', user)}
+                          className="p-1.5 text-gray-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-lg transition-colors"
+                          title="修改角色"
+                        >
+                          <Shield className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleResetPassword(user)}
@@ -487,6 +526,61 @@ export default function UsersManagePage() {
                   <button
                     onClick={handleUpdateQuota}
                     disabled={actionLoading}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {actionLoading ? '更新中...' : '更新'}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {dialogType === 'role' && (
+              <>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                  修改角色 - {selectedUser?.username}
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">选择角色</label>
+                    <div className="space-y-2">
+                      {[
+                        { value: 'USER', label: '普通用户', desc: '可以创建和管理自己的任务' },
+                        { value: 'ADMIN', label: '管理员', desc: '可以管理用户和查看统计数据' },
+                        { value: 'SUPER_ADMIN', label: '超级管理员', desc: '拥有所有权限' }
+                      ].map((role) => (
+                        <button
+                          key={role.value}
+                          onClick={() => setSelectedRole(role.value)}
+                          className={`w-full text-left p-3 border rounded-lg transition-colors ${
+                            selectedRole === role.value
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium text-gray-900 dark:text-white">{role.label}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{role.desc}</p>
+                            </div>
+                            {selectedRole === role.value && (
+                              <Check className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">当前角色: {
+                      selectedUser?.role === 'SUPER_ADMIN' ? '超级管理员' : 
+                      selectedUser?.role === 'ADMIN' ? '管理员' : 
+                      '普通用户'
+                    }</p>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 mt-6">
+                  <button onClick={closeDialog} className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">取消</button>
+                  <button
+                    onClick={handleUpdateRole}
+                    disabled={actionLoading || !selectedRole}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                   >
                     {actionLoading ? '更新中...' : '更新'}

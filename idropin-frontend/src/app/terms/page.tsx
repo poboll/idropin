@@ -110,7 +110,7 @@ export default function TermsPage() {
               5. 免责声明
             </h2>
             <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-              本服务按"现状"提供，我们不对服务的可用性、准确性或完整性做出任何保证。
+              本服务按“现状”提供，我们不对服务的可用性、准确性或完整性做出任何保证。
               对于因使用本服务而产生的任何损失，我们不承担责任。
             </p>
           </section>
@@ -123,7 +123,7 @@ export default function TermsPage() {
               如有任何问题或建议，请通过以下方式联系我们：
             </p>
             <p className="text-gray-600 dark:text-gray-400">
-              邮箱：<a href="mailto:support@idrop.in" className="text-gray-900 dark:text-white hover:underline">support@idrop.in</a>
+              邮箱：<a href="mailto:i@caiths.com" className="text-gray-900 dark:text-white hover:underline">i@caiths.com</a>
             </p>
           </section>
         </div>
@@ -133,7 +133,7 @@ export default function TermsPage() {
       <footer className="py-8 px-6 border-t border-gray-200 dark:border-gray-800">
         <div className="max-w-4xl mx-auto text-center">
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            © 2026 Idrop.in 云集
+            © 2024 在虎
           </p>
         </div>
       </footer>

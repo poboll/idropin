@@ -204,9 +204,9 @@ export default function AboutPage() {
               联系我们
             </h2>
             <div className="flex justify-center gap-3 flex-wrap">
-              <a href="mailto:support@idrop.in" className="btn-secondary">
+              <a href="mailto:i@caiths.com" className="btn-secondary">
                 <Mail className="w-4 h-4" />
-                support@idrop.in
+                i@caiths.com
               </a>
               <a 
                 href="https://github.com/poboll/idropin"
@@ -258,7 +258,7 @@ export default function AboutPage() {
       <footer className="py-8 px-6 border-t border-gray-200 dark:border-gray-800">
         <div className="max-w-6xl mx-auto text-center">
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            © 2026 Idrop.in 云集
+            © 2024 在虎
           </p>
         </div>
       </footer>

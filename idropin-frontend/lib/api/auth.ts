@@ -5,6 +5,7 @@ export interface User {
   id: string;
   username: string;
   email: string;
+  phone?: string;
   avatarUrl?: string;
   status: string;
   role?: string;
@@ -121,6 +122,47 @@ export const requestPasswordReset = async (email: string): Promise<void> => {
 export const confirmPasswordReset = async (token: string, newPassword: string): Promise<void> => {
   try {
     await apiClient.post<ApiResponse<void>>('/auth/password-reset/confirm', { token, newPassword });
+  } catch (error) {
+    throw extractApiError(error);
+  }
+};
+
+/**
+ * 发送验证码
+ */
+export const sendVerificationCode = async (target: string, type: 'email' | 'sms'): Promise<void> => {
+  try {
+    await apiClient.post<ApiResponse<void>>('/user/send-code', null, {
+      params: { target, type }
+    });
+  } catch (error) {
+    throw extractApiError(error);
+  }
+};
+
+/**
+ * 绑定手机号
+ */
+export const bindPhone = async (phone: string, code: string): Promise<User> => {
+  try {
+    const response = await apiClient.post<ApiResponse<User>>('/user/bind-phone', null, {
+      params: { phone, code }
+    });
+    return response.data.data;
+  } catch (error) {
+    throw extractApiError(error);
+  }
+};
+
+/**
+ * 绑定邮箱
+ */
+export const bindEmail = async (email: string, code: string): Promise<User> => {
+  try {
+    const response = await apiClient.post<ApiResponse<User>>('/user/bind-email', null, {
+      params: { email, code }
+    });
+    return response.data.data;
   } catch (error) {
     throw extractApiError(error);
   }

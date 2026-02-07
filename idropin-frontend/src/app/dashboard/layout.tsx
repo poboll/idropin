@@ -21,7 +21,6 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth';
 import { MessageButton } from '@/components/layout/MessageButton';
-import { FeedbackButton } from '@/components/feedback/FeedbackButton';
 import { HitokotoDisplay } from '@/components/layout/HitokotoDisplay';
 
 const navItems = [
@@ -42,10 +41,12 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { user, logout, isSuperAdmin, fetchCurrentUser } = useAuthStore();
+  const { user, logout, isSuperAdmin, system, fetchCurrentUser } = useAuthStore();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || isSuperAdmin || system;
 
   useEffect(() => {
     setMounted(true);
@@ -110,7 +111,7 @@ export default function DashboardLayout({
                   {item.label}
                 </Link>
               ))}
-              {isSuperAdmin && adminNavItems.map((item) => (
+              {isAdmin && adminNavItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
@@ -228,7 +229,7 @@ export default function DashboardLayout({
                 {item.label}
               </Link>
             ))}
-            {isSuperAdmin && adminNavItems.map((item) => (
+            {isAdmin && adminNavItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -254,8 +255,6 @@ export default function DashboardLayout({
         </div>
       </main>
 
-      {/* Feedback Button */}
-      <FeedbackButton />
     </div>
   );
 }

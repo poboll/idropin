@@ -189,25 +189,79 @@ export default function StatisticsPage() {
           <p className="text-sm text-gray-500 dark:text-gray-400">按分类统计文件数量和存储大小</p>
         </div>
         {statistics.categoryStatistics && statistics.categoryStatistics.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={statistics.categoryStatistics}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
-              <XAxis dataKey="categoryName" tick={{ fontSize: 12 }} stroke="#737373" />
-              <YAxis tick={{ fontSize: 12 }} stroke="#737373" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#fff', 
-                  border: '1px solid #e5e5e5',
-                  borderRadius: '8px'
-                }} 
-              />
-              <Legend />
-              <Bar dataKey="fileCount" fill="#171717" name="文件数" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="storageSize" fill="#737373" name="存储大小(字节)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="overflow-x-auto">
+            <div className="min-w-[800px]">
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart 
+                  data={statistics.categoryStatistics}
+                  margin={{ top: 20, right: 50, left: 30, bottom: 80 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" vertical={false} />
+                  <XAxis 
+                    dataKey="categoryName" 
+                    tick={{ fontSize: 11 }}
+                    stroke="#737373"
+                    angle={-25}
+                    textAnchor="end"
+                    height={90}
+                    interval={0}
+                  />
+                  <YAxis 
+                    yAxisId="left"
+                    tick={{ fontSize: 11 }} 
+                    stroke="#737373"
+                    label={{ value: '文件数', angle: -90, position: 'insideLeft', fontSize: 11, offset: -5 }}
+                    width={50}
+                  />
+                  <YAxis 
+                    yAxisId="right"
+                    orientation="right"
+                    tick={{ fontSize: 11 }} 
+                    stroke="#737373"
+                    label={{ value: '存储大小', angle: 90, position: 'insideRight', fontSize: 11, offset: -5 }}
+                    tickFormatter={(value) => formatBytes(value)}
+                    width={70}
+                  />
+                  <Tooltip 
+                    formatter={(value, name) => {
+                      if (name === '存储大小') {
+                        return [formatBytes(Number(value)), name];
+                      }
+                      return [value, name];
+                    }}
+                    contentStyle={{ 
+                      backgroundColor: '#fff', 
+                      border: '1px solid #e5e5e5',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    }} 
+                  />
+                  <Legend 
+                    wrapperStyle={{ paddingTop: '20px' }}
+                    iconType="rect"
+                  />
+                  <Bar 
+                    yAxisId="left"
+                    dataKey="fileCount" 
+                    fill="#171717" 
+                    name="文件数" 
+                    radius={[8, 8, 0, 0]}
+                    maxBarSize={50}
+                  />
+                  <Bar 
+                    yAxisId="right"
+                    dataKey="storageSize" 
+                    fill="#737373" 
+                    name="存储大小" 
+                    radius={[8, 8, 0, 0]}
+                    maxBarSize={50}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         ) : (
-          <div className="flex items-center justify-center h-[300px] text-gray-400 dark:text-gray-600">
+          <div className="flex items-center justify-center h-[350px] text-gray-400 dark:text-gray-600">
             <div className="text-center">
               <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
               <p className="text-sm">暂无分类数据</p>

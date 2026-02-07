@@ -3,7 +3,8 @@
 import { useState, useRef } from 'react';
 import { useAuthStore } from '@/lib/stores';
 import { apiClient, extractApiError } from '@/lib/api/client';
-import { User, Mail, Calendar, Key, Camera, Lock, ChevronDown, Upload as UploadIcon } from 'lucide-react';
+import { sendVerificationCode, bindPhone, bindEmail } from '@/lib/api/auth';
+import { User, Mail, Calendar, Key, Camera, Lock, ChevronDown, Upload as UploadIcon, Phone } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
 export default function ProfilePage() {
@@ -19,6 +20,14 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showPhoneForm, setShowPhoneForm] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [newPhone, setNewPhone] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [phoneCode, setPhoneCode] = useState('');
+  const [emailCode, setEmailCode] = useState('');
+  const [phoneCooldown, setPhoneCooldown] = useState(0);
+  const [emailCooldown, setEmailCooldown] = useState(0);
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,6 +120,100 @@ export default function ProfilePage() {
     }
   };
 
+  const handleSendPhoneCode = async () => {
+    if (!newPhone) {
+      setError('请输入手机号');
+      return;
+    }
+    if (!/^1[3-9]\d{9}$/.test(newPhone)) {
+      setError('请输入正确的手机号');
+      return;
+    }
+    try {
+      await sendVerificationCode(newPhone, 'sms');
+      setPhoneCooldown(60);
+      const timer = setInterval(() => {
+        setPhoneCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (err) {
+      const apiError = extractApiError(err);
+      setError(apiError.message);
+    }
+  };
+
+  const handleSendEmailCode = async () => {
+    if (!newEmail) {
+      setError('请输入邮箱');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+      setError('请输入正确的邮箱地址');
+      return;
+    }
+    try {
+      await sendVerificationCode(newEmail, 'email');
+      setEmailCooldown(60);
+      const timer = setInterval(() => {
+        setEmailCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (err) {
+      const apiError = extractApiError(err);
+      setError(apiError.message);
+    }
+  };
+
+  const handleBindPhone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(false);
+    setLoading(true);
+    try {
+      await bindPhone(newPhone, phoneCode);
+      await fetchCurrentUser();
+      setSuccess(true);
+      setNewPhone('');
+      setPhoneCode('');
+      setTimeout(() => setShowPhoneForm(false), 2000);
+    } catch (err) {
+      const apiError = extractApiError(err);
+      setError(apiError.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBindEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(false);
+    setLoading(true);
+    try {
+      await bindEmail(newEmail, emailCode);
+      await fetchCurrentUser();
+      setSuccess(true);
+      setNewEmail('');
+      setEmailCode('');
+      setTimeout(() => setShowEmailForm(false), 2000);
+    } catch (err) {
+      const apiError = extractApiError(err);
+      setError(apiError.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="page-header">
@@ -168,7 +271,11 @@ export default function ProfilePage() {
           
           <div className="flex-1 text-center md:text-left">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{user?.username}</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">普通用户</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {user?.role === 'SUPER_ADMIN' ? '超级管理员' : 
+               user?.role === 'ADMIN' ? '管理员' : 
+               '普通用户'}
+            </p>
           </div>
         </div>
 
@@ -186,6 +293,14 @@ export default function ProfilePage() {
             <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
               <Mail className="w-4 h-4 text-gray-400" />
               <span className="text-sm text-gray-900 dark:text-white">{user?.email || '未绑定邮箱'}</span>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">手机号</label>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+              <Phone className="w-4 h-4 text-gray-400" />
+              <span className="text-sm text-gray-900 dark:text-white">{user?.phone || '未绑定手机号'}</span>
             </div>
           </div>
 
@@ -329,6 +444,176 @@ export default function ProfilePage() {
                   </>
                 ) : (
                   '确认修改'
+                )}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      <div className="card p-8">
+        <div 
+          className="flex items-center justify-between cursor-pointer"
+          onClick={() => setShowPhoneForm(!showPhoneForm)}
+        >
+          <div className="flex items-center gap-3">
+            <Phone className="w-5 h-5 text-gray-400" />
+            <div>
+              <h3 className="font-medium text-gray-900 dark:text-white">绑定/换绑手机号</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">更新你的手机号</p>
+            </div>
+          </div>
+          <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${showPhoneForm ? 'rotate-180' : ''}`} />
+        </div>
+
+        {showPhoneForm && (
+          <form onSubmit={handleBindPhone} className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 space-y-4">
+            {error && (
+              <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              </div>
+            )}
+            {success && (
+              <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <p className="text-sm text-green-600 dark:text-green-400">手机号绑定成功！</p>
+              </div>
+            )}
+
+            <div className="form-group">
+              <label className="form-label">新手机号</label>
+              <input
+                type="tel"
+                value={newPhone}
+                onChange={(e) => setNewPhone(e.target.value)}
+                placeholder="请输入手机号"
+                className="input"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">验证码</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={phoneCode}
+                  onChange={(e) => setPhoneCode(e.target.value)}
+                  placeholder="请输入验证码"
+                  className="input flex-1"
+                  required
+                />
+                <button 
+                  type="button" 
+                  onClick={handleSendPhoneCode}
+                  disabled={phoneCooldown > 0}
+                  className="btn-secondary whitespace-nowrap"
+                >
+                  {phoneCooldown > 0 ? `${phoneCooldown}秒` : '发送验证码'}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowPhoneForm(false)}
+                className="btn-secondary"
+              >
+                取消
+              </button>
+              <button type="submit" disabled={loading} className="btn-primary">
+                {loading ? (
+                  <>
+                    <div className="spinner w-4 h-4" />
+                    提交中...
+                  </>
+                ) : (
+                  '确认绑定'
+                )}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      <div className="card p-8">
+        <div 
+          className="flex items-center justify-between cursor-pointer"
+          onClick={() => setShowEmailForm(!showEmailForm)}
+        >
+          <div className="flex items-center gap-3">
+            <Mail className="w-5 h-5 text-gray-400" />
+            <div>
+              <h3 className="font-medium text-gray-900 dark:text-white">绑定/换绑邮箱</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">更新你的邮箱地址</p>
+            </div>
+          </div>
+          <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${showEmailForm ? 'rotate-180' : ''}`} />
+        </div>
+
+        {showEmailForm && (
+          <form onSubmit={handleBindEmail} className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 space-y-4">
+            {error && (
+              <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              </div>
+            )}
+            {success && (
+              <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <p className="text-sm text-green-600 dark:text-green-400">邮箱绑定成功！</p>
+              </div>
+            )}
+
+            <div className="form-group">
+              <label className="form-label">新邮箱</label>
+              <input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="请输入邮箱地址"
+                className="input"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">验证码</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={emailCode}
+                  onChange={(e) => setEmailCode(e.target.value)}
+                  placeholder="请输入验证码"
+                  className="input flex-1"
+                  required
+                />
+                <button 
+                  type="button" 
+                  onClick={handleSendEmailCode}
+                  disabled={emailCooldown > 0}
+                  className="btn-secondary whitespace-nowrap"
+                >
+                  {emailCooldown > 0 ? `${emailCooldown}秒` : '发送验证码'}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowEmailForm(false)}
+                className="btn-secondary"
+              >
+                取消
+              </button>
+              <button type="submit" disabled={loading} className="btn-primary">
+                {loading ? (
+                  <>
+                    <div className="spinner w-4 h-4" />
+                    提交中...
+                  </>
+                ) : (
+                  '确认绑定'
                 )}
               </button>
             </div>

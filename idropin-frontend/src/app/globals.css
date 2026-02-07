@@ -233,15 +233,30 @@
   }
 
   /* Vercel-style modal */
+  .modal-container {
+    @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+    pointer-events: none;
+  }
+
   .modal-overlay {
-    @apply fixed inset-0 z-50 bg-black/20 backdrop-blur-sm;
-    animation: fadeIn 0.2s ease-out;
+    /* Used by dashboard pages as the overlay *and* the centering container. */
+    @apply fixed inset-0 z-[60] bg-black/35 backdrop-blur-sm;
+    @apply flex items-center justify-center p-4;
+    animation: fadeIn 0.18s ease-out;
+    pointer-events: auto;
   }
 
   .modal {
-    @apply fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2;
-    @apply w-full max-w-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl;
-    animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    @apply relative w-full bg-white dark:bg-gray-900;
+    @apply border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl;
+    animation: modalSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: auto;
+  }
+
+  .modal-card {
+    @apply relative w-full max-w-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl;
+    animation: modalSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: auto;
   }
 
   .modal-header {
@@ -395,7 +410,7 @@
 @layer utilities {
   /* Animation utilities */
   .animate-in {
-    animation: animateIn 0.2s ease-out;
+    animation: animateIn 0.24s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .fade-in-0 {
@@ -429,11 +444,154 @@
   @keyframes modalSlideIn {
     from {
       opacity: 0;
-      transform: translate(-50%, -48%) scale(0.96);
+      transform: scale(0.96) translateY(-8px);
     }
     to {
       opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  /* 新增：滑入动画 */
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideInDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* 新增：脉冲动画 */
+  @keyframes pulse-soft {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.85;
+    }
+  }
+
+  /* 新增：弹跳动画 */
+  @keyframes bounce-soft {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-3px);
+    }
+  }
+
+  /* 新增：闪烁动画 */
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+
+  /* 动画类 */
+  .animate-slide-in-up {
+    animation: slideInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animate-slide-in-down {
+    animation: slideInDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animate-pulse-soft {
+    animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-bounce-soft {
+    animation: bounce-soft 1s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.1),
+      transparent
+    );
+    background-size: 1000px 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  /* 悬停效果增强 */
+  .hover-lift {
+    @apply transition-all duration-200 ease-out;
+  }
+
+  .hover-lift:hover {
+    @apply -translate-y-1 shadow-lg;
+  }
+
+  .hover-glow {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .hover-glow:hover {
+    @apply shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50;
+  }
+
+  /* 渐变背景动画 */
+  .gradient-animate {
+    background-size: 200% 200%;
+    animation: gradient-shift 3s ease infinite;
+  }
+
+  @keyframes gradient-shift {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
     }
   }
 
@@ -475,5 +633,21 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  /* 页面加载动画 */
+  .page-enter {
+    animation: pageEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes pageEnter {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }

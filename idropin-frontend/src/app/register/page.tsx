@@ -381,7 +381,7 @@ function RegisterForm() {
       {/* Footer */}
       <footer className="py-6 text-center">
         <p className="text-xs text-gray-400 dark:text-gray-500">
-          © 2024 Idrop.in 云集
+          © 2024 在虎
         </p>
       </footer>
 

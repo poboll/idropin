@@ -16,7 +16,7 @@ const manageNavItems = [
 export default function ManageLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isSuperAdmin, isAuthenticated, isLoading } = useAuthStore();
+  const { isSuperAdmin, isAuthenticated, isLoading, system } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const currentKey = pathname.split('/').pop() || 'overview';
 
@@ -27,10 +27,10 @@ export default function ManageLayout({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (!mounted) return;
     
-    if (!isLoading && isAuthenticated && !isSuperAdmin) {
+    if (!isLoading && isAuthenticated && !isSuperAdmin && !system) {
       router.push('/dashboard');
     }
-  }, [mounted, isLoading, isAuthenticated, isSuperAdmin, router]);
+  }, [mounted, isLoading, isAuthenticated, isSuperAdmin, system, router]);
 
   // 防止hydration错误
   if (!mounted) {
@@ -50,7 +50,7 @@ export default function ManageLayout({ children }: { children: React.ReactNode }
   }
 
   // 无权限
-  if (!isSuperAdmin) {
+  if (!isSuperAdmin && !system) {
     return null;
   }
 

@@ -11,10 +11,29 @@ import { EditTaskDialog } from '@/components/tasks/EditTaskDialog';
 import { MoreSettingsDialog } from '@/components/tasks/MoreSettingsDialog';
 import { Inbox, Plus, X, Loader2 } from 'lucide-react';
 import AuthGuard from '@/components/auth/AuthGuard';
+import { SkeletonLoader } from '@/components/SkeletonLoader';
+
+const showSuccessToast = (message: string) => {
+  const toast = document.createElement('div');
+  toast.className = 'fixed top-4 right-4 bg-emerald-500 text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-2.5 z-[100] animate-slide-in';
+  toast.innerHTML = `
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+    </svg>
+    <span class="font-medium">${message}</span>
+  `;
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(100%)';
+    toast.style.transition = 'all 0.3s ease-out';
+    setTimeout(() => toast.remove(), 300);
+  }, 2500);
+};
 
 export default function TasksPage() {
   const { categoryList, getCategory } = useCategoryStore();
-  const { taskList, getTask, deleteTask } = useTaskStore();
+  const { taskList, getTask, deleteTask, restoreTask } = useTaskStore();
 
   const [selectedCategory, setSelectedCategory] = useState('default');
   const [collectionTypeFilter, setCollectionTypeFilter] = useState<'all' | 'FILE' | 'INFO'>('all');
@@ -25,11 +44,22 @@ export default function TasksPage() {
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [moreSettingsTask, setMoreSettingsTask] = useState<Task | null>(null);
 
+  const handleSelectCategory = async (categoryKey: string) => {
+    setSelectedCategory(categoryKey);
+    // Trash is backed by a separate API on the server.
+    setLoading(true);
+    try {
+      await getTask({ trash: categoryKey === 'trash' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        await Promise.all([getCategory(), getTask()]);
+        await Promise.all([getCategory(), getTask({ trash: false })]);
       } finally {
         setLoading(false);
       }
@@ -66,11 +96,42 @@ export default function TasksPage() {
     }
   };
 
+  const handleRestoreTask = async (key: string) => {
+    if (confirm('确认从回收站恢复此任务吗？')) {
+      await restoreTask(key);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-      </div>
+      <AuthGuard>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between animate-pulse">
+            <div className="space-y-2">
+              <div className="h-8 bg-gray-200 dark:bg-gray-800 rounded w-32" />
+              <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-48" />
+            </div>
+            <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded w-28" />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="lg:col-span-1">
+              <div className="card p-4 animate-pulse">
+                <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded mb-4" />
+                <div className="space-y-2">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="h-10 bg-gray-200 dark:bg-gray-800 rounded" />
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="lg:col-span-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <SkeletonLoader variant="card" count={4} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </AuthGuard>
     );
   }
 
@@ -98,7 +159,7 @@ export default function TasksPage() {
           <div className="lg:col-span-1">
             <CategoryPanel
               selectedCategory={selectedCategory}
-              onSelect={setSelectedCategory}
+              onSelect={handleSelectCategory}
             />
           </div>
 
@@ -114,7 +175,7 @@ export default function TasksPage() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
                     onClick={() => setCollectionTypeFilter('all')}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 hover-lift ${
                       collectionTypeFilter === 'all'
                         ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md'
                         : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -131,7 +192,7 @@ export default function TasksPage() {
                   </button>
                   <button
                     onClick={() => setCollectionTypeFilter('FILE')}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 ${
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 hover-lift ${
                       collectionTypeFilter === 'FILE'
                         ? 'bg-blue-500 text-white shadow-md shadow-blue-500/30'
                         : 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-800'
@@ -149,7 +210,7 @@ export default function TasksPage() {
                   </button>
                   <button
                     onClick={() => setCollectionTypeFilter('INFO')}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 ${
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 hover-lift ${
                       collectionTypeFilter === 'INFO'
                         ? 'bg-green-500 text-white shadow-md shadow-green-500/30'
                         : 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/30 border border-green-200 dark:border-green-800'
@@ -171,15 +232,21 @@ export default function TasksPage() {
 
             {filteredTasks.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredTasks.map((task) => (
-                  <TaskInfoCard
+                {filteredTasks.map((task, index) => (
+                  <div
                     key={task.key}
-                    task={task}
-                    onEdit={setEditTask}
-                    onDelete={handleDeleteTask}
-                    onShare={() => setShareTask(task)}
-                    onMore={setMoreSettingsTask}
-                  />
+                    className="animate-slide-in-up"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <TaskInfoCard
+                      task={task}
+                      onEdit={setEditTask}
+                      onDelete={handleDeleteTask}
+                      onRestore={handleRestoreTask}
+                      onShare={() => setShareTask(task)}
+                      onMore={setMoreSettingsTask}
+                    />
+                  </div>
                 ))}
               </div>
             ) : (
@@ -233,6 +300,7 @@ export default function TasksPage() {
                   activeCategory={selectedCategory}
                   onSuccess={() => {
                     setShowCreateForm(false);
+                    showSuccessToast('任务创建成功');
                     getTask();
                   }}
                   onCancel={() => setShowCreateForm(false)}

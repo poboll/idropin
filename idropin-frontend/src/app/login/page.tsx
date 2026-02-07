@@ -76,7 +76,8 @@ export default function LoginPage() {
 
   const validatePhone = (phone: string) => /^1[3-9]\d{9}$/.test(phone);
   const validateCode = (code: string) => /^\d{4,6}$/.test(code);
-  const validatePassword = (pwd: string) => pwd.length >= 6 && pwd.length <= 16;
+  // Keep client validation broad enough for seeded/test accounts.
+  const validatePassword = (pwd: string) => pwd.length >= 6 && pwd.length <= 64;
 
   const handleSendCode = async () => {
     if (!validatePhone(formData.phone)) {
@@ -110,7 +111,7 @@ export default function LoginPage() {
         return;
       }
       if (!validatePassword(formData.password)) {
-        setErrorToast('密码格式不正确(6-16位)');
+        setErrorToast('密码格式不正确(6-64位)');
         return;
       }
 
@@ -231,7 +232,7 @@ export default function LoginPage() {
           )}
 
           {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form method="post" action="/login" onSubmit={handleSubmit} className="space-y-4">
             {loginMode === 'account' ? (
               <>
                 <div className="form-group">
@@ -270,7 +271,7 @@ export default function LoginPage() {
                     value={formData.password}
                     onChange={handleInputChange}
                     className="input"
-                    placeholder="6-16位密码"
+                    placeholder="6-64位密码"
                     disabled={isLoading}
                     autoComplete="current-password"
                   />
@@ -377,7 +378,7 @@ export default function LoginPage() {
       {/* Footer */}
       <footer className="py-6 text-center">
         <p className="text-xs text-gray-400 dark:text-gray-500">
-          © 2024 Idrop.in 云集
+          © 2024 在虎
         </p>
       </footer>
 

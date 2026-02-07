@@ -135,6 +135,13 @@ export async function broadcastMessage(title: string, content: string): Promise<
 }
 
 /**
+ * 更新用户角色
+ */
+export async function updateUserRole(userId: string, role: string): Promise<void> {
+  await apiClient.put(`/admin/users/${userId}/role`, { role });
+}
+
+/**
  * 获取操作日志
  */
 export async function getOperationLogs(params: {

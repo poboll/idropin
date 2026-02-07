@@ -140,7 +140,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-8">
-          © 2024 Idrop.in 云集
+          © 2024 在虎
         </p>
       </div>
     </div>

@@ -11,16 +11,22 @@ export interface Task {
   collectionType?: 'FILE' | 'INFO'; // 收集类型
   createdAt?: string;
   recentLog: string[];
+  submissionCount?: number; // 已收集数量
+  peopleLimit?: number; // 限制名单总数（如果有）
+  requireLogin?: boolean;
+  limitOnePerDevice?: boolean;
 }
 
 interface TaskState {
   taskList: Task[];
+  view: 'active' | 'trash';
 }
 
 interface TaskActions {
-  getTask: () => Promise<void>;
+  getTask: (options?: { trash?: boolean }) => Promise<void>;
   createTask: (name: string, category: string) => Promise<taskApi.CollectionTask>;
   deleteTask: (key: string) => Promise<void>;
+  restoreTask: (key: string) => Promise<void>;
   updateTask: (key: string, name: string, category: string, description?: string, collectionType?: 'FILE' | 'INFO') => Promise<taskApi.CollectionTask>;
 }
 
@@ -28,6 +34,7 @@ type TaskStore = TaskState & TaskActions;
 
 const initialState: TaskState = {
   taskList: [],
+  view: 'active',
 };
 
 export const useTaskStore = create<TaskStore>()(
@@ -35,32 +42,35 @@ export const useTaskStore = create<TaskStore>()(
     (set, get) => ({
       ...initialState,
 
-      getTask: async () => {
+      getTask: async (options) => {
         try {
-          const tasks = await taskApi.getUserTasks();
+          const inTrash = Boolean(options?.trash);
+          const tasks = inTrash ? await taskApi.getDeletedTasks() : await taskApi.getUserTasks();
           const mappedTasks: Task[] = tasks.map((t) => ({
             key: t.id,
             name: t.title,
             description: t.description,
-            category: 'default',
+            // Back-end doesn't expose a "trash" category; we surface trash view explicitly.
+            category: inTrash ? 'trash' : (t.category ?? 'default'),
             taskType: t.taskType,
             collectionType: t.collectionType,
             createdAt: t.createdAt,
             recentLog: [],
+            requireLogin: t.requireLogin ?? false,
+            limitOnePerDevice: t.limitOnePerDevice ?? true,
           }));
-          set({ taskList: mappedTasks });
+          set({ taskList: mappedTasks, view: inTrash ? 'trash' : 'active' });
         } catch (error) {
           console.error('Failed to get tasks', error);
         }
       },
 
       createTask: async (name: string, category: string) => {
-        // API CreateTaskRequest requires title. Category is not directly supported by API currently.
-        // We will pass name as title.
         const res = await taskApi.createTask({
           title: name,
-          allowAnonymous: true, // Defaults
+          category: category || 'default',
           requireLogin: false,
+          limitOnePerDevice: true,
         });
         
         // Refresh list
@@ -69,34 +79,21 @@ export const useTaskStore = create<TaskStore>()(
       },
 
       deleteTask: async (key: string) => {
-        // Logic: if category is 'trash', delete permanently. Else move to trash.
-        // Since API doesn't fully support 'trash' category concept yet, we check local state.
         const task = get().taskList.find((t) => t.key === key);
-        
-        if (task && task.category === 'trash') {
-          // Permanently delete
-          await taskApi.deleteTask(key);
+
+        if (task?.category === 'trash') {
+          await taskApi.permanentlyDeleteTask(key);
         } else {
-          // Move to trash (update status/category)
-          // Since API updateTask takes CreateTaskRequest (title, description etc), 
-          // and doesn't explicitly have category/status update in the interface provided in api/tasks.ts,
-          // we might have to just delete it if we can't 'soft delete'.
-          // However, to satisfy the requirement "Based on legacy", we will try to update it.
-          // If updateTask supports general updates:
-          await taskApi.updateTask(key, { 
-            title: task ? task.name : '',
-            // We can't set category via this API based on the interface.
-            // We will just perform a delete to be safe and consistent with new API behavior 
-            // until backend supports trash bin.
-          });
-          // actually, if we can't set category to trash, we should probably just delete it 
-          // to avoid confusion, OR update local state only? No, must persist.
-          // Re-reading legacy: it toggles category to 'trash'.
-          // If I can't do that on backend, I'll delete it.
+          // DELETE /tasks/{id} is a soft-delete on the back-end (moves to trash).
           await taskApi.deleteTask(key);
         }
-        
-        get().getTask();
+
+        await get().getTask({ trash: get().view === 'trash' });
+      },
+
+      restoreTask: async (key: string) => {
+        await taskApi.restoreTask(key);
+        await get().getTask({ trash: get().view === 'trash' });
       },
 
       updateTask: async (key: string, name: string, category: string, description?: string, collectionType?: 'FILE' | 'INFO') => {
@@ -104,6 +101,7 @@ export const useTaskStore = create<TaskStore>()(
           title: name,
           description: description,
           collectionType: collectionType,
+          category: category || 'default',
         });
         get().getTask();
         return res;
