@@ -12,6 +12,7 @@ import com.idropin.common.exception.BusinessException;
 import com.idropin.domain.dto.BindPhoneRequest;
 import com.idropin.domain.dto.SendMessageRequest;
 import com.idropin.domain.dto.UpdateQuotaRequest;
+import com.idropin.domain.dto.UpdateRoleRequest;
 import com.idropin.domain.dto.UpdateStatusRequest;
 import com.idropin.domain.entity.User;
 import com.idropin.domain.vo.AdminUserVO;
@@ -205,6 +206,41 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public void broadcastMessage(String adminId, SendMessageRequest request) {
         messageService.broadcastMessage(adminId, request);
+    }
+
+    @Override
+    @Transactional
+    public void updateUserRole(String adminId, String userId, UpdateRoleRequest request, String ipAddress) {
+        // 验证角色值
+        String role = request.getRole();
+        if (!role.equals("USER") && !role.equals("ADMIN") && !role.equals("SUPER_ADMIN")) {
+            throw new BusinessException("无效的角色类型");
+        }
+        
+        // 获取用户
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        
+        // 不能修改自己的角色
+        if (userId.equals(adminId)) {
+            throw new BusinessException("不能修改自己的角色");
+        }
+        
+        // 记录旧角色
+        String oldRole = user.getRole();
+        
+        // 只更新角色字段
+        LambdaUpdateWrapper<User> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(User::getId, userId)
+                .set(User::getRole, role);
+        userMapper.update(null, updateWrapper);
+        
+        // 记录操作日志
+        operationLogService.log(adminId, "UPDATE_ROLE", "USER", userId, 
+                String.format("修改用户角色: %s -> %s", oldRole, role), ipAddress);
+        log.info("管理员 {} 修改用户 {} 的角色: {} -> {}", adminId, userId, oldRole, role);
     }
 
     private String generateRandomPassword(int length) {

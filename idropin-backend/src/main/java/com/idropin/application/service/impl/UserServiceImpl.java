@@ -119,7 +119,6 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(404, "用户不存在");
         }
 
-        // 使用自定义更新方法，避免JSONB类型转换问题
         userMapper.updateAvatar(userId, avatarUrl, LocalDateTime.now());
 
         log.info("用户 {} 资料更新成功", user.getUsername());
@@ -129,6 +128,68 @@ public class UserServiceImpl implements UserService {
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .avatarUrl(avatarUrl)
+                .status(user.getStatus())
+                .role(user.getRole())
+                .createdAt(user.getCreatedAt())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public UserVO bindPhone(String userId, String phone) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(404, "用户不存在");
+        }
+
+        User existingUser = userMapper.findByPhone(phone);
+        if (existingUser != null && !existingUser.getId().equals(userId)) {
+            throw new BusinessException(400, "该手机号已被其他用户绑定");
+        }
+
+        user.setPhone(phone);
+        user.setUpdatedAt(LocalDateTime.now());
+        userMapper.updateById(user);
+
+        log.info("用户 {} 手机号绑定成功: {}", user.getUsername(), phone);
+
+        return UserVO.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .phone(phone)
+                .avatarUrl(user.getAvatarUrl())
+                .status(user.getStatus())
+                .role(user.getRole())
+                .createdAt(user.getCreatedAt())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public UserVO bindEmail(String userId, String email) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(404, "用户不存在");
+        }
+
+        User existingUser = userMapper.findByEmail(email);
+        if (existingUser != null && !existingUser.getId().equals(userId)) {
+            throw new BusinessException(400, "该邮箱已被其他用户绑定");
+        }
+
+        user.setEmail(email);
+        user.setUpdatedAt(LocalDateTime.now());
+        userMapper.updateById(user);
+
+        log.info("用户 {} 邮箱绑定成功: {}", user.getUsername(), email);
+
+        return UserVO.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(email)
+                .phone(user.getPhone())
+                .avatarUrl(user.getAvatarUrl())
                 .status(user.getStatus())
                 .role(user.getRole())
                 .createdAt(user.getCreatedAt())

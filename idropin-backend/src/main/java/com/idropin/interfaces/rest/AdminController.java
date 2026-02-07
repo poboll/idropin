@@ -156,4 +156,17 @@ public class AdminController {
         }
         return ip;
     }
+    
+    @Operation(summary = "更新用户角色")
+    @PutMapping("/users/{id}/role")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public Result<Void> updateUserRole(
+            @PathVariable String id,
+            @Valid @RequestBody com.idropin.domain.dto.UpdateRoleRequest request,
+            HttpServletRequest httpRequest) {
+        String adminId = currentUser.getUserId();
+        String ipAddress = getClientIp(httpRequest);
+        adminService.updateUserRole(adminId, id, request, ipAddress);
+        return Result.success();
+    }
 }

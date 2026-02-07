@@ -43,7 +43,7 @@ public interface CollectionTaskService {
    * 提交文件到任务
    */
   FileSubmission submitFile(String taskId, String fileId, String submitterName,
-      String submitterEmail, String submitterId);
+      String submitterEmail, String submitterId, String submitterIp);
 
   /**
    * 获取任务的提交记录
@@ -59,4 +59,24 @@ public interface CollectionTaskService {
    * 公开获取任务（不验证用户权限，用于收集链接）
    */
   CollectionTask getTaskPublic(String taskId);
+
+  /**
+   * 批量获取用户所有任务的提交记录
+   */
+  List<com.idropin.domain.vo.FileSubmissionVO> getAllUserTaskSubmissions(String userId);
+
+  /**
+   * 获取用户的回收站任务列表
+   */
+  List<CollectionTask> getDeletedTasks(String userId);
+
+  /**
+   * 恢复任务（从回收站）
+   */
+  void restoreTask(String taskId, String userId);
+
+  /**
+   * 永久删除任务
+   */
+  void permanentlyDeleteTask(String taskId, String userId);
 }

@@ -31,10 +31,13 @@ public class StatisticsServiceImpl implements StatisticsService {
 
   @Override
   public FileStatisticsVO getFileStatistics(String userId) {
-    // 使用原生SQL查询，避免UUID类型转换问题
-    Long totalFiles = fileMapper.countByUploaderId(userId);
+    Long ownFiles = fileMapper.countByUploaderId(userId);
+    Long taskFiles = fileMapper.countByTaskOwner(userId);
+    Long totalFiles = ownFiles + taskFiles;
 
-    Long totalStorageSize = fileMapper.sumFileSizeByUploaderId(userId);
+    Long ownStorageSize = fileMapper.sumFileSizeByUploaderId(userId);
+    Long taskStorageSize = fileMapper.sumFileSizeByTaskOwner(userId);
+    Long totalStorageSize = ownStorageSize + taskStorageSize;
 
     LocalDateTime todayStart = LocalDate.now().atStartOfDay();
     LocalDateTime todayEnd = LocalDate.now().plusDays(1).atStartOfDay();
@@ -67,12 +70,14 @@ public class StatisticsServiceImpl implements StatisticsService {
   @Override
   public FileStatisticsVO getSystemStatistics() {
     LambdaQueryWrapper<File> wrapper = new LambdaQueryWrapper<>();
-    wrapper.eq(File::getStatus, "ACTIVE");
+    wrapper.eq(File::getStatus, "ACTIVE")
+        .and(w -> w.isNull(File::getDeleted).or().eq(File::getDeleted, false));
 
     Long totalFiles = fileMapper.selectCount(wrapper);
 
     wrapper.clear();
     wrapper.eq(File::getStatus, "ACTIVE")
+        .and(w -> w.isNull(File::getDeleted).or().eq(File::getDeleted, false))
         .select(File::getFileSize);
     List<File> files = fileMapper.selectList(wrapper);
     Long totalStorageSize = files.stream()
@@ -114,20 +119,26 @@ public class StatisticsServiceImpl implements StatisticsService {
   private Long countSystemFilesByDateRange(LocalDateTime start, LocalDateTime end) {
     LambdaQueryWrapper<File> wrapper = new LambdaQueryWrapper<>();
     wrapper.eq(File::getStatus, "ACTIVE")
+        .and(w -> w.isNull(File::getDeleted).or().eq(File::getDeleted, false))
         .ge(File::getCreatedAt, start)
         .lt(File::getCreatedAt, end);
     return fileMapper.selectCount(wrapper);
   }
 
   private List<FileStatisticsVO.FileTypeDistribution> getFileTypeDistribution(String userId) {
-    List<String> mimeTypes = fileMapper.findMimeTypesByUploaderId(userId);
+    List<String> ownMimeTypes = fileMapper.findMimeTypesByUploaderId(userId);
+    List<String> taskMimeTypes = fileMapper.findMimeTypesByTaskOwner(userId);
+    
+    List<String> allMimeTypes = new ArrayList<>();
+    allMimeTypes.addAll(ownMimeTypes);
+    allMimeTypes.addAll(taskMimeTypes);
 
-    Map<String, Long> typeCountMap = mimeTypes.stream()
+    Map<String, Long> typeCountMap = allMimeTypes.stream()
         .collect(Collectors.groupingBy(
             this::getFileType,
             Collectors.counting()));
 
-    Long totalCount = (long) mimeTypes.size();
+    Long totalCount = (long) allMimeTypes.size();
 
     return typeCountMap.entrySet().stream()
         .map(entry -> FileStatisticsVO.FileTypeDistribution.builder()
@@ -143,6 +154,7 @@ public class StatisticsServiceImpl implements StatisticsService {
   private List<FileStatisticsVO.FileTypeDistribution> getSystemFileTypeDistribution() {
     LambdaQueryWrapper<File> wrapper = new LambdaQueryWrapper<>();
     wrapper.eq(File::getStatus, "ACTIVE")
+        .and(w -> w.isNull(File::getDeleted).or().eq(File::getDeleted, false))
         .select(File::getMimeType);
     List<File> files = fileMapper.selectList(wrapper);
 
@@ -173,10 +185,12 @@ public class StatisticsServiceImpl implements StatisticsService {
       LocalDateTime start = date.atStartOfDay();
       LocalDateTime end = date.plusDays(1).atStartOfDay();
 
-      List<Long> fileSizes = fileMapper.findFileSizesByUploaderIdAndDateRange(userId, start, end);
+      List<Long> ownFileSizes = fileMapper.findFileSizesByUploaderIdAndDateRange(userId, start, end);
+      List<Long> taskFileSizes = fileMapper.findFileSizesByTaskOwnerAndDateRange(userId, start, end);
 
-      Long count = (long) fileSizes.size();
-      Long size = fileSizes.stream().mapToLong(Long::longValue).sum();
+      Long count = (long) (ownFileSizes.size() + taskFileSizes.size());
+      Long size = ownFileSizes.stream().mapToLong(Long::longValue).sum() 
+                + taskFileSizes.stream().mapToLong(Long::longValue).sum();
 
       trends.add(FileStatisticsVO.UploadTrend.builder()
           .date(date.toString())
@@ -197,11 +211,12 @@ public class StatisticsServiceImpl implements StatisticsService {
       LocalDateTime start = date.atStartOfDay();
       LocalDateTime end = date.plusDays(1).atStartOfDay();
 
-      LambdaQueryWrapper<File> wrapper = new LambdaQueryWrapper<>();
-      wrapper.eq(File::getStatus, "ACTIVE")
-          .ge(File::getCreatedAt, start)
-          .lt(File::getCreatedAt, end)
-          .select(File::getFileSize);
+    LambdaQueryWrapper<File> wrapper = new LambdaQueryWrapper<>();
+    wrapper.eq(File::getStatus, "ACTIVE")
+        .and(w -> w.isNull(File::getDeleted).or().eq(File::getDeleted, false))
+        .ge(File::getCreatedAt, start)
+        .lt(File::getCreatedAt, end)
+        .select(File::getFileSize);
       List<File> files = fileMapper.selectList(wrapper);
 
       Long count = (long) files.size();
@@ -218,9 +233,14 @@ public class StatisticsServiceImpl implements StatisticsService {
   }
 
   private List<FileStatisticsVO.CategoryStatistics> getCategoryStatistics(String userId) {
-    List<File> files = fileMapper.findCategoryStatsByUploaderId(userId);
+    List<File> ownFiles = fileMapper.findCategoryStatsByUploaderId(userId);
+    List<File> taskFiles = fileMapper.findCategoryStatsByTaskOwner(userId);
+    
+    List<File> allFiles = new ArrayList<>();
+    allFiles.addAll(ownFiles);
+    allFiles.addAll(taskFiles);
 
-    Map<String, List<File>> categoryFilesMap = files.stream()
+    Map<String, List<File>> categoryFilesMap = allFiles.stream()
         .filter(file -> file.getCategoryId() != null)
         .collect(Collectors.groupingBy(File::getCategoryId));
 
@@ -250,6 +270,7 @@ public class StatisticsServiceImpl implements StatisticsService {
   private List<FileStatisticsVO.CategoryStatistics> getSystemCategoryStatistics() {
     LambdaQueryWrapper<File> wrapper = new LambdaQueryWrapper<>();
     wrapper.eq(File::getStatus, "ACTIVE")
+        .and(w -> w.isNull(File::getDeleted).or().eq(File::getDeleted, false))
         .select(File::getCategoryId, File::getFileSize);
     List<File> files = fileMapper.selectList(wrapper);
 

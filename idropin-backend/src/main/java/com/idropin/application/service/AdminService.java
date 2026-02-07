@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.idropin.domain.dto.BindPhoneRequest;
 import com.idropin.domain.dto.SendMessageRequest;
 import com.idropin.domain.dto.UpdateQuotaRequest;
+import com.idropin.domain.dto.UpdateRoleRequest;
 import com.idropin.domain.dto.UpdateStatusRequest;
 import com.idropin.domain.vo.AdminUserVO;
 import com.idropin.domain.vo.OverviewStatsVO;
@@ -98,4 +99,14 @@ public interface AdminService {
      * @param request 消息请求
      */
     void broadcastMessage(String adminId, SendMessageRequest request);
+    
+    /**
+     * 更新用户角色
+     *
+     * @param adminId 管理员ID
+     * @param userId 用户ID
+     * @param request 角色请求
+     * @param ipAddress IP地址
+     */
+    void updateUserRole(String adminId, String userId, UpdateRoleRequest request, String ipAddress);
 }

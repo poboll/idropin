@@ -96,7 +96,11 @@ public class FileController {
         } else {
             try (InputStream inputStream = fileService.getFileStream(id, userId);
                  OutputStream outputStream = response.getOutputStream()) {
-                inputStream.transferTo(outputStream);
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, bytesRead);
+                }
             }
         }
     }
@@ -109,7 +113,7 @@ public class FileController {
             HttpServletResponse response) throws IOException {
         String userId = getUserId(userDetails);
         File file = fileService.getFile(id, userId);
-        
+
         if (!isPreviewable(file.getMimeType())) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "该文件类型不支持预览");
             return;
@@ -118,13 +122,17 @@ public class FileController {
         String encodedFilename = URLEncoder.encode(file.getOriginalName(), StandardCharsets.UTF_8)
                 .replace("+", "%20");
         response.setContentType(file.getMimeType());
-        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, 
+        response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
                 "inline; filename=\"" + encodedFilename + "\"");
         response.setContentLengthLong(file.getFileSize());
 
         try (InputStream inputStream = fileService.getFileStream(id, userId);
              OutputStream outputStream = response.getOutputStream()) {
-            inputStream.transferTo(outputStream);
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
         }
     }
 
@@ -187,6 +195,98 @@ public class FileController {
         return Result.success(null);
     }
 
+    @PostMapping("/{id}/trash")
+    @Operation(summary = "移动文件到回收站")
+    public Result<Void> moveToTrash(
+            @PathVariable String id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String userId = getUserId(userDetails);
+        fileService.moveToTrash(id, userId);
+        return Result.success(null);
+    }
+
+    @PostMapping("/batch/trash")
+    @Operation(summary = "批量移动文件到回收站")
+    public Result<Void> batchMoveToTrash(
+            @RequestBody List<String> ids,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String userId = getUserId(userDetails);
+        fileService.moveToTrash(ids, userId);
+        return Result.success(null);
+    }
+
+    @PostMapping("/{id}/restore")
+    @Operation(summary = "从回收站恢复文件")
+    public Result<Void> restoreFromTrash(
+            @PathVariable String id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String userId = getUserId(userDetails);
+        fileService.restoreFromTrash(id, userId);
+        return Result.success(null);
+    }
+
+    @PostMapping("/batch/restore")
+    @Operation(summary = "批量恢复文件")
+    public Result<Void> batchRestoreFromTrash(
+            @RequestBody List<String> ids,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String userId = getUserId(userDetails);
+        fileService.restoreFromTrash(ids, userId);
+        return Result.success(null);
+    }
+
+    @DeleteMapping("/{id}/permanent")
+    @Operation(summary = "永久删除文件")
+    public Result<Void> permanentDelete(
+            @PathVariable String id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String userId = getUserId(userDetails);
+        fileService.permanentDelete(id, userId);
+        return Result.success(null);
+    }
+
+    @DeleteMapping("/batch/permanent")
+    @Operation(summary = "批量永久删除文件")
+    public Result<Void> batchPermanentDelete(
+            @RequestBody List<String> ids,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String userId = getUserId(userDetails);
+        fileService.permanentDelete(ids, userId);
+        return Result.success(null);
+    }
+
+    @DeleteMapping("/trash/empty")
+    @Operation(summary = "清空回收站")
+    public Result<Void> emptyTrash(@AuthenticationPrincipal UserDetails userDetails) {
+        String userId = getUserId(userDetails);
+        fileService.emptyTrash(userId);
+        return Result.success(null);
+    }
+
+    @GetMapping("/trash")
+    @Operation(summary = "获取回收站文件列表")
+    public Result<IPage<FileVO>> getTrashFiles(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String userId = getUserId(userDetails);
+        IPage<File> filePage = fileService.getTrashFiles(page, size, userId);
+        
+        IPage<FileVO> voPage = filePage.convert(file -> {
+            String url = storageService.getFileUrl(file.getStoragePath());
+            return FileVO.fromEntity(file, url);
+        });
+        
+        return Result.success(voPage);
+    }
+
+    @GetMapping("/trash/count")
+    @Operation(summary = "获取回收站文件数量")
+    public Result<Long> getTrashCount(@AuthenticationPrincipal UserDetails userDetails) {
+        String userId = getUserId(userDetails);
+        return Result.success(fileService.getTrashCount(userId));
+    }
+
     /**
      * 公开文件下载接口（用于本地存储模式）
      */
@@ -200,7 +300,11 @@ public class FileController {
             // 根据文件扩展名设置Content-Type
             String contentType = getContentType(path);
             response.setContentType(contentType);
-            inputStream.transferTo(outputStream);
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
         } catch (Exception e) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "文件不存在");
         }

@@ -91,4 +91,49 @@ public interface FileService {
      * 获取用户的所有文件
      */
     List<File> getFilesByUserId(String userId);
+
+    /**
+     * 移动文件到回收站（软删除）
+     */
+    void moveToTrash(String fileId, String userId);
+
+    /**
+     * 批量移动文件到回收站
+     */
+    void moveToTrash(List<String> fileIds, String userId);
+
+    /**
+     * 从回收站恢复文件
+     */
+    void restoreFromTrash(String fileId, String userId);
+
+    /**
+     * 批量恢复文件
+     */
+    void restoreFromTrash(List<String> fileIds, String userId);
+
+    /**
+     * 永久删除文件（从回收站）
+     */
+    void permanentDelete(String fileId, String userId);
+
+    /**
+     * 批量永久删除文件
+     */
+    void permanentDelete(List<String> fileIds, String userId);
+
+    /**
+     * 清空回收站
+     */
+    void emptyTrash(String userId);
+
+    /**
+     * 获取回收站文件列表
+     */
+    IPage<File> getTrashFiles(int page, int size, String userId);
+
+    /**
+     * 获取回收站文件数量
+     */
+    long getTrashCount(String userId);
 }

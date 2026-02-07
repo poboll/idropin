@@ -50,4 +50,14 @@ public interface UserService {
      * 更新用户资料
      */
     UserVO updateProfile(String userId, String avatarUrl);
+
+    /**
+     * 绑定手机号
+     */
+    UserVO bindPhone(String userId, String phone);
+
+    /**
+     * 绑定邮箱
+     */
+    UserVO bindEmail(String userId, String email);
 }

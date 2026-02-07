@@ -1,6 +1,7 @@
 package com.idropin.interfaces.rest;
 
 import com.idropin.application.service.UserService;
+import com.idropin.application.service.VerificationCodeService;
 import com.idropin.common.vo.Result;
 import com.idropin.domain.dto.ChangePasswordRequest;
 import com.idropin.domain.entity.User;
@@ -27,6 +28,7 @@ public class UserController {
 
     private final UserService userService;
     private final UserMapper userMapper;
+    private final VerificationCodeService verificationCodeService;
 
     /**
      * 获取当前用户信息
@@ -63,6 +65,66 @@ public class UserController {
         String username = authentication.getName();
         User user = userMapper.findByUsername(username);
         UserVO userVO = userService.updateProfile(user.getId(), avatarUrl);
+        return Result.success(userVO);
+    }
+
+    /**
+     * 发送验证码
+     */
+    @Operation(summary = "发送验证码", description = "发送手机验证码或邮箱验证码")
+    @PostMapping("/send-code")
+    public Result<Void> sendVerificationCode(
+            @RequestParam String target,
+            @RequestParam String type) {
+        if ("email".equals(type)) {
+            verificationCodeService.sendEmailCode(target, "bind");
+        } else if ("sms".equals(type)) {
+            verificationCodeService.sendSmsCode(target, "bind");
+        } else {
+            return Result.error(400, "无效的验证码类型");
+        }
+        return Result.success();
+    }
+
+    /**
+     * 绑定手机号
+     */
+    @Operation(summary = "绑定手机号", description = "绑定或更换手机号")
+    @PostMapping("/bind-phone")
+    public Result<UserVO> bindPhone(
+            @RequestParam String phone,
+            @RequestParam String code) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User user = userMapper.findByUsername(username);
+
+        if (!verificationCodeService.verifyCode(phone, code, "bind")) {
+            return Result.error(400, "验证码错误或已过期");
+        }
+
+        UserVO userVO = userService.bindPhone(user.getId(), phone);
+        verificationCodeService.invalidateCode(phone, "bind");
+        return Result.success(userVO);
+    }
+
+    /**
+     * 绑定邮箱
+     */
+    @Operation(summary = "绑定邮箱", description = "绑定或更换邮箱")
+    @PostMapping("/bind-email")
+    public Result<UserVO> bindEmail(
+            @RequestParam String email,
+            @RequestParam String code) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User user = userMapper.findByUsername(username);
+
+        if (!verificationCodeService.verifyCode(email, code, "bind")) {
+            return Result.error(400, "验证码错误或已过期");
+        }
+
+        UserVO userVO = userService.bindEmail(user.getId(), email);
+        verificationCodeService.invalidateCode(email, "bind");
         return Result.success(userVO);
     }
 }
