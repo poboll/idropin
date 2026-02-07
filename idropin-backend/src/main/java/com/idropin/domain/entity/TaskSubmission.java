@@ -65,6 +65,11 @@ public class TaskSubmission {
     private String submitterId;
 
     /**
+     * 提交者IP地址
+     */
+    private String submitterIp;
+
+    /**
      * 状态：0-已提交，1-已撤回
      */
     private Integer status;

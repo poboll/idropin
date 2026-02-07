@@ -16,12 +16,7 @@ public class UuidTypeHandler extends BaseTypeHandler<String> {
 
     @Override
     public void setNonNullParameter(PreparedStatement ps, int i, String parameter, JdbcType jdbcType) throws SQLException {
-        try {
-            ps.setObject(i, UUID.fromString(parameter));
-        } catch (IllegalArgumentException e) {
-            // 如果不是有效的 UUID，直接设置字符串
-            ps.setString(i, parameter);
-        }
+        ps.setString(i, parameter);
     }
 
     @Override

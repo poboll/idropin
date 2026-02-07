@@ -30,14 +30,14 @@ public class CreateTaskRequest {
   private String deadline;
 
   /**
-   * 是否允许匿名
-   */
-  private Boolean allowAnonymous;
-
-  /**
    * 是否需要登录
    */
   private Boolean requireLogin;
+
+  /**
+   * 限制每个IP/设备只能提交一次
+   */
+  private Boolean limitOnePerDevice;
 
   /**
    * 最大文件大小（字节）

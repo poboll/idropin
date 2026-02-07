@@ -13,6 +13,7 @@
         <result column="template" property="template"/>
         <result column="bind_field" property="bindField"/>
         <result column="rewrite" property="rewrite"/>
+        <result column="auto_rename" property="autoRename"/>
         <result column="created_at" property="createdAt"/>
         <result column="updated_at" property="updatedAt"/>
     </resultMap>
@@ -28,6 +29,7 @@
             template,
             bind_field,
             rewrite,
+            auto_rename,
             created_at,
             updated_at
         ) VALUES (
@@ -40,6 +42,7 @@
             #{template},
             #{bindField},
             #{rewrite},
+            #{autoRename},
             #{createdAt},
             #{updatedAt}
         )
@@ -55,6 +58,7 @@
             template = #{template},
             bind_field = #{bindField},
             rewrite = #{rewrite},
+            auto_rename = #{autoRename},
             updated_at = #{updatedAt}
         WHERE id = #{id}
     </update>
@@ -71,6 +75,7 @@
             template,
             bind_field,
             rewrite,
+            auto_rename,
             created_at,
             updated_at
         FROM task_more_info
@@ -87,6 +92,7 @@
             template = #{entity.template},
             bind_field = #{entity.bindField},
             rewrite = #{entity.rewrite},
+            auto_rename = #{entity.autoRename},
             updated_at = #{entity.updatedAt}
         WHERE task_id = #{entity.taskId, jdbcType=VARCHAR}::varchar
     </update>

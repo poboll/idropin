@@ -17,8 +17,8 @@ spring:
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://localhost:5432/idropin
-    username: idropin
-    password: idropin123
+    username: root
+    password: root
     hikari:
       maximum-pool-size: 10
       minimum-idle: 5
@@ -105,8 +105,8 @@ mybatis-plus:
     db-config:
       id-type: assign_id
       logic-delete-field: deleted
-      logic-delete-value: 1
-      logic-not-delete-value: 0
+      logic-delete-value: true
+      logic-not-delete-value: false
 
 # MinIO配置 (storage.type=minio 时启用)
 minio:

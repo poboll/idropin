@@ -51,4 +51,15 @@ public class FileSubmission {
    */
   @TableField(fill = FieldFill.INSERT)
   private LocalDateTime submittedAt;
+
+  /**
+   * 提交者IP地址
+   */
+  private String submitterIp;
+
+  /**
+   * 创建时间
+   */
+  @TableField(fill = FieldFill.INSERT)
+  private LocalDateTime createdAt;
 }

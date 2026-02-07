@@ -45,6 +45,15 @@ public interface UserMapper extends BaseMapper<User> {
     User findByEmail(@Param("email") String email);
 
     /**
+     * 根据手机号查找用户
+     *
+     * @param phone 手机号
+     * @return 用户实体
+     */
+    @Select("SELECT * FROM sys_user WHERE phone = #{phone}")
+    User findByPhone(@Param("phone") String phone);
+
+    /**
      * 检查用户名是否存在
      *
      * @param username 用户名

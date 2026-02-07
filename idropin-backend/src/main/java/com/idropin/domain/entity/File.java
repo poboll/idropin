@@ -83,4 +83,14 @@ public class File {
    */
   @TableField(fill = FieldFill.INSERT_UPDATE)
   private LocalDateTime updatedAt;
+
+  /**
+   * 是否已删除（软删除标记）
+   */
+  private Boolean deleted;
+
+  /**
+   * 删除时间
+   */
+  private LocalDateTime deletedAt;
 }

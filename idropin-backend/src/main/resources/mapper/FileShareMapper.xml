@@ -23,6 +23,35 @@
         WHERE share_code = #{shareCode}
     </select>
 
+    <!-- 显式 CAST 避免 uuid = varchar 比较报错 -->
+    <select id="selectByIdString" resultType="com.idropin.domain.entity.FileShare">
+        SELECT id, file_id, share_code, password, expire_at, download_limit, download_count, created_by, created_at
+        FROM file_share
+        WHERE id = CAST(#{id} AS UUID)
+    </select>
+
+    <!-- 仅更新分享可变字段，避免 MyBatis-Plus updateById 触发 uuid = varchar -->
+    <update id="updateShareSettingsById">
+        UPDATE file_share
+        SET
+            password = #{password},
+            expire_at = #{expireAt},
+            download_limit = #{downloadLimit},
+            download_count = #{downloadCount}
+        WHERE id = CAST(#{id} AS UUID)
+    </update>
+
+    <update id="updateDownloadCountById">
+        UPDATE file_share
+        SET download_count = #{downloadCount}
+        WHERE id = CAST(#{id} AS UUID)
+    </update>
+
+    <delete id="deleteByIdString">
+        DELETE FROM file_share
+        WHERE id = CAST(#{id} AS UUID)
+    </delete>
+
     <select id="selectByCreatedBy" resultType="com.idropin.domain.entity.FileShare">
         SELECT id, file_id, share_code, password, expire_at, download_limit, download_count, created_by, created_at
         FROM file_share

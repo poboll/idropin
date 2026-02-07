@@ -54,7 +54,10 @@ public class SecurityConfig {
                         .requestMatchers("/tasks/*/submit").permitAll() // 公开文件提交
                         .requestMatchers("/tasks/*/submit-info").permitAll() // 公开信息提交
                         .requestMatchers("/tasks/*/public-submit").permitAll() // 公开文件提交
-                        .requestMatchers("/tasks/*/submissions").permitAll() // 公开任务提交记录查询
+                        // /tasks/*/submissions 需要认证，用于任务创建者查看提交记录
+                        .requestMatchers("/tasks/*/public-submissions").permitAll() // 公开提交记录查询（通过姓名）
+                        .requestMatchers("/tasks/*/submissions/*/withdraw").permitAll() // 公开提交撤回（统一端点）
+                        .requestMatchers("/tasks/*/info-submissions/*/withdraw").permitAll() // 公开信息提交撤回（旧端点）
                         .requestMatchers("/people/check").permitAll() // 公开名单验证
                         .requestMatchers("/files/add").permitAll() // 公开文件添加
                         .requestMatchers("/files/withdraw").permitAll() // 公开文件撤回

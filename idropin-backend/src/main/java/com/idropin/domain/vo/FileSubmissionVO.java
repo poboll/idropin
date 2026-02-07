@@ -20,6 +20,11 @@ public class FileSubmissionVO {
    * 任务ID
    */
   private String taskId;
+
+  /**
+   * 任务标题
+   */
+  private String taskTitle;
   
   /**
    * 文件ID

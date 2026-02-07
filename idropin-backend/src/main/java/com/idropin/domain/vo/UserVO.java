@@ -34,6 +34,11 @@ public class UserVO {
     private String email;
 
     /**
+     * 手机号
+     */
+    private String phone;
+
+    /**
      * 头像URL
      */
     private String avatarUrl;
