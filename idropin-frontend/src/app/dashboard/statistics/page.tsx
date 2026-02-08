@@ -50,7 +50,7 @@ export default function StatisticsPage() {
     );
   }
 
-  const COLORS = ['#171717', '#525252', '#737373', '#a3a3a3', '#d4d4d4', '#e5e5e5'];
+  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
 
   return (
     <div className="space-y-6">
@@ -124,24 +124,26 @@ export default function StatisticsPage() {
           </div>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={statistics.uploadTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#737373" />
-              <YAxis tick={{ fontSize: 12 }} stroke="#737373" />
+              <CartesianGrid strokeDasharray="3 3" className="[&_line]:stroke-gray-200 dark:[&_line]:stroke-gray-700" />
+              <XAxis dataKey="date" tick={{ fontSize: 12 }} className="[&_text]:fill-gray-500 dark:[&_text]:fill-gray-400" />
+              <YAxis tick={{ fontSize: 12 }} className="[&_text]:fill-gray-500 dark:[&_text]:fill-gray-400" />
               <Tooltip 
                 contentStyle={{ 
-                  backgroundColor: '#fff', 
-                  border: '1px solid #e5e5e5',
+                  backgroundColor: 'var(--tooltip-bg, #fff)', 
+                  border: '1px solid var(--tooltip-border, #e5e5e5)',
                   borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  color: 'var(--tooltip-text, #171717)',
                 }} 
+                wrapperClassName="[&]:!border-0 [--tooltip-bg:theme(colors.white)] dark:[--tooltip-bg:theme(colors.gray.900)] [--tooltip-border:theme(colors.gray.200)] dark:[--tooltip-border:theme(colors.gray.700)] [--tooltip-text:theme(colors.gray.900)] dark:[--tooltip-text:theme(colors.gray.100)]"
               />
               <Line
                 type="monotone"
                 dataKey="count"
-                stroke="#171717"
+                stroke="#3b82f6"
                 strokeWidth={2}
                 name="文件数"
-                dot={{ fill: '#171717', strokeWidth: 2 }}
+                dot={{ fill: '#3b82f6', strokeWidth: 2 }}
                 activeDot={{ r: 6 }}
               />
             </LineChart>
@@ -172,10 +174,12 @@ export default function StatisticsPage() {
               </Pie>
               <Tooltip 
                 contentStyle={{ 
-                  backgroundColor: '#fff', 
-                  border: '1px solid #e5e5e5',
-                  borderRadius: '8px'
+                  backgroundColor: 'var(--tooltip-bg, #fff)', 
+                  border: '1px solid var(--tooltip-border, #e5e5e5)',
+                  borderRadius: '8px',
+                  color: 'var(--tooltip-text, #171717)',
                 }} 
+                wrapperClassName="[&]:!border-0 [--tooltip-bg:theme(colors.white)] dark:[--tooltip-bg:theme(colors.gray.900)] [--tooltip-border:theme(colors.gray.200)] dark:[--tooltip-border:theme(colors.gray.700)] [--tooltip-text:theme(colors.gray.900)] dark:[--tooltip-text:theme(colors.gray.100)]"
               />
             </PieChart>
           </ResponsiveContainer>
@@ -189,18 +193,16 @@ export default function StatisticsPage() {
           <p className="text-sm text-gray-500 dark:text-gray-400">按分类统计文件数量和存储大小</p>
         </div>
         {statistics.categoryStatistics && statistics.categoryStatistics.length > 0 ? (
-          <div className="overflow-x-auto">
-            <div className="min-w-[800px]">
-              <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={400}>
                 <BarChart 
                   data={statistics.categoryStatistics}
                   margin={{ top: 20, right: 50, left: 30, bottom: 80 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" className="[&_line]:stroke-gray-200 dark:[&_line]:stroke-gray-700" vertical={false} />
                   <XAxis 
                     dataKey="categoryName" 
                     tick={{ fontSize: 11 }}
-                    stroke="#737373"
+                    className="[&_text]:fill-gray-500 dark:[&_text]:fill-gray-400"
                     angle={-25}
                     textAnchor="end"
                     height={90}
@@ -209,7 +211,7 @@ export default function StatisticsPage() {
                   <YAxis 
                     yAxisId="left"
                     tick={{ fontSize: 11 }} 
-                    stroke="#737373"
+                    className="[&_text]:fill-gray-500 dark:[&_text]:fill-gray-400"
                     label={{ value: '文件数', angle: -90, position: 'insideLeft', fontSize: 11, offset: -5 }}
                     width={50}
                   />
@@ -217,7 +219,7 @@ export default function StatisticsPage() {
                     yAxisId="right"
                     orientation="right"
                     tick={{ fontSize: 11 }} 
-                    stroke="#737373"
+                    className="[&_text]:fill-gray-500 dark:[&_text]:fill-gray-400"
                     label={{ value: '存储大小', angle: 90, position: 'insideRight', fontSize: 11, offset: -5 }}
                     tickFormatter={(value) => formatBytes(value)}
                     width={70}
@@ -230,11 +232,13 @@ export default function StatisticsPage() {
                       return [value, name];
                     }}
                     contentStyle={{ 
-                      backgroundColor: '#fff', 
-                      border: '1px solid #e5e5e5',
+                      backgroundColor: 'var(--tooltip-bg, #fff)', 
+                      border: '1px solid var(--tooltip-border, #e5e5e5)',
                       borderRadius: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                      color: 'var(--tooltip-text, #171717)',
                     }} 
+                    wrapperClassName="[&]:!border-0 [--tooltip-bg:theme(colors.white)] dark:[--tooltip-bg:theme(colors.gray.900)] [--tooltip-border:theme(colors.gray.200)] dark:[--tooltip-border:theme(colors.gray.700)] [--tooltip-text:theme(colors.gray.900)] dark:[--tooltip-text:theme(colors.gray.100)]"
                   />
                   <Legend 
                     wrapperStyle={{ paddingTop: '20px' }}
@@ -243,23 +247,21 @@ export default function StatisticsPage() {
                   <Bar 
                     yAxisId="left"
                     dataKey="fileCount" 
-                    fill="#171717" 
+                    fill="#3b82f6" 
                     name="文件数" 
-                    radius={[8, 8, 0, 0]}
-                    maxBarSize={50}
+                    radius={[6, 6, 0, 0]}
+                    maxBarSize={45}
                   />
                   <Bar 
                     yAxisId="right"
                     dataKey="storageSize" 
-                    fill="#737373" 
+                    fill="#10b981" 
                     name="存储大小" 
-                    radius={[8, 8, 0, 0]}
-                    maxBarSize={50}
+                    radius={[6, 6, 0, 0]}
+                    maxBarSize={45}
                   />
                 </BarChart>
               </ResponsiveContainer>
-            </div>
-          </div>
         ) : (
           <div className="flex items-center justify-center h-[350px] text-gray-400 dark:text-gray-600">
             <div className="text-center">
