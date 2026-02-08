@@ -436,7 +436,23 @@ export default function ConfigManagePage() {
                 </div>
               </div>
 
-              {/* 配置说明 */}
+              {/* 配额配置项 */}
+              {(() => {
+                const quotaConfigs = systemConfigs.filter((c) =>
+                  matchKeywords(c.configKey, ['quota', 'limit'])
+                );
+                if (quotaConfigs.length > 0) {
+                  return (
+                    <div className="border-t border-gray-100 dark:border-gray-700 pt-6">
+                      <h3 className="font-medium text-gray-900 dark:text-white mb-4">配额参数</h3>
+                      <div className="divide-y divide-gray-100 dark:divide-gray-700 border border-gray-100 dark:border-gray-700 rounded-lg overflow-hidden">
+                        {quotaConfigs.map(renderConfigRow)}
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
               <div className="border-t border-gray-100 dark:border-gray-700 pt-6">
                 <h3 className="font-medium text-gray-900 dark:text-white mb-4">配额管理说明</h3>
                 <div className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
