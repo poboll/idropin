@@ -44,4 +44,9 @@ public interface CollectionTaskMapper extends BaseMapper<CollectionTask> {
      * 永久删除（物理删除）
      */
     int deletePermanentlyByIdAndCreatedBy(@Param("id") String id, @Param("createdBy") String createdBy);
+
+    /**
+     * 显式更新任务（走 XML SQL，不依赖 BaseMapper.updateById）
+     */
+    int updateByIdExplicit(CollectionTask task);
 }

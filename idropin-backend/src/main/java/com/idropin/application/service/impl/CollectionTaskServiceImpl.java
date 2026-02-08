@@ -205,7 +205,7 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
     }
 
     task.setUpdatedAt(LocalDateTime.now());
-    taskMapper.updateById(task);
+    taskMapper.updateByIdExplicit(task);
     log.info("Collection task updated: {} by user {}", taskId, userId);
 
     return task;

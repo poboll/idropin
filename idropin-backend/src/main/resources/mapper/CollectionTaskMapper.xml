@@ -70,6 +70,25 @@
           AND deleted = true
     </delete>
 
+    <update id="updateByIdExplicit" parameterType="com.idropin.domain.entity.CollectionTask">
+        UPDATE collection_task
+        SET title           = #{title},
+            description     = #{description},
+            deadline        = #{deadline},
+            allow_anonymous = #{allowAnonymous},
+            require_login   = #{requireLogin},
+            limit_one_per_device = #{limitOnePerDevice},
+            max_file_size   = #{maxFileSize},
+            allowed_types   = #{allowedTypes, jdbcType=ARRAY, typeHandler=com.idropin.infrastructure.config.StringArrayTypeHandler},
+            max_file_count  = #{maxFileCount},
+            status          = #{status},
+            task_type       = #{taskType},
+            collection_type = #{collectionType},
+            updated_at      = #{updatedAt}
+        WHERE id = CAST(#{id} AS VARCHAR)
+          AND (deleted = false OR deleted IS NULL)
+    </update>
+
     <insert id="insert" parameterType="com.idropin.domain.entity.CollectionTask">
         INSERT INTO collection_task (
             id,
