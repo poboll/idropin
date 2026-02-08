@@ -63,6 +63,7 @@ public class UserServiceImpl implements UserService {
                 .id(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
+                .phone(user.getPhone())
                 .avatarUrl(user.getAvatarUrl())
                 .status(user.getStatus())
                 .role(user.getRole())
@@ -147,9 +148,7 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(400, "该手机号已被其他用户绑定");
         }
 
-        user.setPhone(phone);
-        user.setUpdatedAt(LocalDateTime.now());
-        userMapper.updateById(user);
+        userMapper.updatePhone(userId, phone, LocalDateTime.now());
 
         log.info("用户 {} 手机号绑定成功: {}", user.getUsername(), phone);
 
@@ -178,9 +177,7 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(400, "该邮箱已被其他用户绑定");
         }
 
-        user.setEmail(email);
-        user.setUpdatedAt(LocalDateTime.now());
-        userMapper.updateById(user);
+        userMapper.updateEmail(userId, email, LocalDateTime.now());
 
         log.info("用户 {} 邮箱绑定成功: {}", user.getUsername(), email);
 

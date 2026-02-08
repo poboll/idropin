@@ -69,12 +69,12 @@ spring:
     username: guest
     password: guest
 
-  # 邮件配置
+  # 邮件配置 (Microsoft Outlook SMTP)
   mail:
-    host: smtp.example.com
-    port: 587
-    username: your-email@example.com
-    password: your-password
+    host: ${MAIL_HOST:smtp-mail.outlook.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:i@caiths.com}
+    password: ${MAIL_PASSWORD:}
     protocol: smtp
     properties:
       mail:
@@ -84,7 +84,7 @@ spring:
             enable: true
             required: true
           ssl:
-            trust: smtp.example.com
+            trust: ${MAIL_HOST:smtp-mail.outlook.com}
 
   # 文件上传配置
   servlet:

@@ -147,4 +147,10 @@ public interface UserMapper extends BaseMapper<User> {
      */
     @org.apache.ibatis.annotations.Update("UPDATE sys_user SET password_hash = #{passwordHash}, updated_at = #{updatedAt} WHERE id = #{id}")
     int updatePassword(@Param("id") String id, @Param("passwordHash") String passwordHash, @Param("updatedAt") java.time.LocalDateTime updatedAt);
+
+    @org.apache.ibatis.annotations.Update("UPDATE sys_user SET phone = #{phone}, updated_at = #{updatedAt} WHERE id = #{id}")
+    int updatePhone(@Param("id") String id, @Param("phone") String phone, @Param("updatedAt") java.time.LocalDateTime updatedAt);
+
+    @org.apache.ibatis.annotations.Update("UPDATE sys_user SET email = #{email}, updated_at = #{updatedAt} WHERE id = #{id}")
+    int updateEmail(@Param("id") String id, @Param("email") String email, @Param("updatedAt") java.time.LocalDateTime updatedAt);
 }
