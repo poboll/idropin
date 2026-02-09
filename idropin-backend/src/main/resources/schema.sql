@@ -190,7 +190,7 @@ COMMENT ON TABLE sys_route_config IS '路由配置表';
 -- ========================================
 -- 10. 系统配置表 (system_config)
 -- ========================================
-CREATE TABLE system_config (
+CREATE TABLE sys_system_config (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     config_key VARCHAR(100) UNIQUE NOT NULL,
     config_value TEXT,
@@ -201,7 +201,7 @@ CREATE TABLE system_config (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-COMMENT ON TABLE system_config IS '系统配置表';
+COMMENT ON TABLE sys_system_config IS '系统配置表';
 
 -- ========================================
 -- 索引创建
@@ -262,8 +262,8 @@ CREATE INDEX idx_sys_route_config_path ON sys_route_config(route_path);
 CREATE INDEX idx_sys_route_config_enabled ON sys_route_config(is_enabled);
 
 -- 系统配置表索引
-CREATE INDEX idx_system_config_key ON system_config(config_key);
-CREATE INDEX idx_system_config_type ON system_config(config_type);
+CREATE INDEX idx_system_config_key ON sys_system_config(config_key);
+CREATE INDEX idx_system_config_type ON sys_system_config(config_type);
 
 -- ========================================
 -- 全文搜索索引
@@ -292,12 +292,15 @@ INSERT INTO sys_route_config (id, route_path, route_name, is_enabled, redirect_m
 (gen_random_uuid(), '/reset-password', '找回密码', TRUE, '找回密码功能已关闭');
 
 -- 插入默认系统配置
-INSERT INTO system_config (id, config_key, config_value, config_type, description, is_enabled) VALUES
+INSERT INTO sys_system_config (id, config_key, config_value, config_type, description, is_enabled) VALUES
 (gen_random_uuid(), 'site.name', 'Idrop.in', 'string', '站点名称', TRUE),
 (gen_random_uuid(), 'site.description', '智能化教育文件管理平台', 'string', '站点描述', TRUE),
 (gen_random_uuid(), 'upload.max_size', '104857600', 'number', '最大上传文件大小(字节)', TRUE),
 (gen_random_uuid(), 'trash.auto_delete_days', '30', 'number', '回收站自动清理天数', TRUE),
-(gen_random_uuid(), 'task.default_deadline_days', '7', 'number', '任务默认截止天数', TRUE);
+(gen_random_uuid(), 'task.default_deadline_days', '7', 'number', '任务默认截止天数', TRUE),
+(gen_random_uuid(), 'system.storage.total.limit', '10737418240', 'number', '系统总存储空间限制(字节)', TRUE),
+(gen_random_uuid(), 'user.default.storage.limit', '1073741824', 'number', '新用户默认存储配额(字节)', TRUE),
+(gen_random_uuid(), 'user.max.task.limit', '50', 'number', '单用户最大任务数量', TRUE);
 
 -- 插入管理员用户（密码: admin123）
 INSERT INTO sys_user (id, username, email, password_hash, status) VALUES

@@ -5,7 +5,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("system_config")
+@TableName("sys_system_config")
 public class SystemConfig {
 
     @TableId(type = IdType.ASSIGN_UUID)
