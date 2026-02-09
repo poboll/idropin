@@ -1,5 +1,6 @@
 package com.idropin.application.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -167,6 +168,40 @@ public class FeedbackServiceImpl implements FeedbackService {
                 "您提交的反馈「" + feedback.getTitle() + "」状态已更新为：" + statusText);
         
         log.info("反馈 {} 状态从 {} 更新为 {}", feedbackId, oldStatus, newStatus);
+    }
+
+    @Override
+    @Transactional
+    public void deleteFeedback(String feedbackId) {
+        Feedback feedback = feedbackMapper.selectById(feedbackId);
+        if (feedback == null) {
+            throw new BusinessException("反馈不存在");
+        }
+
+        feedbackReplyMapper.delete(
+                new LambdaQueryWrapper<FeedbackReply>().eq(FeedbackReply::getFeedbackId, feedbackId));
+        feedbackMapper.deleteById(feedbackId);
+
+        log.info("反馈 {} 已删除", feedbackId);
+    }
+
+    @Override
+    @Transactional
+    public void editFeedback(String feedbackId, CreateFeedbackRequest request) {
+        Feedback feedback = feedbackMapper.selectById(feedbackId);
+        if (feedback == null) {
+            throw new BusinessException("反馈不存在");
+        }
+
+        LambdaUpdateWrapper<Feedback> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(Feedback::getId, feedbackId)
+                .set(Feedback::getTitle, request.getTitle())
+                .set(Feedback::getContent, request.getContent())
+                .set(Feedback::getContact, request.getContact())
+                .set(Feedback::getUpdatedAt, LocalDateTime.now());
+        feedbackMapper.update(null, updateWrapper);
+
+        log.info("反馈 {} 已编辑", feedbackId);
     }
     
     private String getStatusText(String status) {

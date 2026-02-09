@@ -38,7 +38,7 @@ public class SearchService {
     long startTime = System.currentTimeMillis();
 
     LambdaQueryWrapper<File> wrapper = new LambdaQueryWrapper<>();
-    wrapper.eq(File::getUploaderId, userId)
+    wrapper.apply("uploader_id = {0}::uuid", userId)
         .eq(File::getStatus, "ACTIVE");
 
     if (StringUtils.hasText(request.getKeyword())) {
@@ -54,7 +54,7 @@ public class SearchService {
     }
 
     if (StringUtils.hasText(request.getCategoryId())) {
-      wrapper.eq(File::getCategoryId, request.getCategoryId());
+      wrapper.apply("category_id = {0}::uuid", request.getCategoryId());
     }
 
     if (request.getTags() != null && !request.getTags().isEmpty()) {

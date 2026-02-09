@@ -70,4 +70,19 @@ public interface FeedbackService {
      * @param request 状态请求
      */
     void updateFeedbackStatus(String feedbackId, UpdateFeedbackStatusRequest request);
+
+    /**
+     * 删除反馈（管理员）
+     *
+     * @param feedbackId 反馈ID
+     */
+    void deleteFeedback(String feedbackId);
+
+    /**
+     * 编辑反馈（管理员）
+     *
+     * @param feedbackId 反馈ID
+     * @param request 编辑请求
+     */
+    void editFeedback(String feedbackId, CreateFeedbackRequest request);
 }

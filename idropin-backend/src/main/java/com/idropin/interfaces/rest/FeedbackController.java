@@ -88,4 +88,22 @@ public class FeedbackController {
         feedbackService.updateFeedbackStatus(id, request);
         return Result.success();
     }
+
+    @Operation(summary = "删除反馈（管理员）")
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<Void> deleteFeedback(@PathVariable String id) {
+        feedbackService.deleteFeedback(id);
+        return Result.success();
+    }
+
+    @Operation(summary = "编辑反馈（管理员）")
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<Void> editFeedback(
+            @PathVariable String id,
+            @Valid @RequestBody CreateFeedbackRequest request) {
+        feedbackService.editFeedback(id, request);
+        return Result.success();
+    }
 }
