@@ -2,8 +2,10 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Download, FileText, Clock, User, MapPin, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Clock, User, MapPin, Loader2, AlertCircle, ExternalLink, Trash2, Edit3, X, Check, Search, Filter, FolderOpen } from 'lucide-react';
+import Link from 'next/link';
 import { getTaskInfoSubmissions, exportInfoSubmissions } from '@/lib/api/tasks';
+import { apiClient } from '@/lib/api/client';
 import { useAuthStore } from '@/lib/stores/auth';
 import { getToken } from '@/lib/api/client';
 
@@ -15,6 +17,7 @@ interface InfoSubmission {
   infoData: string;
   fileName?: string;
   fileSize?: number;
+  fileId?: string;
   status: number;
   createdAt?: string;
   submitterIp?: string;
@@ -33,6 +36,12 @@ export default function TaskSubmissionsPage() {
   const [collectionType, setCollectionType] = useState<'INFO' | 'FILE'>('FILE');
   const [exporting, setExporting] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editData, setEditData] = useState<Record<string, string>>({});
+  const [editSaving, setEditSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'submitted' | 'withdrawn'>('all');
   
   // 防止重复请求的标志
   const isLoadingRef = useRef(false);
@@ -225,6 +234,51 @@ export default function TaskSubmissionsPage() {
     }
   };
 
+  const handleDeleteSubmission = async (submissionId: string) => {
+    setDeletingId(submissionId);
+    try {
+      await apiClient.delete(`/tasks/${taskId}/submissions/${submissionId}/admin`);
+      setSubmissions(prev => prev.filter(s => s.id !== submissionId));
+    } catch (error: any) {
+      alert(error?.response?.data?.message || '删除失败');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleEditSubmission = async (submissionId: string) => {
+    setEditSaving(true);
+    try {
+      await apiClient.put(`/tasks/${taskId}/submissions/${submissionId}/admin`, { infoData: JSON.stringify(editData) });
+      setSubmissions(prev => prev.map(s =>
+        s.id === submissionId ? { ...s, infoData: JSON.stringify(editData) } : s
+      ));
+      setEditingId(null);
+    } catch (error: any) {
+      alert(error?.response?.data?.message || '保存失败');
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const handleDownloadFile = async (submission: InfoSubmission) => {
+    if (!submission.fileId) return;
+    try {
+      const response = await apiClient.get(`/files/${submission.fileId}/download`, { responseType: 'blob' });
+      const blob = new Blob([response.data]);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = submission.fileName || 'download';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('下载失败');
+    }
+  };
+
   const formatDateTime = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleString('zh-CN', {
@@ -253,6 +307,19 @@ export default function TaskSubmissionsPage() {
     }
   };
 
+  const filteredSubmissions = submissions.filter(s => {
+    if (statusFilter === 'submitted' && s.status !== 0) return false;
+    if (statusFilter === 'withdrawn' && s.status !== 1) return false;
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      const nameMatch = s.submitterName?.toLowerCase().includes(term);
+      const ipMatch = s.submitterIp?.toLowerCase().includes(term);
+      const fileMatch = s.fileName?.toLowerCase().includes(term);
+      if (!nameMatch && !ipMatch && !fileMatch) return false;
+    }
+    return true;
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-black flex items-center justify-center">
@@ -280,7 +347,7 @@ export default function TaskSubmissionsPage() {
             </button>
             <button
               onClick={() => loadSubmissions()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 transition-colors"
             >
               重试
             </button>
@@ -312,7 +379,15 @@ export default function TaskSubmissionsPage() {
                 </p>
               </div>
             </div>
-            <div className="relative">
+            <div className="flex items-center gap-3">
+              <Link
+                href={`/dashboard/files?task=${taskId}`}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                <FolderOpen className="w-4 h-4" />
+                查看任务文件
+              </Link>
+              <div className="relative">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -370,6 +445,7 @@ export default function TaskSubmissionsPage() {
                 </div>
               )}
             </div>
+            </div>
           </div>
         </div>
       </div>
@@ -380,8 +456,8 @@ export default function TaskSubmissionsPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <div className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
+                <FileText className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               </div>
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">总提交数</p>
@@ -417,15 +493,63 @@ export default function TaskSubmissionsPage() {
           </div>
         </div>
 
+        {/* Filter Bar */}
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="搜索提交人、IP地址、文件名..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+              />
+            </div>
+            <div className="inline-flex p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+              {[
+                { key: 'all' as const, label: '全部' },
+                { key: 'submitted' as const, label: '已提交' },
+                { key: 'withdrawn' as const, label: '已撤回' },
+              ].map(opt => (
+                <button
+                  key={opt.key}
+                  onClick={() => setStatusFilter(opt.key)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                    statusFilter === opt.key
+                      ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {(searchTerm || statusFilter !== 'all') && (
+            <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              找到 {filteredSubmissions.length} 条记录
+              {(searchTerm || statusFilter !== 'all') && (
+                <button
+                  onClick={() => { setSearchTerm(''); setStatusFilter('all'); }}
+                  className="ml-2 text-gray-600 dark:text-gray-300 hover:underline"
+                >
+                  清除筛选
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Submissions List */}
-        {submissions.length === 0 ? (
+        {filteredSubmissions.length === 0 ? (
           <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-12 text-center">
             <FileText className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
             <p className="text-gray-500 dark:text-gray-400">暂无提交记录</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {submissions.map((submission) => {
+            {filteredSubmissions.map((submission) => {
               const infoData = parseInfoData(submission.infoData);
               const isWithdrawn = submission.status === 1;
 
@@ -442,16 +566,12 @@ export default function TaskSubmissionsPage() {
                   <div className="p-6 border-b border-gray-100 dark:border-gray-800">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold ${
                           collectionType === 'INFO'
-                            ? 'bg-green-100 dark:bg-green-900/30'
-                            : 'bg-blue-100 dark:bg-blue-900/30'
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                         }`}>
-                          <User className={`w-5 h-5 ${
-                            collectionType === 'INFO'
-                              ? 'text-green-600 dark:text-green-400'
-                              : 'text-blue-600 dark:text-blue-400'
-                          }`} />
+                          {submission.submitterName?.[0]?.toUpperCase() || '?'}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -488,24 +608,99 @@ export default function TaskSubmissionsPage() {
                   <div className="p-6">
                     {submission.fileName && (
                       <div className="mb-4 pb-4 border-b border-gray-100 dark:border-gray-800">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">文件</p>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          {submission.fileName} ({formatFileSize(submission.fileSize)})
-                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">文件</p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            {submission.fileName} ({formatFileSize(submission.fileSize)})
+                          </p>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleDownloadFile(submission)}
+                              className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                              title="下载文件"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                            <Link
+                              href="/dashboard/files"
+                              className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                              title="文件管理"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </Link>
+                          </div>
+                        </div>
                       </div>
                     )}
                     {Object.keys(infoData).length > 0 && (
                       <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 font-medium">提交的信息</p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {Object.entries(infoData).map(([key, value]) => (
-                            <div key={key} className="flex flex-col gap-1">
-                              <span className="text-xs text-gray-500 dark:text-gray-400">{key}</span>
-                              <span className="text-sm font-medium text-gray-900 dark:text-white break-all">
-                                {value}
-                              </span>
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">提交的信息</p>
+                          {collectionType === 'INFO' && !isWithdrawn && (
+                            <div className="flex items-center gap-1">
+                              {editingId === submission.id ? (
+                                <>
+                                  <button
+                                    onClick={() => handleEditSubmission(submission.id)}
+                                    disabled={editSaving}
+                                    className="p-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded transition-colors"
+                                    title="保存"
+                                  >
+                                    {editSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingId(null)}
+                                    className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+                                    title="取消"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => { setEditingId(submission.id); setEditData(infoData); }}
+                                    className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+                                    title="编辑"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => { if (confirm('确认删除此提交记录？删除后不可恢复。')) handleDeleteSubmission(submission.id); }}
+                                    disabled={deletingId === submission.id}
+                                    className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                    title="删除"
+                                  >
+                                    {deletingId === submission.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                                  </button>
+                                </>
+                              )}
                             </div>
-                          ))}
+                          )}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {editingId === submission.id ? (
+                            Object.entries(editData).map(([key, value]) => (
+                              <div key={key} className="flex flex-col gap-1">
+                                <span className="text-xs text-gray-500 dark:text-gray-400">{key}</span>
+                                <input
+                                  type="text"
+                                  value={value}
+                                  onChange={e => setEditData(prev => ({ ...prev, [key]: e.target.value }))}
+                                  className="text-sm px-2 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-gray-400"
+                                />
+                              </div>
+                            ))
+                          ) : (
+                            Object.entries(infoData).map(([key, value]) => (
+                              <div key={key} className="flex flex-col gap-1">
+                                <span className="text-xs text-gray-500 dark:text-gray-400">{key}</span>
+                                <span className="text-sm font-medium text-gray-900 dark:text-white break-all">
+                                  {value}
+                                </span>
+                              </div>
+                            ))
+                          )}
                         </div>
                       </div>
                     )}
