@@ -167,7 +167,7 @@ public class FileServiceImpl implements FileService {
         if (file == null) {
             throw new BusinessException("文件不存在");
         }
-        if (!file.getUploaderId().equals(userId)) {
+        if (file.getUploaderId() != null && !file.getUploaderId().equals(userId)) {
             throw new BusinessException("无权限访问此文件");
         }
         return file;
@@ -440,7 +440,8 @@ public class FileServiceImpl implements FileService {
     private String generateStoragePath(String userId, String extension) {
         String uuid = UUID.randomUUID().toString().replace("-", "");
         String datePath = LocalDateTime.now().toString().substring(0, 10).replace("-", "/");
-        return String.format("%s/%s/%s%s", userId, datePath, uuid, extension);
+        String owner = (userId != null && !userId.isEmpty()) ? userId : "anonymous";
+        return String.format("%s/%s/%s%s", owner, datePath, uuid, extension);
     }
 
     private String getFileExtension(String filename) {

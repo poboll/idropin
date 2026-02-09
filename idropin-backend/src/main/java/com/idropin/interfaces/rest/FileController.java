@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -83,7 +82,11 @@ public class FileController {
         String userId = getUserId(userDetails);
         File file = fileService.getFile(id, userId);
         
-        String encodedFilename = URLEncoder.encode(file.getOriginalName(), StandardCharsets.UTF_8)
+        String originalName = file.getOriginalName();
+        if (originalName == null || originalName.isEmpty()) {
+            originalName = "download";
+        }
+        String encodedFilename = URLEncoder.encode(originalName, "UTF-8")
                 .replace("+", "%20");
         response.setContentType(file.getMimeType());
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION, 
@@ -119,7 +122,7 @@ public class FileController {
             return;
         }
 
-        String encodedFilename = URLEncoder.encode(file.getOriginalName(), StandardCharsets.UTF_8)
+        String encodedFilename = URLEncoder.encode(file.getOriginalName(), "UTF-8")
                 .replace("+", "%20");
         response.setContentType(file.getMimeType());
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION,

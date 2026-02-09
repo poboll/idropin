@@ -8,11 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-/**
- * 访问日志拦截器
- *
- * @author Idrop.in Team
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -22,21 +17,32 @@ public class AccessLogInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-        // 只记录GET请求的页面访问
-        if ("GET".equalsIgnoreCase(request.getMethod())) {
-            String path = request.getRequestURI();
-            
-            // 排除静态资源和API请求
-            if (!path.startsWith("/api/") && 
-                !path.contains(".") && 
-                !path.startsWith("/static/") &&
-                !path.startsWith("/_next/")) {
-                
-                // 异步记录访问日志（不获取用户ID，简化实现）
-                accessLogService.logAccess(request, null);
-            }
+        String method = request.getMethod();
+        String path = request.getRequestURI();
+
+        if (isTrackable(method, path)) {
+            accessLogService.logAccess(request, null);
         }
-        
+
         return true;
+    }
+
+    private boolean isTrackable(String method, String path) {
+        if (path.contains(".") || path.startsWith("/api/actuator")) {
+            return false;
+        }
+
+        if ("GET".equalsIgnoreCase(method)) {
+            return path.startsWith("/api/tasks/") ||
+                   path.startsWith("/api/shares/") ||
+                   path.startsWith("/api/files/download/") ||
+                   path.startsWith("/api/submit/");
+        }
+
+        if ("POST".equalsIgnoreCase(method)) {
+            return path.startsWith("/api/submit/");
+        }
+
+        return false;
     }
 }

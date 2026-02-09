@@ -86,15 +86,18 @@ public class SecurityConfig {
                 Arrays.asList(
                     "http://localhost:3000", 
                     "http://localhost:3001", 
-                    "http://localhost:5173",
-                    "http://localhost:5174",
-                    "http://localhost:5175",
-                    "http://localhost:5224",
-                    "http://127.0.0.1:3000",
-                    "http://127.0.0.1:5173",
-                    "http://127.0.0.1:5174",
-                    "http://127.0.0.1:5175"
-                ));
+                     "http://localhost:5173",
+                     "http://localhost:5174",
+                     "http://localhost:5175",
+                     "http://localhost:5224",
+                     "http://localhost:5225",
+                     "http://127.0.0.1:3000",
+                     "http://127.0.0.1:5173",
+                     "http://127.0.0.1:5174",
+                     "http://127.0.0.1:5175",
+                     "http://127.0.0.1:5224",
+                     "http://127.0.0.1:5225"
+                 ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setExposedHeaders(Arrays.asList("Content-Disposition", "Content-Length"));

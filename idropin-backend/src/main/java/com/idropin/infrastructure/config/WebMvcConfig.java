@@ -20,19 +20,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(accessLogInterceptor)
-                .addPathPatterns("/**")
+                .addPathPatterns("/api/**")
                 .excludePathPatterns(
-                        "/api/**",
-                        "/static/**",
-                        "/_next/**",
-                        "/**/*.js",
-                        "/**/*.css",
-                        "/**/*.png",
-                        "/**/*.jpg",
-                        "/**/*.jpeg",
-                        "/**/*.gif",
-                        "/**/*.ico",
-                        "/**/*.svg"
+                        "/api/actuator/**",
+                        "/api/doc.html",
+                        "/api/swagger-resources/**",
+                        "/api/webjars/**"
                 );
     }
 }

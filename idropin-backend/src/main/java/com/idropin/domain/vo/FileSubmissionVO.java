@@ -72,8 +72,13 @@ public class FileSubmissionVO {
    */
   private String fileUrl;
   
-  /**
-   * 文件存储路径
-   */
-  private String storagePath;
+   /**
+    * 文件存储路径
+    */
+   private String storagePath;
+
+   /**
+    * 提交者IP地址
+    */
+   private String submitterIp;
 }

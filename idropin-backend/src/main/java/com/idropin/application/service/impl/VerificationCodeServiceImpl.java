@@ -54,11 +54,33 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
     public void sendSmsCode(String phone, String purpose) {
         String code = generateCode();
         String key = buildKey(phone, purpose);
-        
+
         redisTemplate.opsForValue().set(key, code, CODE_EXPIRE_MINUTES, TimeUnit.MINUTES);
-        
+
+        // TODO: 接入腾讯云短信服务
+        // 配置说明：
+        // 1. 在pom.xml添加依赖: com.tencentcloudapi:tencentcloud-sdk-java-sms
+        // 2. 在application.yml添加配置:
+        //    tencent:
+        //      cloud:
+        //        sms:
+        //          secret-id: ${TENCENT_SMS_SECRET_ID}
+        //          secret-key: ${TENCENT_SMS_SECRET_KEY}
+        //          app-id: ${TENCENT_SMS_APP_ID}
+        //          sign-name: ${TENCENT_SMS_SIGN_NAME}
+        //          template-id: ${TENCENT_SMS_TEMPLATE_ID}
+        // 3. 实现示例:
+        //    SmsClient client = buildClient(secretId, secretKey);
+        //    SendSmsRequest request = new SendSmsRequest();
+        //    request.setSmsSdkAppId(appId);
+        //    request.setSignName(signName);
+        //    request.setTemplateId(templateId);
+        //    request.setPhoneNumberSet(new String[]{"+86" + phone});
+        //    request.setTemplateParamSet(new String[]{code, String.valueOf(CODE_EXPIRE_MINUTES)});
+        //    client.SendSms(request);
+
         log.info("SMS code would be sent to: {} (Tencent Cloud SMS not configured yet)", phone);
-        log.info("Verification code: {} (for testing only)", code);
+        log.info("Verification code: {} (for testing only, will be removed in production)", code);
     }
 
     @Override
