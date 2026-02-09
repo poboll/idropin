@@ -14,6 +14,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import com.idropin.domain.vo.StorageInfoVO;
+import org.springframework.core.env.Environment;
+
 import java.util.List;
 import java.util.Map;
 
@@ -25,6 +28,7 @@ public class ConfigController {
 
     private final ConfigService configService;
     private final CurrentUser currentUser;
+    private final Environment environment;
 
     @Operation(summary = "获取路由配置（公开接口）")
     @GetMapping("/routes")
@@ -100,6 +104,19 @@ public class ConfigController {
         String ipAddress = getClientIp(httpRequest);
         configService.toggleSystemConfig(adminId, id, request.get("enabled"), ipAddress);
         return Result.success();
+    }
+
+    @Operation(summary = "获取存储配置信息（管理员）")
+    @GetMapping("/admin/storage-info")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<StorageInfoVO> getStorageInfo() {
+        StorageInfoVO info = new StorageInfoVO();
+        info.setStorageType(environment.getProperty("storage.type", "local"));
+        info.setLocalPath(environment.getProperty("storage.local.path", "./uploads"));
+        info.setLocalBaseUrl(environment.getProperty("storage.local.base-url", ""));
+        info.setMinioEndpoint(environment.getProperty("minio.endpoint", ""));
+        info.setMinioBucket(environment.getProperty("minio.bucket", ""));
+        return Result.success(info);
     }
 
     private String getClientIp(HttpServletRequest request) {
