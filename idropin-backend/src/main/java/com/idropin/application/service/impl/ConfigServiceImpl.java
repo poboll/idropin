@@ -39,7 +39,7 @@ public class ConfigServiceImpl implements ConfigService {
     @Override
     public List<RouteConfigVO> getEnabledRouteConfigs() {
         LambdaQueryWrapper<RouteConfig> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(RouteConfig::getIsEnabled, false);
+        queryWrapper.eq(RouteConfig::getIsEnabled, true);
         List<RouteConfig> configs = routeConfigMapper.selectList(queryWrapper);
         return configs.stream().map(this::toVO).collect(Collectors.toList());
     }
