@@ -329,6 +329,7 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
         vo.setSubmitterName(submission.getSubmitterName());
         vo.setSubmitterEmail(submission.getSubmitterEmail());
         vo.setSubmittedAt(submission.getSubmittedAt());
+        vo.setSubmitterIp(submission.getSubmitterIp());
         
         // 查询文件详细信息
         if (submission.getFileId() != null) {
@@ -360,6 +361,7 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
         vo.setSubmitterName(submission.getSubmitterName());
         vo.setSubmitterEmail(submission.getSubmitterEmail());
         vo.setSubmittedAt(submission.getSubmittedAt());
+        vo.setSubmitterIp(submission.getSubmitterIp());
         vo.setFileName(submission.getFileName() != null ? submission.getFileName() : "信息提交");
         vo.setFileSize(submission.getFileSize() != null ? submission.getFileSize() : 0L);
         

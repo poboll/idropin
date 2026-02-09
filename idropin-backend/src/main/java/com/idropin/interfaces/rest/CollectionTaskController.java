@@ -649,6 +649,7 @@ public class CollectionTaskController {
         
         // 查询文件信息
         if (sub.getFileId() != null) {
+          item.put("fileId", sub.getFileId());
           com.idropin.domain.entity.File file = fileMapper.selectById(sub.getFileId());
           if (file != null) {
             item.put("fileName", file.getOriginalName());
@@ -893,6 +894,59 @@ public class CollectionTaskController {
       taskSubmissionMapper.updateById(taskSubmission);
       
       log.info("Info submission withdrawn successfully: {}", submissionId);
+    }
+
+    return Result.success(null);
+  }
+
+  @DeleteMapping("/{taskId}/submissions/{submissionId}/admin")
+  @Operation(summary = "管理员删除提交记录")
+  public Result<Void> adminDeleteSubmission(
+      @PathVariable String taskId,
+      @PathVariable String submissionId,
+      @AuthenticationPrincipal UserDetails userDetails) {
+
+    String userId = getUserId(userDetails);
+    CollectionTask task = taskService.getTask(taskId, userId);
+    if (task == null) {
+      throw new BusinessException("无权操作");
+    }
+
+    TaskSubmission submission = taskSubmissionMapper.selectById(submissionId);
+    if (submission == null) {
+      throw new BusinessException("提交记录不存在");
+    }
+
+    taskSubmissionMapper.deleteById(submissionId);
+    log.info("Admin deleted submission: {}", submissionId);
+    return Result.success(null);
+  }
+
+  @PutMapping("/{taskId}/submissions/{submissionId}/admin")
+  @Operation(summary = "管理员编辑提交记录")
+  public Result<Void> adminEditSubmission(
+      @PathVariable String taskId,
+      @PathVariable String submissionId,
+      @RequestBody Map<String, String> body,
+      @AuthenticationPrincipal UserDetails userDetails) {
+
+    String userId = getUserId(userDetails);
+    CollectionTask task = taskService.getTask(taskId, userId);
+    if (task == null) {
+      throw new BusinessException("无权操作");
+    }
+
+    TaskSubmission submission = taskSubmissionMapper.selectById(submissionId);
+    if (submission == null) {
+      throw new BusinessException("提交记录不存在");
+    }
+
+    String infoData = body.get("infoData");
+    if (infoData != null) {
+      submission.setInfoData(infoData);
+      submission.setUpdatedAt(LocalDateTime.now());
+      taskSubmissionMapper.updateById(submission);
+      log.info("Admin edited submission: {}", submissionId);
     }
 
     return Result.success(null);

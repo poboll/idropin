@@ -21,17 +21,17 @@
     </resultMap>
 
     <select id="selectByIdString" resultMap="BaseResultMap">
-        SELECT id, title, description, deadline, allow_anonymous, require_login, 
+        SELECT id, title, description, deadline, allow_anonymous, require_login,
                max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, created_at, updated_at
         FROM collection_task
-        WHERE id = CAST(#{id} AS VARCHAR)
+        WHERE id::text = #{id}
     </select>
 
     <select id="selectByCreatedBy" resultMap="BaseResultMap">
-        SELECT id, title, description, deadline, allow_anonymous, require_login, 
+        SELECT id, title, description, deadline, allow_anonymous, require_login,
                max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, created_at, updated_at
         FROM collection_task
-        WHERE CAST(created_by AS VARCHAR) = #{createdBy}
+        WHERE created_by::text = #{createdBy}
           AND (deleted = false OR deleted IS NULL)
         ORDER BY created_at DESC
     </select>
@@ -40,7 +40,7 @@
         SELECT id, title, description, deadline, allow_anonymous, require_login,
                max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, created_at, updated_at
         FROM collection_task
-        WHERE CAST(created_by AS VARCHAR) = #{createdBy}
+        WHERE created_by::text = #{createdBy}
           AND deleted = true
         ORDER BY updated_at DESC
     </select>
@@ -49,8 +49,8 @@
         UPDATE collection_task
         SET deleted = true,
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = CAST(#{id} AS VARCHAR)
-          AND CAST(created_by AS VARCHAR) = #{createdBy}
+        WHERE id::text = #{id}
+          AND created_by::text = #{createdBy}
           AND (deleted = false OR deleted IS NULL)
     </update>
 
@@ -58,15 +58,15 @@
         UPDATE collection_task
         SET deleted = false,
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = CAST(#{id} AS VARCHAR)
-          AND CAST(created_by AS VARCHAR) = #{createdBy}
+        WHERE id::text = #{id}
+          AND created_by::text = #{createdBy}
           AND deleted = true
     </update>
 
     <delete id="deletePermanentlyByIdAndCreatedBy">
         DELETE FROM collection_task
-        WHERE id = CAST(#{id} AS VARCHAR)
-          AND CAST(created_by AS VARCHAR) = #{createdBy}
+        WHERE id::text = #{id}
+          AND created_by::text = #{createdBy}
           AND deleted = true
     </delete>
 
@@ -85,7 +85,7 @@
             task_type       = #{taskType},
             collection_type = #{collectionType},
             updated_at      = #{updatedAt}
-        WHERE id = CAST(#{id} AS VARCHAR)
+        WHERE id::text = #{id}
           AND (deleted = false OR deleted IS NULL)
     </update>
 
@@ -103,6 +103,7 @@
             created_by,
             status,
             collection_type,
+            deleted,
             created_at,
             updated_at
         ) VALUES (
@@ -118,6 +119,7 @@
             #{createdBy},
             #{status},
             #{collectionType},
+            false,
             #{createdAt},
             #{updatedAt}
         )
