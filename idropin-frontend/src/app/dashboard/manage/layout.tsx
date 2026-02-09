@@ -1,24 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Users, MessageSquare, Settings } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Settings } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth';
 
-const manageNavItems = [
-  { key: 'overview', label: '概况', icon: LayoutDashboard, href: '/dashboard/manage/overview' },
-  { key: 'user', label: '用户', icon: Users, href: '/dashboard/manage/user' },
-  { key: 'wish', label: '需求', icon: MessageSquare, href: '/dashboard/manage/wish' },
-  { key: 'config', label: '配置', icon: Settings, href: '/dashboard/manage/config' },
-];
-
 export default function ManageLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
   const router = useRouter();
   const { isSuperAdmin, isAuthenticated, isLoading, system } = useAuthStore();
   const [mounted, setMounted] = useState(false);
-  const currentKey = pathname.split('/').pop() || 'overview';
 
   useEffect(() => {
     setMounted(true);
@@ -26,18 +16,22 @@ export default function ManageLayout({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     if (!mounted) return;
-    
     if (!isLoading && isAuthenticated && !isSuperAdmin && !system) {
       router.push('/dashboard');
     }
   }, [mounted, isLoading, isAuthenticated, isSuperAdmin, system, router]);
 
-  // 防止hydration错误
   if (!mounted) {
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="spinner mx-auto mb-4" />
+          <p className="text-sm text-gray-500 dark:text-gray-400">加载中...</p>
+        </div>
+      </div>
+    );
   }
 
-  // 加载中
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -49,39 +43,39 @@ export default function ManageLayout({ children }: { children: React.ReactNode }
     );
   }
 
-  // 无权限
   if (!isSuperAdmin && !system) {
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-center">
+          <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Settings className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            需要管理员权限
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            您没有访问管理后台的权限。如需帮助，请联系系统管理员。
+          </p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+            >
+              返回仪表盘
+            </button>
+            {!isAuthenticated && (
+              <button
+                onClick={() => router.push('/login')}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                前往登录
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  return (
-    <div className="flex gap-4 max-w-7xl mx-auto">
-      <nav className="w-36 flex-shrink-0">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-          {manageNavItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = currentKey === item.key;
-            return (
-              <Link
-                key={item.key}
-                href={item.href}
-                className={`flex items-center gap-2 px-4 py-3 text-sm transition-colors
-                  ${isActive 
-                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-l-2 border-blue-600' 
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                  }`}
-              >
-                <Icon className="w-4 h-4" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
-
-      <main className="flex-1 min-w-0">
-        {children}
-      </main>
-    </div>
-  );
+  return <>{children}</>;
 }

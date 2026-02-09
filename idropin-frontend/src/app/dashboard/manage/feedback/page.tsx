@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { 
   Search, RefreshCw, MessageSquare, Clock, User,
-  ChevronLeft, ChevronRight, X, Send
+  ChevronLeft, ChevronRight, X, Send, Trash2, Edit3
 } from 'lucide-react';
 import { 
   getAllFeedback, getFeedbackDetail, replyFeedback, updateFeedbackStatus,
+  deleteFeedback, editFeedback,
   getStatusText, getStatusClass, Feedback, FeedbackDetail
 } from '@/lib/api/feedback';
 
@@ -25,6 +26,12 @@ export default function FeedbackManagePage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [replyContent, setReplyContent] = useState('');
   const [replyLoading, setReplyLoading] = useState(false);
+  const [editingFeedback, setEditingFeedback] = useState<Feedback | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editContent, setEditContent] = useState('');
+  const [editContact, setEditContact] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const fetchFeedbacks = useCallback(async () => {
     setLoading(true);
@@ -104,6 +111,42 @@ export default function FeedbackManagePage() {
     }
   };
 
+  const openEditDialog = (feedback: Feedback) => {
+    setEditingFeedback(feedback);
+    setEditTitle(feedback.title);
+    setEditContent(feedback.content);
+    setEditContact(feedback.contact || '');
+  };
+
+  const handleEdit = async () => {
+    if (!editingFeedback || !editTitle.trim() || !editContent.trim()) return;
+    setEditLoading(true);
+    try {
+      await editFeedback(editingFeedback.id, {
+        title: editTitle,
+        content: editContent,
+        contact: editContact || undefined,
+      });
+      setEditingFeedback(null);
+      fetchFeedbacks();
+    } catch (error: any) {
+      alert(`编辑失败: ${error.message || '未知错误'}`);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteFeedback(id);
+      setDeleteConfirm(null);
+      if (selectedFeedback?.id === id) setSelectedFeedback(null);
+      fetchFeedbacks();
+    } catch (error: any) {
+      alert(`删除失败: ${error.message || '未知错误'}`);
+    }
+  };
+
   const formatTime = (dateStr: string) => {
     return new Date(dateStr).toLocaleString('zh-CN', {
       year: 'numeric',
@@ -130,7 +173,7 @@ export default function FeedbackManagePage() {
       <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 pb-4">
         <Link href="/dashboard/manage" className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">概况</Link>
         <Link href="/dashboard/manage/users" className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">用户</Link>
-        <Link href="/dashboard/manage/feedback" className="px-4 py-2 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg font-medium">需求</Link>
+        <Link href="/dashboard/manage/feedback" className="px-4 py-2 bg-gray-900 text-white dark:bg-white dark:text-gray-900 rounded-lg font-medium">需求</Link>
         <Link href="/dashboard/manage/config" className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">配置</Link>
       </div>
 
@@ -144,7 +187,7 @@ export default function FeedbackManagePage() {
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-500 focus:border-transparent"
           />
         </div>
         <select
@@ -185,7 +228,7 @@ export default function FeedbackManagePage() {
               {loading ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center">
-                    <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                    <div className="w-6 h-6 border-2 border-gray-300 dark:border-gray-700 border-t-gray-900 dark:border-t-white rounded-full animate-spin mx-auto" />
                   </td>
                 </tr>
               ) : feedbacks.length === 0 ? (
@@ -203,8 +246,8 @@ export default function FeedbackManagePage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                          <User className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                        <div className="w-7 h-7 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-400">
+                          {feedback.username?.[0]?.toUpperCase() || 'U'}
                         </div>
                         <span className="text-sm text-gray-600 dark:text-gray-400">{feedback.username}</span>
                       </div>
@@ -222,18 +265,34 @@ export default function FeedbackManagePage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => openDetail(feedback)}
-                        className="flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                      >
-                        <MessageSquare className="w-4 h-4" />
-                        查看
-                        {feedback.replyCount > 0 && (
-                          <span className="ml-1 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded text-xs">
-                            {feedback.replyCount}
-                          </span>
-                        )}
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => openDetail(feedback)}
+                          className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                        >
+                          <MessageSquare className="w-4 h-4" />
+                          查看
+                          {feedback.replyCount > 0 && (
+                            <span className="ml-1 px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs">
+                              {feedback.replyCount}
+                            </span>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => openEditDialog(feedback)}
+                          className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                          title="编辑"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(feedback.id)}
+                          className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          title="删除"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -278,7 +337,7 @@ export default function FeedbackManagePage() {
           >
             {detailLoading ? (
               <div className="p-8 flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-gray-300 dark:border-gray-700 border-t-gray-900 dark:border-t-white rounded-full animate-spin" />
               </div>
             ) : selectedFeedback && (
               <>
@@ -331,13 +390,13 @@ export default function FeedbackManagePage() {
                           key={reply.id} 
                           className={`rounded-lg p-4 ${
                             reply.isAdmin 
-                              ? 'bg-blue-50 dark:bg-blue-900/20 ml-4' 
+                              ? 'bg-gray-100 dark:bg-gray-800 ml-4' 
                               : 'bg-gray-50 dark:bg-gray-900/50 mr-4'
                           }`}
                         >
                           <div className="flex items-center gap-2 mb-2">
                             <span className={`text-sm font-medium ${
-                              reply.isAdmin ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
+                              reply.isAdmin ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'
                             }`}>
                               {reply.username}
                               {reply.isAdmin && <span className="ml-1 text-xs">(管理员)</span>}
@@ -359,12 +418,12 @@ export default function FeedbackManagePage() {
                       onChange={(e) => setReplyContent(e.target.value)}
                       placeholder="输入回复内容..."
                       rows={2}
-                      className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white resize-none focus:ring-2 focus:ring-gray-500 focus:border-transparent"
                     />
                     <button
                       onClick={handleReply}
                       disabled={!replyContent.trim() || replyLoading}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 self-end"
+                      className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 self-end"
                     >
                       <Send className="w-4 h-4" />
                       {replyLoading ? '发送中...' : '回复'}
@@ -373,6 +432,72 @@ export default function FeedbackManagePage() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {editingFeedback && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setEditingFeedback(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">编辑反馈</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">标题</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">内容</label>
+                <textarea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">联系方式</label>
+                <input
+                  type="text"
+                  value={editContact}
+                  onChange={(e) => setEditContact(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                  placeholder="可选"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={() => setEditingFeedback(null)} className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">取消</button>
+              <button
+                onClick={handleEdit}
+                disabled={editLoading || !editTitle.trim() || !editContent.trim()}
+                className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 disabled:opacity-50"
+              >
+                {editLoading ? '保存中...' : '保存'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setDeleteConfirm(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm mx-4 p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">确认删除</h3>
+            <p className="text-sm text-gray-500 mb-6">删除后将无法恢复，包括所有回复记录。</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">取消</button>
+              <button
+                onClick={() => handleDelete(deleteConfirm)}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                删除
+              </button>
+            </div>
           </div>
         </div>
       )}

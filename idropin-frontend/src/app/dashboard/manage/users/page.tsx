@@ -221,7 +221,7 @@ export default function UsersManagePage() {
         </div>
         <button
           onClick={() => openDialog('broadcast')}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 transition-colors"
         >
           <Send className="w-4 h-4" />
           推送全局消息
@@ -231,7 +231,7 @@ export default function UsersManagePage() {
       {/* 子导航 */}
       <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 pb-4">
         <Link href="/dashboard/manage" className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">概况</Link>
-        <Link href="/dashboard/manage/users" className="px-4 py-2 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg font-medium">用户</Link>
+        <Link href="/dashboard/manage/users" className="px-4 py-2 bg-gray-900 text-white dark:bg-white dark:text-gray-900 rounded-lg font-medium">用户</Link>
         <Link href="/dashboard/manage/feedback" className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">需求</Link>
         <Link href="/dashboard/manage/config" className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">配置</Link>
       </div>
@@ -246,7 +246,7 @@ export default function UsersManagePage() {
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-500 focus:border-transparent"
           />
         </div>
         <select
@@ -286,7 +286,7 @@ export default function UsersManagePage() {
               {loading ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center">
-                    <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                    <div className="w-6 h-6 border-2 border-gray-300 dark:border-gray-700 border-t-gray-900 dark:border-t-white rounded-full animate-spin mx-auto" />
                   </td>
                 </tr>
               ) : users.length === 0 ? (
@@ -299,8 +299,8 @@ export default function UsersManagePage() {
                     <td className="px-4 py-3 text-sm text-gray-500 font-mono">{user.id.slice(0, 8)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                          <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        <div className="w-8 h-8 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {user.username?.[0]?.toUpperCase() || 'U'}
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-900 dark:text-white">{user.username}</p>
@@ -313,7 +313,7 @@ export default function UsersManagePage() {
                         user.role === 'SUPER_ADMIN' 
                           ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
                           : user.role === 'ADMIN'
-                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                          ? 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
                           : 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
                       }`}>
                         {user.role === 'SUPER_ADMIN' ? '超级管理员' : user.role === 'ADMIN' ? '管理员' : '普通用户'}
@@ -337,7 +337,7 @@ export default function UsersManagePage() {
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleStatusChange(user, user.status === 'active' ? 'disabled' : 'active')}
-                          className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                          className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                           title={user.status === 'active' ? '禁用' : '启用'}
                         >
                           {user.status === 'active' ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
@@ -456,7 +456,7 @@ export default function UsersManagePage() {
                   <button
                     onClick={handleSendMessage}
                     disabled={actionLoading}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 disabled:opacity-50"
                   >
                     {actionLoading ? '发送中...' : '发送'}
                   </button>
@@ -484,7 +484,7 @@ export default function UsersManagePage() {
                   <button
                     onClick={handleBindPhone}
                     disabled={actionLoading}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 disabled:opacity-50"
                   >
                     {actionLoading ? '绑定中...' : '绑定'}
                   </button>
@@ -526,7 +526,7 @@ export default function UsersManagePage() {
                   <button
                     onClick={handleUpdateQuota}
                     disabled={actionLoading}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 disabled:opacity-50"
                   >
                     {actionLoading ? '更新中...' : '更新'}
                   </button>
@@ -553,7 +553,7 @@ export default function UsersManagePage() {
                           onClick={() => setSelectedRole(role.value)}
                           className={`w-full text-left p-3 border rounded-lg transition-colors ${
                             selectedRole === role.value
-                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                              ? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800'
                               : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                           }`}
                         >
@@ -563,7 +563,7 @@ export default function UsersManagePage() {
                               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{role.desc}</p>
                             </div>
                             {selectedRole === role.value && (
-                              <Check className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                              <Check className="w-5 h-5 text-gray-900 dark:text-white" />
                             )}
                           </div>
                         </button>
@@ -581,7 +581,7 @@ export default function UsersManagePage() {
                   <button
                     onClick={handleUpdateRole}
                     disabled={actionLoading || !selectedRole}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 disabled:opacity-50"
                   >
                     {actionLoading ? '更新中...' : '更新'}
                   </button>

@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
-  Users, Database, FileText, Eye, Archive, AlertTriangle,
-  TrendingUp, TrendingDown, Minus, RefreshCw
+  Users, Database, FileText, Eye, Archive, AlertTriangle, HardDrive, Activity,
+  TrendingUp, TrendingDown, Minus, RefreshCw, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { getOverviewStats, getOperationLogs, formatFileSize, OverviewStats, OperationLog } from '@/lib/api/admin';
 
@@ -12,16 +12,24 @@ export default function ManageOverviewPage() {
   const [stats, setStats] = useState<OverviewStats | null>(null);
   const [logs, setLogs] = useState<OperationLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [logPage, setLogPage] = useState(1);
+  const [logPages, setLogPages] = useState(1);
+  const [logTotal, setLogTotal] = useState(0);
+  const [logPageSize, setLogPageSize] = useState(10);
+  const [jumpPage, setJumpPage] = useState('');
 
-  const fetchData = async () => {
+  const fetchData = async (page = logPage, size = logPageSize) => {
     setLoading(true);
     try {
       const [statsData, logsData] = await Promise.all([
         getOverviewStats(),
-        getOperationLogs({ page: 1, size: 10 })
+        getOperationLogs({ page, size })
       ]);
       setStats(statsData);
       setLogs(logsData.records);
+      setLogPage(logsData.current);
+      setLogPages(logsData.pages);
+      setLogTotal(logsData.total);
     } catch (error) {
       console.error('Failed to fetch overview data:', error);
     } finally {
@@ -89,8 +97,8 @@ export default function ManageOverviewPage() {
           <p className="text-sm text-gray-500 mt-1">平台概况与数据统计</p>
         </div>
         <button
-          onClick={fetchData}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          onClick={() => fetchData()}
+          className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white dark:bg-white dark:text-gray-900 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
           刷新
@@ -101,7 +109,7 @@ export default function ManageOverviewPage() {
       <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 pb-4">
         <Link
           href="/dashboard/manage"
-          className="px-4 py-2 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg font-medium"
+          className="px-4 py-2 bg-gray-900 text-white dark:bg-white dark:text-gray-900 rounded-lg font-medium"
         >
           概况
         </Link>
@@ -126,12 +134,12 @@ export default function ManageOverviewPage() {
       </div>
 
       {/* 统计卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* 用户数量 */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
           <div className="flex items-center justify-between">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <div className="p-2.5 bg-gray-100 dark:bg-gray-800 rounded-xl">
+              <Users className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </div>
             {stats && renderTrend(stats.userCount, stats.userCountYesterday)}
           </div>
@@ -142,10 +150,10 @@ export default function ManageOverviewPage() {
         </div>
 
         {/* 记录/OSS */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
           <div className="flex items-center justify-between">
-            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-              <Database className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <div className="p-2.5 bg-gray-100 dark:bg-gray-800 rounded-xl">
+              <Database className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </div>
             {stats && renderTrend(stats.recordCount, stats.recordCountYesterday)}
           </div>
@@ -161,10 +169,10 @@ export default function ManageOverviewPage() {
         </div>
 
         {/* 日志数量 */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
           <div className="flex items-center justify-between">
-            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-              <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <div className="p-2.5 bg-gray-100 dark:bg-gray-800 rounded-xl">
+              <FileText className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </div>
             {stats && renderTrend(stats.logCount, stats.logCountYesterday)}
           </div>
@@ -174,46 +182,43 @@ export default function ManageOverviewPage() {
           </div>
         </div>
 
-        {/* PV/UV */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+        {/* 今日活跃 */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
           <div className="flex items-center justify-between">
-            <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-              <Eye className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+            <div className="p-2.5 bg-gray-100 dark:bg-gray-800 rounded-xl">
+              <Activity className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </div>
           </div>
           <div className="mt-3">
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              {stats?.pvCount || 0}/{stats?.uvCount || 0}
+              {stats?.activeUserCount || 0}
             </p>
             <p className="text-sm text-gray-500">
-              PV/UV · 历史: {stats?.historyPvCount || 0}/{stats?.historyUvCount || 0}
+              活跃用户
             </p>
           </div>
         </div>
 
-        {/* 归档文件 */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+        {/* 存储使用 */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
           <div className="flex items-center justify-between">
-            <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-              <Archive className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+            <div className="p-2.5 bg-gray-100 dark:bg-gray-800 rounded-xl">
+              <HardDrive className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </div>
           </div>
           <div className="mt-3">
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              {stats?.archivedFileCount || 0}
-              <span className="text-sm font-normal text-gray-500 ml-2">
-                ({formatFileSize(stats?.archivedFileSize || 0)})
-              </span>
+              {formatFileSize(stats?.ossStorageBytes || 0)}
             </p>
-            <p className="text-sm text-gray-500">归档文件</p>
+            <p className="text-sm text-gray-500">总存储使用</p>
           </div>
         </div>
 
         {/* 无效文件 */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
           <div className="flex items-center justify-between">
-            <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-              <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+            <div className="p-2.5 bg-gray-100 dark:bg-gray-800 rounded-xl">
+              <AlertTriangle className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </div>
           </div>
           <div className="mt-3">
@@ -224,6 +229,44 @@ export default function ManageOverviewPage() {
               </span>
             </p>
             <p className="text-sm text-gray-500">已失效</p>
+          </div>
+        </div>
+
+        {/* PV/UV */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div className="p-2.5 bg-gray-100 dark:bg-gray-800 rounded-xl">
+              <Eye className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              {stats?.pvCount || 0}/{stats?.uvCount || 0}
+            </p>
+            <p className="text-sm text-gray-500">
+              今日 PV/UV
+              <span className="text-xs text-gray-400 ml-2">
+                历史: {stats?.historyPvCount || 0}/{stats?.historyUvCount || 0}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        {/* 归档文件 */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div className="p-2.5 bg-gray-100 dark:bg-gray-800 rounded-xl">
+              <Archive className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              {stats?.archivedFileCount || 0}
+              <span className="text-sm font-normal text-gray-500 ml-2">
+                ({formatFileSize(stats?.archivedFileSize || 0)})
+              </span>
+            </p>
+            <p className="text-sm text-gray-500">归档文件</p>
           </div>
         </div>
       </div>
@@ -252,6 +295,79 @@ export default function ManageOverviewPage() {
             ))
           )}
         </div>
+
+        {logPages > 0 && (
+          <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-500">共 {logTotal} 条</span>
+              <select
+                value={logPageSize}
+                onChange={(e) => { const s = Number(e.target.value); setLogPageSize(s); fetchData(1, s); }}
+                className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300"
+              >
+                <option value={10}>10条/页</option>
+                <option value={20}>20条/页</option>
+                <option value={50}>50条/页</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => fetchData(logPage - 1)}
+                disabled={logPage <= 1}
+                className="p-1.5 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              {Array.from({ length: Math.min(logPages, 5) }, (_, i) => {
+                let p: number;
+                if (logPages <= 5) { p = i + 1; }
+                else if (logPage <= 3) { p = i + 1; }
+                else if (logPage >= logPages - 2) { p = logPages - 4 + i; }
+                else { p = logPage - 2 + i; }
+                return (
+                  <button
+                    key={p}
+                    onClick={() => fetchData(p)}
+                    className={`min-w-[28px] h-7 text-xs rounded-lg border transition-colors ${
+                      p === logPage
+                        ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 border-gray-900 dark:border-white'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => fetchData(logPage + 1)}
+                disabled={logPage >= logPages}
+                className="p-1.5 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-gray-500">跳至</span>
+              <input
+                type="number"
+                min={1}
+                max={logPages}
+                value={jumpPage}
+                onChange={(e) => setJumpPage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const p = Math.min(Math.max(1, Number(jumpPage)), logPages);
+                    fetchData(p);
+                    setJumpPage('');
+                  }
+                }}
+                className="w-14 text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 text-center"
+                placeholder=""
+              />
+              <span className="text-xs text-gray-500">页</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
