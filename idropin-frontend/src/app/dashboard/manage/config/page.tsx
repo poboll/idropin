@@ -8,10 +8,12 @@ import {
 import { 
   getAllRouteConfigs, updateRouteConfig, getRouteDescription,
   getAllSystemConfigs, updateSystemConfig, toggleSystemConfig,
+  getStorageInfo, StorageInfo,
   RouteConfig, SystemConfig
 } from '@/lib/api/config';
 import { getOverviewStats, OverviewStats } from '@/lib/api/admin';
 import { formatBytes } from '@/lib/utils';
+import { extractApiError } from '@/lib/api/client';
 
 export default function ConfigManagePage() {
   const [routes, setRoutes] = useState<RouteConfig[]>([]);
@@ -22,6 +24,12 @@ export default function ConfigManagePage() {
   const [editingConfig, setEditingConfig] = useState<SystemConfig | null>(null);
   const [editValue, setEditValue] = useState('');
   const [activeTab, setActiveTab] = useState<'routes' | 'system' | 'quota'>('routes');
+  const [fetchError, setFetchError] = useState<{ code: number; message: string } | null>(null);
+  const [storageType, setStorageType] = useState<'local' | 'oss' | 'minio'>('local');
+  const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
+
+  const isQuotaNumberConfig = (config: SystemConfig) =>
+    config.configType === 'number' && /quota|limit/i.test(config.configKey);
 
   const matchKeywords = (key: string, keywords: string[]) => {
     const lower = key.toLowerCase();
@@ -46,13 +54,36 @@ export default function ConfigManagePage() {
         </div>
         <div className="mt-2 flex items-center gap-2">
           {editingConfig?.id === config.id ? (
-            <div className="flex items-center gap-2">
-              <input
-                type={config.configType === 'number' ? 'number' : 'text'}
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-              />
+            <div className="flex items-center gap-3 w-full max-w-md">
+              {config.configType === 'number' ? (
+                <div className="flex-1 flex items-center gap-3">
+                  <input
+                    type="range"
+                    min="0"
+                    max={isQuotaNumberConfig(config) ? 10240 : (Number(editValue) > 1000 ? Number(editValue) * 2 : 10000)}
+                    step={isQuotaNumberConfig(config) ? 1 : (Number(editValue) > 1000 ? 100 : 1)}
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-gray-900 dark:accent-white"
+                  />
+                  <input
+                    type="number"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    className="w-24 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-right"
+                  />
+                  {isQuotaNumberConfig(config) && (
+                    <span className="text-xs text-gray-500 whitespace-nowrap">MB</span>
+                  )}
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-500"
+                />
+              )}
               <button
                 onClick={handleSaveConfig}
                 disabled={updating === config.id}
@@ -72,7 +103,10 @@ export default function ConfigManagePage() {
               onClick={() => handleEditConfig(config)}
               className="px-3 py-1.5 bg-gray-100 dark:bg-gray-900 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
             >
-              {config.configValue || '(未设置)'}
+              {isQuotaNumberConfig(config)
+                ? `${Math.round(Number(config.configValue) / 1048576)} MB`
+                : (config.configValue || '(未设置)')
+              }
             </button>
           )}
         </div>
@@ -82,12 +116,12 @@ export default function ConfigManagePage() {
         <button
           onClick={() => handleConfigToggle(config)}
           disabled={updating === config.id}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-            config.isEnabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 ${
+            config.isEnabled ? 'bg-gray-900 dark:bg-white' : 'bg-gray-300 dark:bg-gray-600'
           } ${updating === config.id ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+            className={`inline-block h-4 w-4 transform rounded-full ${config.isEnabled ? 'bg-white dark:bg-gray-900' : 'bg-white'} transition-transform ${
               config.isEnabled ? 'translate-x-6' : 'translate-x-1'
             }`}
           />
@@ -132,17 +166,30 @@ export default function ConfigManagePage() {
 
   const fetchData = async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const [routeData, configData, statsData] = await Promise.all([
         getAllRouteConfigs(),
         getAllSystemConfigs(),
-        getOverviewStats()
+        getOverviewStats(),
       ]);
       setRoutes(routeData);
       setSystemConfigs(configData);
       setOverviewStats(statsData);
+
+      try {
+        const storageData = await getStorageInfo();
+        setStorageInfo(storageData);
+        if (storageData?.storageType) {
+          setStorageType(storageData.storageType as 'local' | 'oss' | 'minio');
+        }
+      } catch {
+        console.warn('Storage info endpoint unavailable');
+      }
     } catch (error) {
       console.error('Failed to fetch config:', error);
+      const apiError = extractApiError(error);
+      setFetchError(apiError);
     } finally {
       setLoading(false);
     }
@@ -184,16 +231,23 @@ export default function ConfigManagePage() {
 
   const handleEditConfig = (config: SystemConfig) => {
     setEditingConfig(config);
-    setEditValue(config.configValue);
+    if (isQuotaNumberConfig(config)) {
+      setEditValue(String(Math.round(Number(config.configValue) / 1048576)));
+    } else {
+      setEditValue(config.configValue);
+    }
   };
 
   const handleSaveConfig = async () => {
     if (!editingConfig) return;
     setUpdating(editingConfig.id);
     try {
-      await updateSystemConfig(editingConfig.id, editValue);
+      const saveValue = isQuotaNumberConfig(editingConfig)
+        ? String(Number(editValue) * 1048576)
+        : editValue;
+      await updateSystemConfig(editingConfig.id, saveValue);
       setSystemConfigs(systemConfigs.map(c => 
-        c.id === editingConfig.id ? { ...c, configValue: editValue } : c
+        c.id === editingConfig.id ? { ...c, configValue: saveValue } : c
       ));
       setEditingConfig(null);
     } catch (error: any) {
@@ -229,6 +283,28 @@ export default function ConfigManagePage() {
 
   return (
     <div className="space-y-6">
+      {fetchError && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
+          <div className="flex gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h4 className="font-medium text-red-800 dark:text-red-300">加载配置失败</h4>
+              <p className="mt-1 text-sm text-red-700 dark:text-red-400">
+                {fetchError.code === 401 && '未登录或登录已过期，请重新登录'}
+                {fetchError.code === 403 && '您没有访问配置的权限，请联系管理员'}
+                {fetchError.code !== 401 && fetchError.code !== 403 && fetchError.message}
+              </p>
+              <button
+                onClick={fetchData}
+                className="mt-3 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/40 transition-colors text-sm font-medium"
+              >
+                重试
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">配置管理</h1>
@@ -247,7 +323,7 @@ export default function ConfigManagePage() {
         <Link href="/dashboard/manage" className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">概况</Link>
         <Link href="/dashboard/manage/users" className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">用户</Link>
         <Link href="/dashboard/manage/feedback" className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">需求</Link>
-        <Link href="/dashboard/manage/config" className="px-4 py-2 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg font-medium">配置</Link>
+        <Link href="/dashboard/manage/config" className="px-4 py-2 bg-gray-900 text-white dark:bg-white dark:text-gray-900 rounded-lg font-medium">配置</Link>
       </div>
 
       <div className="flex gap-2 mb-4">
@@ -298,7 +374,7 @@ export default function ConfigManagePage() {
 
           {loading ? (
             <div className="p-8 flex items-center justify-center">
-              <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-gray-300 dark:border-gray-700 border-t-gray-900 dark:border-t-white rounded-full animate-spin" />
             </div>
           ) : routes.length === 0 ? (
             <div className="p-8 text-center text-gray-500">暂无路由配置</div>
@@ -336,12 +412,12 @@ export default function ConfigManagePage() {
                     <button
                       onClick={() => handleRouteToggle(route)}
                       disabled={updating === route.id}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                        route.isEnabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 ${
+                        route.isEnabled ? 'bg-gray-900 dark:bg-white' : 'bg-gray-300 dark:bg-gray-600'
                       } ${updating === route.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        className={`inline-block h-4 w-4 transform rounded-full ${route.isEnabled ? 'bg-white dark:bg-gray-900' : 'bg-white'} transition-transform ${
                           route.isEnabled ? 'translate-x-6' : 'translate-x-1'
                         }`}
                       />
@@ -366,7 +442,7 @@ export default function ConfigManagePage() {
 
           {loading ? (
             <div className="p-8 flex items-center justify-center">
-              <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-gray-300 dark:border-gray-700 border-t-gray-900 dark:border-t-white rounded-full animate-spin" />
             </div>
           ) : systemConfigs.length === 0 ? (
             <div className="p-8 text-center text-gray-500">暂无系统配置</div>
@@ -374,9 +450,106 @@ export default function ConfigManagePage() {
             (() => {
               const { storageConfigs, databaseConfigs, urlConfigs, otherConfigs } = categorizeConfigs();
 
+              const localStorageItems = storageConfigs.filter(c => !matchKeywords(c.configKey, ['oss', 'minio']));
+              const ossItems = storageConfigs.filter(c => matchKeywords(c.configKey, ['oss']));
+              const minioItems = storageConfigs.filter(c => matchKeywords(c.configKey, ['minio']));
+
+              const storageSegments = [
+                { key: 'local' as const, label: '本地存储', items: localStorageItems },
+                { key: 'oss' as const, label: 'OSS', items: ossItems },
+                { key: 'minio' as const, label: 'MinIO', items: minioItems },
+              ];
+              const activeSegment = storageSegments.find(s => s.key === storageType) || storageSegments[0];
+
               return (
                 <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                  {renderSection('存储配置', <Cloud className="w-4 h-4" />, storageConfigs, '对象存储、OSS、MinIO 等相关参数')}
+                  <div className="px-5 py-4">
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200"><Cloud className="w-4 h-4" /></span>
+                      <div>
+                        <h3 className="font-semibold text-gray-900 dark:text-white">存储配置</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">对象存储、OSS、MinIO 等相关参数</p>
+                      </div>
+                    </div>
+                    <div className="inline-flex p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                      {storageSegments.map((seg) => (
+                        <button
+                          key={seg.key}
+                          onClick={() => setStorageType(seg.key)}
+                          className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
+                            storageType === seg.key
+                              ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-sm'
+                              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                          }`}
+                        >
+                          {seg.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {activeSegment.items.length > 0 ? (
+                    <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                      {activeSegment.items.map(renderConfigRow)}
+                    </div>
+                  ) : (
+                    <div className="px-5 py-8 text-center">
+                      {activeSegment.key === 'local' ? (
+                        <div className="space-y-3">
+                          <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg text-sm font-medium">
+                            <HardDrive className="w-4 h-4" />
+                            {storageInfo?.storageType === 'local' ? '当前正在使用本地存储' : '本地存储未启用'}
+                          </div>
+                          {storageInfo && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-lg mx-auto text-left">
+                              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">存储类型</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">{storageInfo.storageType}</p>
+                              </div>
+                              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">已用空间</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">{formatBytes(overviewStats?.ossStorageBytes || 0)}</p>
+                              </div>
+                              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg col-span-full">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">存储路径</p>
+                                <code className="text-sm font-mono text-gray-900 dark:text-white">{storageInfo.localPath || './uploads'}</code>
+                              </div>
+                              {storageInfo.localBaseUrl && (
+                                <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg col-span-full">
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">访问地址</p>
+                                  <code className="text-sm font-mono text-gray-900 dark:text-white break-all">{storageInfo.localBaseUrl}</code>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          <p className="text-xs text-gray-400 dark:text-gray-500">
+                            如需切换到OSS或MinIO，请修改后端 application.yml 中的 storage.type 配置
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            当前未启用{activeSegment.label}存储
+                          </p>
+                          {activeSegment.key === 'minio' && storageInfo?.minioEndpoint && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-lg mx-auto text-left">
+                              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">MinIO 端点</p>
+                                <code className="text-sm font-mono text-gray-900 dark:text-white">{storageInfo.minioEndpoint}</code>
+                              </div>
+                              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">存储桶</p>
+                                <code className="text-sm font-mono text-gray-900 dark:text-white">{storageInfo.minioBucket}</code>
+                              </div>
+                            </div>
+                          )}
+                          <p className="text-xs text-gray-400 dark:text-gray-500">
+                            如需使用{activeSegment.label}，请在后端 application.yml 中配置 <code className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-900 rounded text-xs">storage.type={activeSegment.key}</code> 并添加相关连接参数
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {renderSection('数据库配置', <Database className="w-4 h-4" />, databaseConfigs, '数据库连接与数据源设置')}
                   {renderSection('URL / 域名配置', <Globe className="w-4 h-4" />, urlConfigs, '外部访问地址、回调、域名等')}
                   {renderSection('其他配置', <Settings className="w-4 h-4" />, otherConfigs, '未归类的系统参数')}
@@ -399,7 +572,7 @@ export default function ConfigManagePage() {
 
           {loading ? (
             <div className="p-8 flex items-center justify-center">
-              <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-gray-300 dark:border-gray-700 border-t-gray-900 dark:border-t-white rounded-full animate-spin" />
             </div>
           ) : (
             <div className="p-6 space-y-6">
@@ -480,7 +653,7 @@ export default function ConfigManagePage() {
                 <div className="flex flex-wrap gap-3">
                   <Link 
                     href="/dashboard/manage/users" 
-                    className="px-4 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
+                    className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-medium"
                   >
                     前往用户管理 →
                   </Link>

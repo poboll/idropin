@@ -58,6 +58,19 @@ export async function toggleSystemConfig(id: string, enabled: boolean): Promise<
   await apiClient.put(`/config/admin/system/${id}/toggle`, { enabled });
 }
 
+export interface StorageInfo {
+  storageType: string;
+  localPath: string;
+  localBaseUrl: string;
+  minioEndpoint: string;
+  minioBucket: string;
+}
+
+export async function getStorageInfo(): Promise<StorageInfo> {
+  const response = await apiClient.get('/config/admin/storage-info');
+  return response.data.data;
+}
+
 export function getRouteDisplayName(routePath: string): string {
   const nameMap: Record<string, string> = {
     '/register': '用户注册',
@@ -70,7 +83,7 @@ export function getRouteDisplayName(routePath: string): string {
 export function getRouteDescription(routePath: string): string {
   const descMap: Record<string, string> = {
     '/register': '关闭后将同时禁用注册功能',
-    '/': '关闭后用户将无法访问首��',
+    '/': '关闭后用户将无法访问首页',
     '/reset-password': '关闭后用户将无法找回密码'
   };
   return descMap[routePath] || '';
