@@ -17,11 +17,13 @@ import {
   X,
   Bell,
   Shield,
-  ChevronDown
+  ChevronDown,
+  MessageCircle
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth';
 import { MessageButton } from '@/components/layout/MessageButton';
 import { HitokotoDisplay } from '@/components/layout/HitokotoDisplay';
+import AuthGuard from '@/components/auth/AuthGuard';
 
 const navItems = [
   { href: '/dashboard/files', label: '文件', icon: FolderOpen },
@@ -29,6 +31,7 @@ const navItems = [
   { href: '/dashboard/shares', label: '分享', icon: Share2 },
   { href: '/dashboard/statistics', label: '统计', icon: BarChart3 },
   { href: '/dashboard/search', label: '搜索', icon: Search },
+  { href: '/dashboard/feedback', label: '反馈', icon: MessageCircle },
 ];
 
 const adminNavItems = [
@@ -41,7 +44,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { user, logout, isSuperAdmin, system, fetchCurrentUser } = useAuthStore();
+  const { user, logout, isSuperAdmin, system } = useAuthStore();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -50,10 +53,7 @@ export default function DashboardLayout({
 
   useEffect(() => {
     setMounted(true);
-    // Refresh user info on mount to get latest role/permissions
-    fetchCurrentUser();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 只在组件挂载时执行一次
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -82,6 +82,7 @@ export default function DashboardLayout({
   }
 
   return (
+    <AuthGuard>
     <div className="min-h-screen bg-gray-50 dark:bg-black">
       {/* Top Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 h-14 bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800">
@@ -256,5 +257,6 @@ export default function DashboardLayout({
       </main>
 
     </div>
+    </AuthGuard>
   );
 }

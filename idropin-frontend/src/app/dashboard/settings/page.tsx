@@ -23,7 +23,7 @@ export default function SettingsPage() {
             onClick={() => setTheme('light')}
             className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
               theme === 'light' 
-                ? 'border-blue-500 bg-blue-50/50 text-blue-600' 
+                ? 'border-gray-900 bg-gray-50/50 text-gray-900 dark:border-white dark:bg-white/10 dark:text-white' 
                 : 'border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
             }`}
           >
@@ -34,7 +34,7 @@ export default function SettingsPage() {
             onClick={() => setTheme('dark')}
             className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
               theme === 'dark' 
-                ? 'border-blue-500 bg-blue-50/50 text-blue-600' 
+                ? 'border-gray-900 bg-gray-50/50 text-gray-900 dark:border-white dark:bg-white/10 dark:text-white' 
                 : 'border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
             }`}
           >
@@ -45,7 +45,7 @@ export default function SettingsPage() {
             onClick={() => setTheme('system')}
             className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
               theme === 'system' 
-                ? 'border-blue-500 bg-blue-50/50 text-blue-600' 
+                ? 'border-gray-900 bg-gray-50/50 text-gray-900 dark:border-white dark:bg-white/10 dark:text-white' 
                 : 'border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
             }`}
           >
@@ -73,7 +73,7 @@ export default function SettingsPage() {
                 checked={notifications}
                 onChange={(e) => setNotifications(e.target.checked)}
               />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 dark:peer-focus:ring-gray-700 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-gray-900 dark:peer-checked:bg-white"></div>
             </label>
           </div>
         </div>
@@ -97,7 +97,7 @@ export default function SettingsPage() {
                 checked={autoSave}
                 onChange={(e) => setAutoSave(e.target.checked)}
               />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 dark:peer-focus:ring-gray-700 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-gray-900 dark:peer-checked:bg-white"></div>
             </label>
           </div>
         </div>

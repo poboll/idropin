@@ -194,8 +194,8 @@ export default function TasksPage() {
                     onClick={() => setCollectionTypeFilter('FILE')}
                     className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 hover-lift ${
                       collectionTypeFilter === 'FILE'
-                        ? 'bg-blue-500 text-white shadow-md shadow-blue-500/30'
-                        : 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-800'
+                        ? 'bg-gray-900 text-white shadow-md shadow-gray-900/30'
+                        : 'bg-gray-50 dark:bg-gray-900/20 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-800'
                     }`}
                   >
                     <span className="text-base">📁</span>
@@ -203,7 +203,7 @@ export default function TasksPage() {
                     <span className={`px-1.5 py-0.5 rounded text-xs ${
                       collectionTypeFilter === 'FILE'
                         ? 'bg-white/20'
-                        : 'bg-blue-100 dark:bg-blue-800'
+                        : 'bg-gray-100 dark:bg-gray-800'
                     }`}>
                       {taskCounts.FILE}
                     </span>

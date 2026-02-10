@@ -1,9 +1,9 @@
 'use client'
 
 import { useStatistics } from '@/lib/hooks/useStatistics';
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatBytes } from '@/lib/utils';
-import { Loader2, RefreshCw, AlertCircle, FileText, HardDrive, Upload, Calendar } from 'lucide-react';
+import { RefreshCw, AlertCircle, FileText, HardDrive, Upload, Calendar } from 'lucide-react';
 
 export default function StatisticsPage() {
   const { statistics, loading, error, connected, refresh } = useStatistics();
@@ -50,7 +50,7 @@ export default function StatisticsPage() {
     );
   }
 
-  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+  const COLORS = ['#111827', '#374151', '#6b7280', '#9ca3af', '#d1d5db', '#4b5563', '#1f2937', '#e5e7eb'];
 
   return (
     <div className="space-y-6">
@@ -140,10 +140,10 @@ export default function StatisticsPage() {
               <Line
                 type="monotone"
                 dataKey="count"
-                stroke="#3b82f6"
+                stroke="#374151"
                 strokeWidth={2}
                 name="文件数"
-                dot={{ fill: '#3b82f6', strokeWidth: 2 }}
+                dot={{ fill: '#374151', strokeWidth: 2 }}
                 activeDot={{ r: 6 }}
               />
             </LineChart>
@@ -168,7 +168,7 @@ export default function StatisticsPage() {
                 fill="#8884d8"
                 dataKey="count"
               >
-                {statistics.fileTypeDistribution.map((entry, index) => (
+                {statistics.fileTypeDistribution.map((_, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
@@ -194,13 +194,23 @@ export default function StatisticsPage() {
         </div>
         {statistics.categoryStatistics && statistics.categoryStatistics.length > 0 ? (
           <ResponsiveContainer width="100%" height={400}>
-                <BarChart 
+                <BarChart
                   data={statistics.categoryStatistics}
-                  margin={{ top: 20, right: 50, left: 30, bottom: 80 }}
+                  margin={{ top: 20, right: 30, left: 30, bottom: 80 }}
                 >
+                  <defs>
+                    <linearGradient id="barGray" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#1f2937" stopOpacity={0.9} />
+                      <stop offset="100%" stopColor="#4b5563" stopOpacity={0.7} />
+                    </linearGradient>
+                    <linearGradient id="barGrayDark" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#e5e7eb" stopOpacity={0.9} />
+                      <stop offset="100%" stopColor="#9ca3af" stopOpacity={0.7} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" className="[&_line]:stroke-gray-200 dark:[&_line]:stroke-gray-700" vertical={false} />
-                  <XAxis 
-                    dataKey="categoryName" 
+                  <XAxis
+                    dataKey="categoryName"
                     tick={{ fontSize: 11 }}
                     className="[&_text]:fill-gray-500 dark:[&_text]:fill-gray-400"
                     angle={-25}
@@ -208,57 +218,38 @@ export default function StatisticsPage() {
                     height={90}
                     interval={0}
                   />
-                  <YAxis 
-                    yAxisId="left"
-                    tick={{ fontSize: 11 }} 
+                  <YAxis
+                    tick={{ fontSize: 11 }}
                     className="[&_text]:fill-gray-500 dark:[&_text]:fill-gray-400"
                     label={{ value: '文件数', angle: -90, position: 'insideLeft', fontSize: 11, offset: -5 }}
                     width={50}
                   />
-                  <YAxis 
-                    yAxisId="right"
-                    orientation="right"
-                    tick={{ fontSize: 11 }} 
-                    className="[&_text]:fill-gray-500 dark:[&_text]:fill-gray-400"
-                    label={{ value: '存储大小', angle: 90, position: 'insideRight', fontSize: 11, offset: -5 }}
-                    tickFormatter={(value) => formatBytes(value)}
-                    width={70}
-                  />
-                  <Tooltip 
-                    formatter={(value, name) => {
-                      if (name === '存储大小') {
-                        return [formatBytes(Number(value)), name];
+                  <Tooltip
+                    formatter={(value, name, props) => {
+                      if (name === '文件数') {
+                        const storage = props.payload?.storageSize;
+                        return [`${value} 个（占用 ${formatBytes(storage || 0)}）`, name];
                       }
                       return [value, name];
                     }}
-                    contentStyle={{ 
-                      backgroundColor: 'var(--tooltip-bg, #fff)', 
+                    contentStyle={{
+                      backgroundColor: 'var(--tooltip-bg, #fff)',
                       border: '1px solid var(--tooltip-border, #e5e5e5)',
                       borderRadius: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
                       color: 'var(--tooltip-text, #171717)',
-                    }} 
+                      padding: '8px 12px',
+                    }}
                     wrapperClassName="[&]:!border-0 [--tooltip-bg:theme(colors.white)] dark:[--tooltip-bg:theme(colors.gray.900)] [--tooltip-border:theme(colors.gray.200)] dark:[--tooltip-border:theme(colors.gray.700)] [--tooltip-text:theme(colors.gray.900)] dark:[--tooltip-text:theme(colors.gray.100)]"
+                    cursor={{ fill: 'rgba(0, 0, 0, 0.04)' }}
                   />
-                  <Legend 
-                    wrapperStyle={{ paddingTop: '20px' }}
-                    iconType="rect"
-                  />
-                  <Bar 
-                    yAxisId="left"
-                    dataKey="fileCount" 
-                    fill="#3b82f6" 
-                    name="文件数" 
+                  <Bar
+                    dataKey="fileCount"
+                    fill="url(#barGray)"
+                    name="文件数"
                     radius={[6, 6, 0, 0]}
-                    maxBarSize={45}
-                  />
-                  <Bar 
-                    yAxisId="right"
-                    dataKey="storageSize" 
-                    fill="#10b981" 
-                    name="存储大小" 
-                    radius={[6, 6, 0, 0]}
-                    maxBarSize={45}
+                    maxBarSize={50}
+                    className="dark:fill-[url(#barGrayDark)]"
                   />
                 </BarChart>
               </ResponsiveContainer>

@@ -30,12 +30,12 @@ export default function SharesPage() {
         </div>
 
         {/* Info Banner */}
-        <div className="card p-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 animate-slide-in-up">
+        <div className="card p-4 bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800 animate-slide-in-up">
           <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-blue-900 dark:text-blue-100">
+            <Info className="w-5 h-5 text-gray-600 dark:text-gray-400 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-gray-900 dark:text-gray-100">
               <p className="font-medium mb-1">如何创建分享？</p>
-              <p className="text-blue-700 dark:text-blue-300">
+              <p className="text-gray-700 dark:text-gray-300">
                 前往&ldquo;文件管理&rdquo;页面，在文件列表中找到要分享的文件，点击&ldquo;分享&rdquo;按钮即可创建分享链接。
               </p>
             </div>

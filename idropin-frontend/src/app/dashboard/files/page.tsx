@@ -27,6 +27,7 @@ import {
   FolderOpen
 } from 'lucide-react';
 import { AuthGuard } from '@/components/auth';
+import { apiClient } from '@/lib/api/client';
 import { useCategoryStore } from '@/lib/stores/category';
 import { useTaskStore } from '@/lib/stores/task';
 import { formatDate, formatSize, getFileSuffix } from '@/lib/utils/string';
@@ -51,7 +52,7 @@ interface FileRecord {
 
 // 飞书风格的任务颜色配置
 const TASK_COLORS = [
-  { bg: 'bg-blue-50 dark:bg-blue-900/20', text: 'text-blue-700 dark:text-blue-300', border: 'border-blue-200 dark:border-blue-800' },
+  { bg: 'bg-gray-50 dark:bg-gray-900/20', text: 'text-gray-700 dark:text-gray-300', border: 'border-gray-200 dark:border-gray-800' },
   { bg: 'bg-green-50 dark:bg-green-900/20', text: 'text-green-700 dark:text-green-300', border: 'border-green-200 dark:border-green-800' },
   { bg: 'bg-purple-50 dark:bg-purple-900/20', text: 'text-purple-700 dark:text-purple-300', border: 'border-purple-200 dark:border-purple-800' },
   { bg: 'bg-orange-50 dark:bg-orange-900/20', text: 'text-orange-700 dark:text-orange-300', border: 'border-orange-200 dark:border-orange-800' },
@@ -117,7 +118,9 @@ function FilesPageContent() {
       const { getAllUserTaskSubmissions } = await import('@/lib/api/tasks');
       const submissions = await getAllUserTaskSubmissions();
 
-      const apiFiles: FileRecord[] = submissions.map((s: any, index: number) => ({
+      const apiFiles: FileRecord[] = submissions
+        .filter((s: any) => s.fileId)
+        .map((s: any, index: number) => ({
         id: `submission-${s.id || index}`,
         date: s.submittedAt || new Date().toISOString(),
         task_key: s.taskId,
@@ -256,6 +259,30 @@ function FilesPageContent() {
     }
   };
 
+  const handleBatchDownload = async () => {
+    const selected = files.filter(f => selectedItems.includes(f.id) && f.fileId);
+    if (selected.length === 0) {
+      alert('没有可下载的文件');
+      return;
+    }
+    for (const file of selected) {
+      try {
+        const response = await apiClient.get(`/files/${file.fileId}/download`, { responseType: 'blob' });
+        const blob = new Blob([response.data]);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.origin_name || file.name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error(`下载 ${file.name} 失败`, err);
+      }
+    }
+  };
+
   const handleDeleteOne = (file: FileRecord) => {
     if (confirm('确定删除此文件吗？')) {
       setFiles(prev => prev.filter(f => f.id !== file.id));
@@ -281,9 +308,27 @@ function FilesPageContent() {
     setActiveModal('info');
   };
 
-  const handleDownload = (file: FileRecord) => {
-    setCurrentFile(file);
-    setActiveModal('download');
+  const handleDownload = async (file: FileRecord) => {
+    if (!file.fileId) {
+      setCurrentFile(file);
+      setActiveModal('download');
+      return;
+    }
+    try {
+      const response = await apiClient.get(`/files/${file.fileId}/download`, { responseType: 'blob' });
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.origin_name || file.name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('下载失败', err);
+      alert('下载失败，请重试');
+    }
   };
 
   const handleShare = (file: FileRecord) => {
@@ -325,6 +370,30 @@ function FilesPageContent() {
     return `${color.bg} ${color.text} ${color.border}`;
   };
 
+  const handleExportCSV = () => {
+    const headers = ['文件名', '原始文件名', '任务', '大小', '提交人', '提交时间'];
+    const rows = filteredFiles.map(f => [
+      f.name,
+      f.origin_name || f.name,
+      f.task_name,
+      f.size === 0 ? '-' : formatSize(f.size),
+      f.people || '-',
+      formatDate(new Date(f.date)),
+    ]);
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `文件记录_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -333,22 +402,32 @@ function FilesPageContent() {
           <h1 className="page-title">文件管理</h1>
           <p className="page-description">管理和查看所有收集的文件</p>
         </div>
-        <button
-          onClick={loadFiles}
-          disabled={isLoading}
-          className="btn-secondary"
-        >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          刷新
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportCSV}
+            disabled={files.length === 0}
+            className="btn-secondary"
+          >
+            <Download className="w-4 h-4" />
+            导出
+          </button>
+          <button
+            onClick={loadFiles}
+            disabled={isLoading}
+            className="btn-secondary"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            刷新
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards - Vercel+Apple 风格 */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="card p-5 hover-lift animate-slide-in-up" style={{ animationDelay: '0ms' }}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center transition-transform hover:scale-110">
-              <FileIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center transition-transform hover:scale-110">
+              <FileIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </div>
             <div>
               <div className="text-sm text-gray-500 dark:text-gray-400">总文件数</div>
@@ -442,6 +521,13 @@ function FilesPageContent() {
               className="btn-ghost btn-sm"
             >
               取消选择
+            </button>
+            <button
+              onClick={handleBatchDownload}
+              className="btn-secondary btn-sm"
+            >
+              <Download className="w-3.5 h-3.5" />
+              下载
             </button>
             <button
               onClick={handleBatchDelete}
@@ -569,9 +655,16 @@ function FilesPageContent() {
                             <FileIcon className="w-4 h-4 text-gray-400" />
                           </div>
                         )}
-                        <span className="truncate max-w-[200px] font-medium" title={file.name}>
-                          {file.name}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className="truncate max-w-[200px] font-medium" title={file.name}>
+                            {file.name}
+                          </span>
+                          {file.origin_name && file.origin_name !== file.name && (
+                            <span className="truncate max-w-[200px] text-xs text-gray-400 dark:text-gray-500" title={file.origin_name}>
+                              原始: {file.origin_name}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td>
@@ -583,10 +676,10 @@ function FilesPageContent() {
                     <td className="text-gray-500 dark:text-gray-400">
                       {file.size === 0 ? '-' : formatSize(file.size)}
                     </td>
-                    <td>
+                      <td>
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                          <User className="w-3 h-3 text-gray-500" />
+                        <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-400">
+                          {file.people?.[0]?.toUpperCase() || '-'}
                         </div>
                         <span className="text-gray-700 dark:text-gray-300">{file.people || '-'}</span>
                       </div>
@@ -609,7 +702,7 @@ function FilesPageContent() {
                         <button
                           onClick={() => handleShare(file)}
                           disabled={!file.fileId}
-                          className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          className="p-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                           title="分享"
                         >
                           <Share2 className="w-4 h-4" />
@@ -695,10 +788,21 @@ function FilesPageContent() {
               </button>
             </div>
             <div className="modal-body space-y-4">
+              {currentFile.cover && (
+                <div className="relative w-full h-48 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+                  <Image src={currentFile.cover} alt="" fill className="object-contain" />
+                </div>
+              )}
               <div>
                 <label className="form-label">文件名</label>
                 <p className="text-gray-900 dark:text-white">{currentFile.name}</p>
               </div>
+              {currentFile.origin_name && currentFile.origin_name !== currentFile.name && (
+                <div>
+                  <label className="form-label">原始文件名</label>
+                  <p className="text-gray-900 dark:text-white">{currentFile.origin_name}</p>
+                </div>
+              )}
               <div>
                 <label className="form-label">任务</label>
                 <span className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-lg border ${getTaskBadgeStyle(currentFile.task_key)}`}>
@@ -713,6 +817,12 @@ function FilesPageContent() {
                 <label className="form-label">提交人</label>
                 <p className="text-gray-900 dark:text-white">{currentFile.people || '-'}</p>
               </div>
+              {currentFile.mimeType && (
+                <div>
+                  <label className="form-label">文件类型</label>
+                  <p className="text-gray-900 dark:text-white">{currentFile.mimeType}</p>
+                </div>
+              )}
               <div>
                 <label className="form-label">提交时间</label>
                 <p className="text-gray-900 dark:text-white">{formatDate(new Date(currentFile.date))}</p>
@@ -780,25 +890,46 @@ function FilesPageContent() {
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                 文件: {currentFile.name}
               </p>
-              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm text-gray-600 dark:text-gray-400 break-all">
-                https://example.com/download/{currentFile.id}
-              </div>
+              {currentFile.fileId ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  点击下方按钮直接下载文件
+                </p>
+              ) : (
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                  该提交记录没有关联文件，无法下载
+                </p>
+              )}
             </div>
             <div className="modal-footer">
-              <button
-                onClick={() => copyRes(`https://example.com/download/${currentFile.id}`)}
-                className="btn-secondary"
-              >
-                <Copy className="w-4 h-4" />
-                复制链接
+              <button onClick={() => setActiveModal(null)} className="btn-secondary">
+                关闭
               </button>
-              <button
-                onClick={() => window.open(`https://example.com/download/${currentFile.id}`, '_blank')}
-                className="btn-primary"
-              >
-                <ExternalLink className="w-4 h-4" />
-                打开下载
-              </button>
+              {currentFile.fileId && (
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await apiClient.get(`/files/${currentFile.fileId}/download`, { responseType: 'blob' });
+                      const blob = new Blob([response.data]);
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = currentFile.origin_name || currentFile.name;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                      window.URL.revokeObjectURL(url);
+                      setActiveModal(null);
+                    } catch (err) {
+                      console.error('下载失败', err);
+                      alert('下载失败，请重试');
+                    }
+                  }}
+                  className="btn-primary"
+                >
+                  <Download className="w-4 h-4" />
+                  下载
+                </button>
+              )}
             </div>
           </div>
         </div>
