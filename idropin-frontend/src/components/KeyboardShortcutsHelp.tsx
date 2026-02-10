@@ -40,7 +40,7 @@ export default function KeyboardShortcutsHelp({
           {/* 标题栏 */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3">
-              <Keyboard className="h-6 w-6 text-blue-600" />
+              <Keyboard className="h-6 w-6 text-gray-900 dark:text-white" />
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                 键盘快捷键
               </h2>
@@ -63,7 +63,7 @@ export default function KeyboardShortcutsHelp({
                   className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
                 >
                   <div className="flex items-center gap-3">
-                    <Info className="h-4 w-4 text-blue-600" />
+                    <Info className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                     <span className="text-sm font-medium text-gray-900 dark:text-white">
                       {shortcut.description}
                     </span>
@@ -83,9 +83,9 @@ export default function KeyboardShortcutsHelp({
             </div>
 
             {/* 提示信息 */}
-            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                💡 提示：按 <kbd className="px-2 py-1 bg-white dark:bg-gray-600 border border-blue-300 dark:border-blue-500 rounded text-xs font-mono font-semibold text-blue-900 dark:text-blue-200 shadow-sm">Esc</kbd> 键可关闭此窗口
+            <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                💡 提示：按 <kbd className="px-2 py-1 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded text-xs font-mono font-semibold text-gray-900 dark:text-gray-200 shadow-sm">Esc</kbd> 键可关闭此窗口
               </p>
             </div>
           </div>

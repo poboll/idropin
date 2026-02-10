@@ -94,6 +94,18 @@ export async function updateFeedbackStatus(id: string, status: string): Promise<
   await apiClient.put(`/feedback/${id}/status`, { status });
 }
 
+export async function deleteFeedback(id: string): Promise<void> {
+  await apiClient.delete(`/feedback/${id}`);
+}
+
+export async function editFeedback(id: string, data: {
+  title: string;
+  content: string;
+  contact?: string;
+}): Promise<void> {
+  await apiClient.put(`/feedback/${id}`, data);
+}
+
 /**
  * 获取状态显示文本
  */
@@ -113,7 +125,7 @@ export function getStatusText(status: string): string {
 export function getStatusClass(status: string): string {
   const classMap: Record<string, string> = {
     pending: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-    in_progress: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    in_progress: 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
     resolved: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
     closed: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
   };

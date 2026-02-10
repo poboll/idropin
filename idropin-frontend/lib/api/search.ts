@@ -44,8 +44,16 @@ export interface SearchResult {
  * 搜索文件
  */
 export async function searchFiles(request: SearchRequest): Promise<SearchResult> {
-  const response = await apiClient.post('/search', request);
-  return response.data;
+  const response = await apiClient.post('/search', request, {
+    transformResponse: [(data) => {
+      try { return JSON.parse(data); } catch { return data; }
+    }],
+  });
+  const body = response.data;
+  if (body && body.code !== undefined && body.data) {
+    return body.data;
+  }
+  return body;
 }
 
 /**

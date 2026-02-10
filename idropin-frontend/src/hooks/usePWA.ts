@@ -48,6 +48,11 @@ export function usePWA() {
 
   // 注册Service Worker
   useEffect(() => {
+    // Dev mode: don't register SW. It can cache old chunks and cause hydration mismatch / stale UI.
+    if (process.env.NODE_ENV !== 'production') {
+      return;
+    }
+
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker
         .register('/sw.js')
