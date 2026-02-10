@@ -526,15 +526,15 @@ export default function TaskSubmissionPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50/80 to-white dark:from-gray-950 dark:to-black">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-white/70 dark:bg-black/70 backdrop-blur-2xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] dark:shadow-none">
-        <div className="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
+      <header className="sticky top-0 z-40 bg-white/80 dark:bg-black/80 backdrop-blur-2xl border-b border-gray-100/60 dark:border-gray-800/40">
+        <div className="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 active:scale-[0.98] transition-all duration-200">
-            <div className="relative h-10 w-32">
+            <div className="relative h-9 w-28">
               <Image
                 src="https://pic.imgdb.cn/item/668cd877d9c307b7e99e9061.png"
                 alt="IdropIn"
                 fill
-                sizes="128px"
+                sizes="112px"
                 className="object-contain"
                 priority
               />
@@ -544,7 +544,7 @@ export default function TaskSubmissionPage() {
             href="https://idrop.caiths.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-gray-800/50 rounded-full transition-all duration-200"
+            className="px-4 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-gray-800/50 rounded-full transition-all duration-200 border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
           >
             我也要收集 →
           </a>
@@ -553,26 +553,28 @@ export default function TaskSubmissionPage() {
 
       <main className="max-w-3xl mx-auto px-6 py-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
         {/* Task Title Card */}
-        <div className="bg-white/90 dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-100 dark:border-gray-800/50 p-10 mb-8 shadow-sm hover:shadow-md transition-shadow duration-300">
-          <div className="flex items-start justify-between gap-4 mb-5">
+        <div className="relative bg-white/90 dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-100 dark:border-gray-800/50 p-10 mb-8 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-bl from-gray-100/40 dark:from-gray-800/20 to-transparent rounded-bl-full pointer-events-none" />
+          
+          <div className="relative flex items-start justify-between gap-4 mb-5">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-4 flex-wrap">
-                <h1 className="text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">
+                <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white leading-tight">
                   {taskInfo.name}
                 </h1>
                 {taskInfo.collectionType && (
-                  <span className={`px-3 py-1 text-xs font-semibold rounded-full tracking-wide ${
+                  <span className={`px-3 py-1 text-[11px] font-semibold rounded-full tracking-wide uppercase ${
                     taskInfo.collectionType === 'FILE'
-                      ? 'bg-blue-100/80 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300'
-                      : 'bg-emerald-100/80 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                      ? 'bg-gray-100/80 dark:bg-gray-500/20 text-gray-600 dark:text-gray-400'
+                      : 'bg-emerald-50/80 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
                   }`}>
-                    {taskInfo.collectionType === 'FILE' ? '📁 收集文件' : '📝 收集信息'}
+                    {taskInfo.collectionType === 'FILE' ? '收集文件' : '收集信息'}
                   </span>
                 )}
               </div>
               
               {taskInfo.description && taskInfo.description.trim() && (
-                <p className="text-gray-600 dark:text-gray-400 text-base leading-relaxed whitespace-pre-wrap">
+                <p className="text-gray-500 dark:text-gray-400 text-[15px] leading-relaxed whitespace-pre-wrap max-w-2xl">
                   {taskInfo.description}
                 </p>
               )}
@@ -580,7 +582,7 @@ export default function TaskSubmissionPage() {
           </div>
           
           {/* Task Meta Info */}
-          <div className="flex flex-wrap gap-8 pt-6 border-t border-gray-100/80 dark:border-gray-800/50">
+          <div className="relative flex flex-wrap gap-8 pt-6 border-t border-gray-100/80 dark:border-gray-800/50">
             {taskInfo.creatorName && (
               <div className="flex items-center gap-3 group">
                 {taskInfo.creatorAvatarUrl ? (
@@ -615,8 +617,8 @@ export default function TaskSubmissionPage() {
             )}
             {taskMoreInfo.people && (
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                 </div>
                 <div>
                   <p className="text-[11px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-medium">验证方式</p>
@@ -646,24 +648,29 @@ export default function TaskSubmissionPage() {
 
         {/* Deadline Countdown */}
         {ddlStr && (
-          <div className="bg-white/90 dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-100 dark:border-gray-800/50 p-5 mb-8">
+          <div className="bg-white/90 dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-100 dark:border-gray-800/50 p-6 mb-8 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Clock className="w-5 h-5 text-gray-400" />
+                <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
+                  <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                </div>
                 <span className="text-sm font-medium text-gray-600 dark:text-gray-400">截止时间</span>
               </div>
-              <span className="font-semibold text-gray-900 dark:text-white">{ddlStr}</span>
+              <span className="font-semibold text-gray-900 dark:text-white text-sm">{ddlStr}</span>
             </div>
             {!isOver && (
               <div className="mt-4 pt-4 border-t border-gray-100/80 dark:border-gray-800/50">
                 <div className="text-center">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400 tabular-nums">{waitTimeStr()}</span>
+                  <span className="text-sm font-mono font-semibold text-gray-700 dark:text-gray-300 tabular-nums tracking-wider">{waitTimeStr()}</span>
                 </div>
               </div>
             )}
             {isOver && (
               <div className="mt-5 text-center py-10">
-                <p className="text-gray-500 dark:text-gray-400 font-medium">任务已结束，无法继续提交</p>
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-full">
+                  <AlertCircle className="w-4 h-4 text-gray-400" />
+                  <p className="text-gray-500 dark:text-gray-400 font-medium text-sm">任务已结束，无法继续提交</p>
+                </div>
               </div>
             )}
           </div>
@@ -671,23 +678,23 @@ export default function TaskSubmissionPage() {
 
         {/* Tips Section */}
         {(tipData.text || tipData.imgs.length > 0) && (!ddlStr || !isOver) && (
-          <div className="bg-amber-50/60 dark:bg-amber-950/15 backdrop-blur-sm rounded-2xl border border-amber-200/40 dark:border-amber-900/20 p-6 mb-8">
+          <div className="bg-amber-50/50 dark:bg-amber-950/10 backdrop-blur-sm rounded-2xl border border-amber-200/30 dark:border-amber-900/15 p-6 mb-8">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <div className="w-7 h-7 rounded-full bg-amber-100/80 dark:bg-amber-900/25 flex items-center justify-center">
+                <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
               </div>
-              <span className="text-sm font-semibold text-amber-800 dark:text-amber-300">注意事项</span>
+              <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider">注意事项</span>
             </div>
             
             {tipData.text && (
-              <p className="text-sm text-amber-900/70 dark:text-amber-200/70 whitespace-pre-wrap leading-relaxed">
+              <p className="text-sm text-amber-800/60 dark:text-amber-300/60 whitespace-pre-wrap leading-relaxed">
                 {tipData.text}
               </p>
             )}
             
             {tipData.imgs && tipData.imgs.length > 0 && (
               <div className="mt-5">
-                <p className="text-xs text-amber-700/60 dark:text-amber-400/60 mb-3 font-medium uppercase tracking-wider">批注图片</p>
+                <p className="text-[10px] text-amber-600/50 dark:text-amber-400/50 mb-3 font-semibold uppercase tracking-widest">参考图片</p>
                 <div className="flex flex-wrap justify-center gap-4">
                   {tipData.imgs.map((img, index) => (
                     <div 
@@ -743,12 +750,12 @@ export default function TaskSubmissionPage() {
             )}
 
             {/* Form Section */}
-            <div className="bg-white/90 dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-100 dark:border-gray-800/50 p-8 mb-8 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
+            <div className="bg-white/90 dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-100 dark:border-gray-800/50 p-8 mb-8 shadow-sm hover:shadow-md transition-shadow duration-300">
+              <div className="flex items-center gap-3 mb-7">
                 <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                   <FileText className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                 </div>
-                <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">必要信息</span>
+                <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 tracking-wide">必要信息</span>
               </div>
 
               {showValidForm && (
@@ -782,12 +789,12 @@ export default function TaskSubmissionPage() {
 
             {/* Upload Section */}
             {taskInfo.collectionType === 'FILE' && (
-              <div className="bg-white/90 dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-100 dark:border-gray-800/50 p-8 mb-8 shadow-sm">
-                <div className="flex items-center gap-3 mb-6">
+              <div className="bg-white/90 dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-100 dark:border-gray-800/50 p-8 mb-8 shadow-sm hover:shadow-md transition-shadow duration-300">
+                <div className="flex items-center gap-3 mb-7">
                   <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                     <Upload className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                   </div>
-                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">文件上传</span>
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 tracking-wide">文件上传</span>
                 </div>
 
                 <SubmissionUploader
@@ -817,12 +824,12 @@ export default function TaskSubmissionPage() {
             )}
 
             {/* Action Buttons */}
-            <div className="flex flex-wrap gap-4 justify-center mb-8">
+            <div className="flex flex-wrap gap-3 justify-center mb-8">
               {isWithdrawMode ? (
                 <button
                   onClick={handleWithdraw}
                   disabled={!allowWithdraw || isSubmitting}
-                  className="px-8 py-3.5 bg-gradient-to-b from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-sm font-semibold rounded-xl
+                  className="px-8 py-3 bg-gradient-to-b from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-sm font-semibold rounded-xl
                     disabled:opacity-50 disabled:cursor-not-allowed disabled:from-orange-400 disabled:to-orange-500
                     flex items-center gap-2.5 transition-all duration-200 shadow-lg shadow-orange-500/20 hover:shadow-xl hover:shadow-orange-500/30 hover:scale-[1.02] active:scale-[0.98]"
                 >
@@ -841,8 +848,8 @@ export default function TaskSubmissionPage() {
                       (taskInfo.collectionType === 'FILE' ? !allowUpload : false) || 
                       isSubmitting
                     }
-                    className="px-8 py-3.5 bg-gradient-to-b from-gray-800 to-gray-900 dark:from-white dark:to-gray-100 
-                      hover:from-gray-900 hover:to-black dark:hover:from-gray-100 dark:hover:to-gray-200
+                    className="px-8 py-3 bg-gray-900 dark:bg-white 
+                      hover:bg-black dark:hover:bg-gray-100
                       text-white dark:text-gray-900 text-sm font-semibold rounded-xl
                       disabled:opacity-50 disabled:cursor-not-allowed
                       flex items-center gap-2.5 transition-all duration-200 
@@ -861,34 +868,34 @@ export default function TaskSubmissionPage() {
               )}
               <button
                 onClick={handleCheckStatus}
-                className="px-6 py-3.5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-gray-50 dark:hover:bg-gray-700
+                className="px-6 py-3 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-gray-50 dark:hover:bg-gray-700
                   text-gray-700 dark:text-gray-300 text-sm font-semibold rounded-xl
                   border border-gray-200/80 dark:border-gray-700/50
-                  flex items-center gap-2.5 transition-all duration-200
+                  flex items-center gap-2 transition-all duration-200
                   hover:border-gray-300 dark:hover:border-gray-600 hover:scale-[1.02] active:scale-[0.98]"
               >
-                🔍 查询提交情况
+                查询提交情况
               </button>
             </div>
 
             {/* Help Tips */}
-            <div className="bg-gray-50/60 dark:bg-gray-900/30 backdrop-blur-sm rounded-2xl border border-gray-100 dark:border-gray-800/50 p-6 mb-8">
-              <div className="text-sm text-gray-600 dark:text-gray-400 space-y-2.5 leading-relaxed">
+            <div className="bg-gray-50/50 dark:bg-gray-900/30 backdrop-blur-sm rounded-2xl border border-gray-100/80 dark:border-gray-800/40 p-6 mb-8">
+              <div className="text-sm text-gray-500 dark:text-gray-400 space-y-2 leading-relaxed">
                 {isWithdrawMode ? (
                   <>
-                    <p className="font-semibold text-gray-800 dark:text-gray-200 mb-3">撤回说明</p>
-                    <p className="flex items-start gap-2"><span className="text-gray-400">①</span> 须保证选择的文件与提交时的文件一致</p>
-                    <p className="flex items-start gap-2"><span className="text-gray-400">②</span> 填写表单信息一致</p>
-                    <p className="flex items-start gap-2"><span className="text-gray-400">③</span> 完全一模一样的文件的提交记录将会一次性全部撤回</p>
+                    <p className="font-semibold text-gray-700 dark:text-gray-300 text-xs uppercase tracking-wider mb-3">撤回说明</p>
+                    <p className="flex items-start gap-2.5"><span className="text-gray-300 dark:text-gray-600 font-mono text-xs mt-0.5">01</span> 须保证选择的文件与提交时的文件一致</p>
+                    <p className="flex items-start gap-2.5"><span className="text-gray-300 dark:text-gray-600 font-mono text-xs mt-0.5">02</span> 填写表单信息一致</p>
+                    <p className="flex items-start gap-2.5"><span className="text-gray-300 dark:text-gray-600 font-mono text-xs mt-0.5">03</span> 完全一模一样的文件的提交记录将会一次性全部撤回</p>
                   </>
                 ) : (
                   <>
-                    <p className="font-semibold text-gray-800 dark:text-gray-200 mb-3">温馨提示</p>
-                    <p className="flex items-start gap-2"><span className="text-gray-400">•</span> 查询提交情况，需填写和提交时一样的表单信息</p>
-                    <p className="flex items-start gap-2"><span className="text-gray-400">①</span> 选择完文件，点击「提交文件」即可</p>
-                    <p className="flex items-start gap-2"><span className="text-gray-400">②</span> 选择大文件后需要等待一会儿才展示处理</p>
+                    <p className="font-semibold text-gray-700 dark:text-gray-300 text-xs uppercase tracking-wider mb-3">温馨提示</p>
+                    <p className="flex items-start gap-2.5"><span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600 mt-2 flex-shrink-0" /> 查询提交情况，需填写和提交时一样的表单信息</p>
+                    <p className="flex items-start gap-2.5"><span className="text-gray-300 dark:text-gray-600 font-mono text-xs mt-0.5">01</span> 选择完文件，点击「提交文件」即可</p>
+                    <p className="flex items-start gap-2.5"><span className="text-gray-300 dark:text-gray-600 font-mono text-xs mt-0.5">02</span> 选择大文件后需要等待一会儿才展示处理</p>
                     {taskMoreInfo.template && !disabledUpload && (
-                      <p className="flex items-start gap-2"><span className="text-gray-400">③</span> 右下角可「查看提交示例」</p>
+                      <p className="flex items-start gap-2.5"><span className="text-gray-300 dark:text-gray-600 font-mono text-xs mt-0.5">03</span> 右下角可「查看提交示例」</p>
                     )}
                   </>
                 )}
@@ -896,29 +903,29 @@ export default function TaskSubmissionPage() {
             </div>
 
             {/* Bottom Actions */}
-            <div className="flex justify-end gap-5">
+            <div className="flex justify-end gap-6 items-center">
               {taskMoreInfo.template && !disabledUpload && (
                 <button
                   onClick={handleDownloadTemplate}
-                  className="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 
-                    flex items-center gap-2 transition-all duration-200 hover:gap-2.5"
+                  className="text-sm font-medium text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 
+                    flex items-center gap-2 transition-all duration-200 group"
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className="w-3.5 h-3.5 group-hover:translate-y-0.5 transition-transform" />
                   查看提交示例
                 </button>
               )}
               <button
                 onClick={() => setIsWithdrawMode(!isWithdrawMode)}
-                className="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-all duration-200"
+                className="text-sm font-medium text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-all duration-200"
               >
-                {isWithdrawMode ? '✏️ 正常提交' : '↩️ 我要撤回'}
+                {isWithdrawMode ? '返回正常提交' : '我要撤回'}
               </button>
             </div>
           </>
         )}
       </main>
 
-      <div className="py-12">
+      <div className="py-16 border-t border-gray-100/50 dark:border-gray-800/30">
         <HomeFooter type="simple" />
       </div>
 

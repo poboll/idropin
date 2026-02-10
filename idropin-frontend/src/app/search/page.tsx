@@ -132,7 +132,7 @@ export default function SearchPage() {
               onChange={(e) => setKeyword(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
               placeholder="输入关键字搜索文件..."
-              className="w-full px-4 py-3 pl-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              className="w-full px-4 py-3 pl-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
             />
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
           </div>
@@ -146,7 +146,7 @@ export default function SearchPage() {
                   <button
                     key={index}
                     onClick={() => setKeyword(suggestion)}
-                    className="px-3 py-1 bg-white dark:bg-gray-600 rounded-full text-sm text-gray-700 dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors"
+                    className="px-3 py-1 bg-white dark:bg-gray-600 rounded-full text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   >
                     {suggestion}
                   </button>
@@ -160,7 +160,7 @@ export default function SearchPage() {
             <button
               onClick={handleSearch}
               disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors flex items-center gap-2"
+              className="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 disabled:bg-gray-400 transition-colors flex items-center gap-2"
             >
               <Search className="h-4 w-4" />
               搜索
@@ -289,7 +289,7 @@ export default function SearchPage() {
         {/* 搜索结果 */}
         {loading && (
           <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white"></div>
             <p className="mt-4 text-gray-600 dark:text-gray-400">搜索中...</p>
           </div>
         )}
@@ -300,7 +300,7 @@ export default function SearchPage() {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
               <div className="flex items-center justify-between">
                 <div className="text-gray-700 dark:text-gray-300">
-                  找到 <span className="font-bold text-blue-600">{searchResult.total}</span> 个结果
+                  找到 <span className="font-bold text-gray-900 dark:text-white">{searchResult.total}</span> 个结果
                   {searchResult.duration > 0 && (
                     <span className="ml-4 text-sm text-gray-500">
                       耗时 {searchResult.duration}ms
@@ -352,7 +352,7 @@ export default function SearchPage() {
                           {file.tags.map((tag, index) => (
                             <span
                               key={index}
-                              className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-xs"
+                              className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded text-xs"
                             >
                               {tag}
                             </span>
@@ -367,7 +367,7 @@ export default function SearchPage() {
                         href={file.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-1 text-sm"
+                        className="flex-1 px-3 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-1 text-sm"
                       >
                         <Download className="h-4 w-4" />
                         下载

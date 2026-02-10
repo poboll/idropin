@@ -365,12 +365,15 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-4 text-center">
-            <Link 
-              href="/feedback" 
-              className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 transition-colors"
-            >
-              遇到问题？反馈给我们
-            </Link>
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              遇到问题？请登录后点击右上角铃铛，在通知中提交反馈。或发邮件到{' '}
+              <a
+                href="mailto:i@caiths.com"
+                className="hover:text-gray-600 dark:hover:text-gray-400 transition-colors"
+              >
+                i@caiths.com
+              </a>
+            </p>
           </div>
         </div>
       </main>

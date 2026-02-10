@@ -34,19 +34,19 @@ export default function NotFound() {
           </p>
           <ul className="text-slate-500 dark:text-slate-400 text-sm space-y-2 text-left">
             <li className="flex items-start gap-2">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 flex-shrink-0" />
+              <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full mt-1.5 flex-shrink-0" />
               检查网址是否输入正确
             </li>
             <li className="flex items-start gap-2">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 flex-shrink-0" />
+              <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full mt-1.5 flex-shrink-0" />
               返回首页重新导航
             </li>
             <li className="flex items-start gap-2">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 flex-shrink-0" />
+              <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full mt-1.5 flex-shrink-0" />
               使用搜索功能查找内容
             </li>
             <li className="flex items-start gap-2">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 flex-shrink-0" />
+              <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full mt-1.5 flex-shrink-0" />
               如有问题请联系客服
             </li>
           </ul>
@@ -63,7 +63,7 @@ export default function NotFound() {
           
           <Link
             href="/"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 transition-colors"
           >
             <Home className="w-5 h-5" />
             返回首页
@@ -73,7 +73,7 @@ export default function NotFound() {
         <div className="mt-8 pt-8 border-t border-slate-200 dark:border-slate-700">
           <Link
             href="/dashboard/search"
-            className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors text-sm"
+            className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors text-sm"
           >
             <Search className="w-4 h-4" />
             使用搜索功能查找内容

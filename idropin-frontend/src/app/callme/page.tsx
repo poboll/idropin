@@ -39,7 +39,7 @@ function ContactContent() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-950 py-12 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-xl shadow-black/5 dark:shadow-black/20 border border-white/50 dark:border-slate-700/50 p-8 md:p-12">
           <h1 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-8">
@@ -91,7 +91,7 @@ function ContactContent() {
             <div>
               <Link 
                 href="/"
-                className="text-blue-600 hover:text-blue-700 font-medium hover:underline"
+                className="text-gray-900 hover:text-gray-700 dark:text-white dark:hover:text-gray-300 font-medium hover:underline"
               >
                 回到首页
               </Link>
