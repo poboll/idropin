@@ -42,8 +42,8 @@ export default function HomeFooter({ type = 'default' }: HomeFooterProps) {
             <Link href="/contact" className="hover:text-blue-600 transition-colors">
               联系作者
             </Link>
-            <Link href="/feedback" className="hover:text-blue-600 transition-colors">
-              意见反馈
+            <Link href="/dashboard" className="hover:text-blue-600 transition-colors">
+              通知
             </Link>
             <a href="https://github.com/your-org/idropin" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition-colors">
               GitHub

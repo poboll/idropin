@@ -15,10 +15,10 @@ export function MessageButton({ className }: MessageButtonProps) {
 
   useEffect(() => {
     fetchUnreadCount();
-    // 每30秒刷新一次未读数量
     const interval = setInterval(fetchUnreadCount, 30000);
     return () => clearInterval(interval);
-  }, [fetchUnreadCount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>

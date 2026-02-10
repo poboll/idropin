@@ -23,7 +23,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
       const request: SearchRequest = {
         keyword: keyword.trim(),
         ...filters,
-        page: 0,
+        page: 1,
         size: 20,
       };
       const results = await searchFiles(request);

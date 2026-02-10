@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { RefreshCw } from 'lucide-react';
 
 interface HitokotoData {
@@ -9,46 +9,55 @@ interface HitokotoData {
   origin: string;
 }
 
+const FALLBACK: HitokotoData = {
+  content: '生活明朗，万物可爱',
+  name: '佚名',
+  origin: '默认',
+};
+
 export function HitokotoDisplay() {
   const [hitokoto, setHitokoto] = useState<HitokotoData | null>(null);
   const [loading, setLoading] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
 
-  const fetchHitokoto = async () => {
+  const fetchHitokoto = useCallback(async () => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setLoading(true);
     try {
-      // 使用官方一言API（支持CORS）
       const response = await fetch('https://v1.hitokoto.cn/?c=i&c=k', {
-        headers: {
-          'accept': 'application/json',
-        },
+        signal: controller.signal,
+        headers: { accept: 'application/json' },
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch');
-      }
-      
+      if (!response.ok) throw new Error('Failed to fetch');
+
       const data = await response.json();
-      setHitokoto({
-        content: data.hitokoto.length > 30 ? data.hitokoto.substring(0, 30) + '...' : data.hitokoto,
-        name: data.from_who || '佚名',
-        origin: data.from || '未知',
-      });
-    } catch (error) {
-      console.error('Failed to fetch hitokoto:', error);
-      // 使用默认一言
-      setHitokoto({
-        content: '生活明朗，万物可爱',
-        name: '佚名',
-        origin: '默认',
-      });
+      if (!controller.signal.aborted) {
+        setHitokoto({
+          content: data.hitokoto.length > 30
+            ? data.hitokoto.substring(0, 30) + '...'
+            : data.hitokoto,
+          name: data.from_who || '佚名',
+          origin: data.from || '未知',
+        });
+      }
+    } catch {
+      if (!controller.signal.aborted) {
+        setHitokoto(FALLBACK);
+      }
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchHitokoto();
-  }, []);
+    return () => { abortRef.current?.abort(); };
+  }, [fetchHitokoto]);
 
   if (!hitokoto) return null;
 

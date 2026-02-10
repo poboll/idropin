@@ -1,10 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { X, CheckCheck, Trash2, Mail, MailOpen, Send, Loader2, Check } from 'lucide-react';
+import { X, CheckCheck, Trash2, Mail, MailOpen, ArrowLeft, Plus, Send, Clock, MessageCircle } from 'lucide-react';
 import { useMessageStore } from '@/lib/stores/messages';
 import { Message } from '@/lib/api/messages';
-import { submitFeedback } from '@/lib/api/feedback';
+import {
+  submitFeedback, getMyFeedback, getFeedbackDetail, replyFeedback,
+  getStatusText, getStatusClass, Feedback, FeedbackDetail
+} from '@/lib/api/feedback';
 
 interface MessagePanelProps {
   isOpen: boolean;
@@ -29,49 +32,93 @@ export function MessagePanel({ isOpen, onClose }: MessagePanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   
   const [activeTab, setActiveTab] = useState<'messages' | 'feedback'>('messages');
+  const [feedbackView, setFeedbackView] = useState<'list' | 'detail' | 'submit'>('list');
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [selectedFeedback, setSelectedFeedback] = useState<FeedbackDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [replyContent, setReplyContent] = useState('');
+  const [replyLoading, setReplyLoading] = useState(false);
   const [feedbackTitle, setFeedbackTitle] = useState('');
   const [feedbackContent, setFeedbackContent] = useState('');
   const [feedbackContact, setFeedbackContact] = useState('');
-  const [feedbackLoading, setFeedbackLoading] = useState(false);
-  const [feedbackSuccess, setFeedbackSuccess] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       fetchMessages(true);
       setActiveTab('messages');
-      setFeedbackSuccess(false);
+      setFeedbackView('list');
     }
   }, [isOpen, fetchMessages]);
 
-  const handleFeedbackSubmit = async () => {
-    if (!feedbackTitle.trim() || !feedbackContent.trim()) {
-      alert('请填写标题和内容');
-      return;
-    }
-
+  const fetchFeedbacks = useCallback(async () => {
     setFeedbackLoading(true);
+    try {
+      const data = await getMyFeedback({ page: 1, size: 50 });
+      setFeedbacks(data.records);
+    } catch {
+      console.error('Failed to fetch feedbacks');
+    } finally {
+      setFeedbackLoading(false);
+    }
+  }, []);
+
+  const openDetail = useCallback(async (id: string) => {
+    setDetailLoading(true);
+    setFeedbackView('detail');
+    try {
+      const detail = await getFeedbackDetail(id);
+      setSelectedFeedback(detail);
+    } catch {
+      console.error('Failed to load feedback detail');
+      setFeedbackView('list');
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
+
+  const handleReply = async () => {
+    if (!replyContent.trim() || !selectedFeedback) return;
+    setReplyLoading(true);
+    try {
+      const reply = await replyFeedback(selectedFeedback.id, replyContent.trim());
+      setSelectedFeedback(prev => prev ? { ...prev, replies: [...prev.replies, reply] } : prev);
+      setReplyContent('');
+    } catch {
+      console.error('Failed to send reply');
+    } finally {
+      setReplyLoading(false);
+    }
+  };
+
+  const handleFeedbackSubmit = async () => {
+    if (!feedbackTitle.trim() || !feedbackContent.trim()) return;
+    setSubmitLoading(true);
     try {
       await submitFeedback({
         title: feedbackTitle.trim(),
         content: feedbackContent.trim(),
-        contact: feedbackContact.trim() || undefined
+        contact: feedbackContact.trim() || undefined,
       });
-      setFeedbackSuccess(true);
-      setTimeout(() => {
-        setFeedbackSuccess(false);
-        setActiveTab('messages');
-        setFeedbackTitle('');
-        setFeedbackContent('');
-        setFeedbackContact('');
-      }, 2000);
+      setFeedbackTitle('');
+      setFeedbackContent('');
+      setFeedbackContact('');
+      setFeedbackView('list');
+      fetchFeedbacks();
     } catch (error: any) {
-      console.error('Failed to submit feedback:', error);
-      const errorMessage = error.message || error.response?.data?.message || '提交失败，请稍后重试';
-      alert(`提交失败: ${errorMessage}`);
+      const msg = error.message || error.response?.data?.message || '提交失败';
+      alert(msg);
     } finally {
-      setFeedbackLoading(false);
+      setSubmitLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isOpen && activeTab === 'feedback' && feedbackView === 'list') {
+      fetchFeedbacks();
+    }
+  }, [isOpen, activeTab, feedbackView, fetchFeedbacks]);
 
   // 点击外部关闭面板
   useEffect(() => {
@@ -115,19 +162,27 @@ export function MessagePanel({ isOpen, onClose }: MessagePanelProps) {
   };
 
   const decodeHtml = (input: string) => {
-    let value = input ?? '';
-    // 最多3次迭代解码，避免多重HTML编码
+    if (!input) return '';
+
+    const decodeOnce = (value: string) => {
+      const textarea = document.createElement('textarea');
+      textarea.innerHTML = value;
+      return textarea.value;
+    };
+
+    // 有些消息文本会被多次实体编码（例如 &amp;lt;），这里做有限次解码直到稳定。
+    let decoded = input;
     for (let i = 0; i < 3; i++) {
-      const txt = document.createElement('textarea');
-      txt.innerHTML = value;
-      const next = txt.value;
-      if (next === value) break; // 不再变化时停止
-      value = next;
+      const next = decodeOnce(decoded);
+      if (next === decoded) break;
+      decoded = next;
     }
-    // Normalize common formatting and ensure plain-text rendering
-    value = value.replace(/<br\s*\/?>/gi, '\n');
-    value = value.replace(/<\/?[^>]+>/g, '');
-    return value;
+
+    // 移除HTML标签（保留换行）
+    decoded = decoded.replace(/<br\s*\/?>/gi, '\n');
+    decoded = decoded.replace(/<\/?[^>]+(>|$)/g, '');
+
+    return decoded.trim();
   };
 
   if (!isOpen) return null;
@@ -138,9 +193,19 @@ export function MessagePanel({ isOpen, onClose }: MessagePanelProps) {
       className="fixed right-4 top-16 w-96 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 rounded-xl shadow-2xl z-50 flex flex-col max-h-[80vh] border border-gray-200 dark:border-gray-800">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white">
-            {activeTab === 'messages' ? '消息' : '提交反馈'}
-          </h2>
+          <div className="flex items-center gap-2">
+            {activeTab === 'feedback' && feedbackView !== 'list' && (
+              <button
+                onClick={() => { setFeedbackView('list'); setSelectedFeedback(null); setReplyContent(''); }}
+                className="btn-ghost btn-sm"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+            )}
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+              {activeTab === 'messages' ? '消息' : feedbackView === 'detail' ? '反馈详情' : feedbackView === 'submit' ? '提交反馈' : '反馈'}
+            </h2>
+          </div>
           <div className="flex items-center gap-1">
             {activeTab === 'messages' && (
               <button
@@ -149,6 +214,15 @@ export function MessagePanel({ isOpen, onClose }: MessagePanelProps) {
                 title="全部已读"
               >
                 <CheckCheck className="w-4 h-4" />
+              </button>
+            )}
+            {activeTab === 'feedback' && feedbackView === 'list' && (
+              <button
+                onClick={() => setFeedbackView('submit')}
+                className="btn-ghost btn-sm"
+                title="提交反馈"
+              >
+                <Plus className="w-4 h-4" />
               </button>
             )}
             <button
@@ -183,17 +257,71 @@ export function MessagePanel({ isOpen, onClose }: MessagePanelProps) {
         </div>
 
         {activeTab === 'feedback' ? (
-          feedbackSuccess ? (
-            <div className="flex-1 flex items-center justify-center py-12">
-              <div className="text-center">
-                <div className="w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Check className="w-7 h-7 text-green-600 dark:text-green-400" />
+          feedbackView === 'detail' ? (
+            /* Detail View */
+            <div className="flex-1 overflow-y-auto flex flex-col">
+              {detailLoading ? (
+                <div className="flex-1 flex items-center justify-center py-12">
+                  <div className="spinner" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">提交成功</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">感谢您的反馈，我们会尽快处理</p>
-              </div>
+              ) : selectedFeedback ? (
+                <>
+                  <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusClass(selectedFeedback.status)}`}>
+                        {getStatusText(selectedFeedback.status)}
+                      </span>
+                      <span className="text-xs text-gray-400">{formatTime(selectedFeedback.createdAt)}</span>
+                    </div>
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{selectedFeedback.title}</h3>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 whitespace-pre-wrap">{selectedFeedback.content}</p>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3">
+                    {selectedFeedback.replies.length === 0 ? (
+                      <div className="text-center py-8 text-xs text-gray-400">暂无回复</div>
+                    ) : (
+                      selectedFeedback.replies.map(reply => (
+                        <div key={reply.id} className={`flex ${reply.isAdmin ? 'justify-start' : 'justify-end'}`}>
+                          <div className={`max-w-[80%] rounded-lg px-3 py-2 ${
+                            reply.isAdmin
+                              ? 'bg-gray-100 dark:bg-gray-800'
+                              : 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                          }`}>
+                            {reply.isAdmin && (
+                              <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 block mb-0.5">管理员</span>
+                            )}
+                            <p className="text-xs whitespace-pre-wrap">{reply.content}</p>
+                            <span className={`text-[10px] block mt-1 ${
+                              reply.isAdmin ? 'text-gray-400' : 'text-gray-300 dark:text-gray-500'
+                            }`}>{formatTime(reply.createdAt)}</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex gap-2">
+                    <input
+                      value={replyContent}
+                      onChange={e => setReplyContent(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleReply()}
+                      placeholder="输入回复..."
+                      className="input flex-1 text-sm"
+                    />
+                    <button
+                      onClick={handleReply}
+                      disabled={replyLoading || !replyContent.trim()}
+                      className="btn-primary px-3"
+                    >
+                      {replyLoading ? <div className="spinner w-4 h-4" /> : <Send className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </>
+              ) : null}
             </div>
-          ) : (
+          ) : feedbackView === 'submit' ? (
+            /* Submit View */
             <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
               <div className="form-group">
                 <label className="form-label">
@@ -202,25 +330,23 @@ export function MessagePanel({ isOpen, onClose }: MessagePanelProps) {
                 <input
                   type="text"
                   value={feedbackTitle}
-                  onChange={(e) => setFeedbackTitle(e.target.value)}
+                  onChange={e => setFeedbackTitle(e.target.value)}
                   placeholder="简要描述您的需求或问题"
                   className="input"
                 />
               </div>
-
               <div className="form-group">
                 <label className="form-label">
                   详细描述 <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   value={feedbackContent}
-                  onChange={(e) => setFeedbackContent(e.target.value)}
+                  onChange={e => setFeedbackContent(e.target.value)}
                   placeholder="请详细描述您的需求或遇到的问题..."
                   rows={4}
                   className="input resize-none"
                 />
               </div>
-
               <div className="form-group">
                 <label className="form-label">
                   联系方式 <span className="text-gray-400 font-normal">(选填)</span>
@@ -228,29 +354,63 @@ export function MessagePanel({ isOpen, onClose }: MessagePanelProps) {
                 <input
                   type="text"
                   value={feedbackContact}
-                  onChange={(e) => setFeedbackContact(e.target.value)}
+                  onChange={e => setFeedbackContact(e.target.value)}
                   placeholder="邮箱或手机号，方便我们联系您"
                   className="input"
                 />
               </div>
-
               <button
                 onClick={handleFeedbackSubmit}
-                disabled={feedbackLoading}
+                disabled={submitLoading || !feedbackTitle.trim() || !feedbackContent.trim()}
                 className="btn-primary w-full"
               >
-                {feedbackLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    提交中...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4" />
-                    提交反馈
-                  </>
-                )}
+                {submitLoading ? '提交中...' : '提交反馈'}
               </button>
+            </div>
+          ) : (
+            /* List View */
+            <div className="flex-1 overflow-y-auto">
+              {feedbackLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="spinner" />
+                </div>
+              ) : feedbacks.length === 0 ? (
+                <div className="empty-state py-12">
+                  <MessageCircle className="empty-state-icon" />
+                  <p className="empty-state-description">暂无反馈记录</p>
+                  <button onClick={() => setFeedbackView('submit')} className="btn-primary mt-3 text-sm">
+                    提交反馈
+                  </button>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {feedbacks.map(fb => (
+                    <div
+                      key={fb.id}
+                      onClick={() => openDetail(fb.id)}
+                      className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">{fb.title}</h3>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${getStatusClass(fb.status)}`}>
+                          {getStatusText(fb.status)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{fb.content}</p>
+                      <div className="flex items-center gap-3 mt-1.5">
+                        <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />{formatTime(fb.createdAt)}
+                        </span>
+                        {fb.replyCount > 0 && (
+                          <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                            <MessageCircle className="w-3 h-3" />{fb.replyCount} 条回复
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )
         ) : (

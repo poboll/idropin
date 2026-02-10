@@ -45,7 +45,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   }
 
   // 显示加载状态
-  if (isChecking || isLoading) {
+  if (isChecking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black">
         <div className="text-center">

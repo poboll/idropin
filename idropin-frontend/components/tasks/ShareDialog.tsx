@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import Modal from '@/components/Modal';
 import { Task } from '@/lib/stores/task';
 import { copyRes } from '@/lib/utils/string';
-import { Copy, Link as LinkIcon, Check, Zap, Eye, Loader2 } from 'lucide-react';
+import { Copy, Link as LinkIcon, Check, Zap, Eye, Loader2, QrCode } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface ShareDialogProps {
   task: Task | null;
@@ -15,6 +16,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ task, open, onClose })
   const [shareLink, setShareLink] = useState('');
   const [generating, setGenerating] = useState(false);
   const [isShort, setIsShort] = useState(false);
+  const [showQR, setShowQR] = useState(false);
 
   useEffect(() => {
     if (open && task) {
@@ -130,6 +132,27 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ task, open, onClose })
           <p className="form-hint mt-2">
             任何人拥有此链接都可以上传文件，请妥善保管
           </p>
+        </div>
+
+        <div className="form-group">
+          <button
+            onClick={() => setShowQR(!showQR)}
+            className="btn-secondary w-full"
+          >
+            <QrCode className="w-4 h-4" />
+            {showQR ? '收起二维码' : '显示二维码'}
+          </button>
+          {showQR && (
+            <div className="mt-3 flex flex-col items-center p-4 bg-white rounded-lg border border-gray-200">
+              <QRCodeSVG
+                value={shareLink}
+                size={180}
+                level="M"
+                includeMargin
+              />
+              <p className="mt-2 text-xs text-gray-500">扫描二维码即可打开收集页面</p>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-800">
