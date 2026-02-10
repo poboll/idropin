@@ -1,30 +1,18 @@
-const CACHE_NAME = 'idropin-v1';
-const RUNTIME_CACHE = 'idropin-runtime-v1';
-const STATIC_ASSETS = [
-  '/',
-  '/manifest.json',
-  '/icons/favicon.ico',
-];
+const CACHE_VERSION = 'v2';
+const CACHE_NAME = `idropin-${CACHE_VERSION}`;
 
-// 安装事件 - 缓存静态资源
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.warn('Failed to cache static assets:', err);
-      });
-    })
-  );
+// 安装事件 - 立即激活
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
-// 激活事件 - 清理旧缓存
+// 激活事件 - 清理所有旧缓存
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE) {
+          if (cacheName !== CACHE_NAME) {
             return caches.delete(cacheName);
           }
         })
@@ -34,50 +22,26 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// 获取事件 - 网络优先策略
+// 获取事件 - 全部网络优先
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  const url = new URL(request.url);
 
-  // 跳过非GET请求
-  if (request.method !== 'GET') {
-    return;
-  }
+  if (request.method !== 'GET') return;
 
-  // API请求 - 网络优先
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const cache = caches.open(RUNTIME_CACHE);
-            cache.then((c) => c.put(request, response.clone()));
-          }
-          return response;
-        })
-        .catch(() => {
-          return caches.match(request).then((cached) => {
-            return cached || new Response('Offline - No cached data', { status: 503 });
-          });
-        })
-    );
-    return;
-  }
-
-  // 静态资源 - 缓存优先
   event.respondWith(
-    caches.match(request).then((cached) => {
-      return (
-        cached ||
-        fetch(request).then((response) => {
-          if (response.ok) {
-            const cache = caches.open(RUNTIME_CACHE);
-            cache.then((c) => c.put(request, response.clone()));
-          }
-          return response;
-        })
-      );
-    })
+    fetch(request)
+      .then((response) => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
+        return response;
+      })
+      .catch(() => {
+        return caches.match(request).then((cached) => {
+          return cached || new Response('Offline', { status: 503 });
+        });
+      })
   );
 });
 
