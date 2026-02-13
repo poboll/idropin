@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, Download, Trash2, FileSpreadsheet, RefreshCw, Image, Eye, Clock } from 'lucide-react';
+import { ChevronDown, Download, Trash2, FileSpreadsheet, RefreshCw } from 'lucide-react';
 
 interface FileBatchActionsProps {
   selectedCount: number;
@@ -43,27 +43,27 @@ export default function FileBatchActions({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4">
-      <div className="flex flex-wrap gap-3 items-center">
+    <div className="card p-4 mb-4">
+      <div className="flex flex-wrap gap-2 items-center">
         <div className="relative">
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
+            className="btn-primary btn-sm flex items-center gap-1.5"
           >
             批量操作
-            <ChevronDown className="w-4 h-4" />
+            <ChevronDown className="w-3.5 h-3.5" />
           </button>
           {isDropdownOpen && (
             <>
-              <div 
-                className="fixed inset-0 z-10" 
-                onClick={() => setIsDropdownOpen(false)} 
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setIsDropdownOpen(false)}
               />
-              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-md shadow-lg border dark:border-gray-700 z-20 min-w-[120px]">
+              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg z-20 min-w-[130px] overflow-hidden">
                 <button
                   onClick={() => { onBatchDownload(); setIsDropdownOpen(false); }}
                   disabled={selectedCount === 0 || isDownloading}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <Download className="w-4 h-4" />
                   下载
@@ -71,7 +71,7 @@ export default function FileBatchActions({
                 <button
                   onClick={() => { onBatchDelete(); setIsDropdownOpen(false); }}
                   disabled={selectedCount === 0}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-red-600"
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                   删除
@@ -79,7 +79,7 @@ export default function FileBatchActions({
                 <button
                   onClick={() => { onExportExcel(); setIsDropdownOpen(false); }}
                   disabled={selectedCount === 0}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <FileSpreadsheet className="w-4 h-4" />
                   导出记录
@@ -91,81 +91,45 @@ export default function FileBatchActions({
 
         <button
           onClick={onRefresh}
-          className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-sm rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
+          className="btn-secondary btn-sm flex items-center gap-1.5"
         >
-          <RefreshCw className="w-4 h-4" />
+          <RefreshCw className="w-3.5 h-3.5" />
           刷新
         </button>
 
         <button
           onClick={onExportAll}
           disabled={!hasFilteredData}
-          className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="btn-secondary btn-sm flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <FileSpreadsheet className="w-4 h-4" />
-          导出记录
+          <FileSpreadsheet className="w-3.5 h-3.5" />
+          导出全部
         </button>
 
-        <div className="flex items-center gap-1 text-sm">
-          <span className="text-gray-600 dark:text-gray-400">显示图片</span>
-          <button
-            onClick={() => onShowImagesChange(!showImages)}
-            className={`relative w-10 h-5 rounded-full transition-colors ${
-              showImages ? 'bg-green-500' : 'bg-red-500'
-            }`}
-          >
-            <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
-              showImages ? 'left-5' : 'left-0.5'
-            }`} />
-          </button>
-        </div>
+        <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1" />
 
-        <div className="flex items-center gap-1 text-sm">
-          <span className="text-gray-600 dark:text-gray-400">原文件名</span>
+        {[
+          { label: '图片', value: showImages, onChange: onShowImagesChange },
+          { label: '原文件名', value: showOriginName, onChange: onShowOriginNameChange },
+          { label: '提交人', value: showPeople, onChange: onShowPeopleChange },
+          { label: '下载历史', value: showHistory, onChange: onShowHistoryChange },
+        ].map(({ label, value, onChange }) => (
           <button
-            onClick={() => onShowOriginNameChange(!showOriginName)}
-            className={`relative w-10 h-5 rounded-full transition-colors ${
-              showOriginName ? 'bg-green-500' : 'bg-red-500'
+            key={label}
+            onClick={() => onChange(!value)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              value
+                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
-            <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
-              showOriginName ? 'left-5' : 'left-0.5'
-            }`} />
+            {label}
           </button>
-        </div>
-
-        <div className="flex items-center gap-1 text-sm">
-          <span className="text-gray-600 dark:text-gray-400">提交人</span>
-          <button
-            onClick={() => onShowPeopleChange(!showPeople)}
-            className={`relative w-10 h-5 rounded-full transition-colors ${
-              showPeople ? 'bg-green-500' : 'bg-red-500'
-            }`}
-          >
-            <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
-              showPeople ? 'left-5' : 'left-0.5'
-            }`} />
-          </button>
-        </div>
-
-        <div className="flex items-center gap-1 text-sm">
-          <Clock className="w-4 h-4 text-gray-500" />
-          <span className="text-gray-600 dark:text-gray-400">下载历史</span>
-          <button
-            onClick={() => onShowHistoryChange(!showHistory)}
-            className={`relative w-10 h-5 rounded-full transition-colors ${
-              showHistory ? 'bg-green-500' : 'bg-red-500'
-            }`}
-          >
-            <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
-              showHistory ? 'left-5' : 'left-0.5'
-            }`} />
-          </button>
-        </div>
+        ))}
       </div>
 
       {selectedCount > 0 && (
-        <div className="mt-2 text-sm text-blue-600">
+        <div className="mt-2 text-xs font-medium text-gray-500 dark:text-gray-400">
           已选择 {selectedCount} 个文件
         </div>
       )}
