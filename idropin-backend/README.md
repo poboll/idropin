@@ -118,15 +118,15 @@ java -jar target/idropin-backend-1.0.0.jar --spring.profiles.active=prod
 
 ### 访问应用
 
-- **应用地址**: http://localhost:8080/api
-- **API文档**: http://localhost:8080/api/doc.html
+- **应用地址**: http://localhost:8081/api
+- **API文档**: http://localhost:8081/api/doc.html
 
 ## 📖 API文档
 
 启动应用后，访问 Knife4j 文档：
 
 ```
-http://localhost:8080/api/doc.html
+http://localhost:8081/api/doc.html
 ```
 
 ## 🔧 核心功能
@@ -214,7 +214,7 @@ logging:
 ### 健康检查
 
 ```bash
-curl http://localhost:8080/api/actuator/health
+curl http://localhost:8081/api/actuator/health
 ```
 
 ## 🤝 开发规范

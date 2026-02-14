@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { Download, Lock, AlertCircle, CheckCircle, FileText, Calendar, Hash, Upload } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/api/baseUrl';
 
 interface ShareInfo {
   shareCode: string;
@@ -42,14 +43,10 @@ export default function SharePage() {
     };
   }, []);
 
-  useEffect(() => {
-    loadShareInfo();
-  }, [shareCode]);
-
-  const loadShareInfo = async () => {
+  const loadShareInfo = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/shares/${shareCode}/info`);
+      const response = await fetch(`${API_BASE_URL}/shares/${shareCode}/info`);
       
       if (!response.ok) {
         throw new Error('分享不存在或已过期');
@@ -68,7 +65,11 @@ export default function SharePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [shareCode]);
+
+  useEffect(() => {
+    loadShareInfo();
+  }, [loadShareInfo]);
 
   const handleDownload = async () => {
     if (shareInfo?.hasPassword && !password) {
@@ -80,7 +81,7 @@ export default function SharePage() {
       setDownloading(true);
       setError('');
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/shares/${shareCode}/download`, {
+      const response = await fetch(`${API_BASE_URL}/shares/${shareCode}/download`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

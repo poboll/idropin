@@ -75,9 +75,9 @@ chmod +x start-project.sh
 
 ### 5. 访问应用
 
-- **前端**: http://localhost:3000
-- **后端**: http://localhost:8080
-- **API文档**: http://localhost:8080/doc.html
+- **前端**: http://localhost:5224
+- **后端**: http://localhost:8081
+- **API文档**: http://localhost:8081/api/doc.html
 
 ## 📦 项目结构
 

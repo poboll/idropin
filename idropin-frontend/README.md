@@ -95,7 +95,7 @@ yarn install
 
 ```bash
 # API地址
-NEXT_PUBLIC_API_URL=http://localhost:8080/api
+NEXT_PUBLIC_API_URL=http://localhost:8081/api
 
 # 文件上传地址
 NEXT_PUBLIC_UPLOAD_URL=http://localhost:9000
@@ -110,7 +110,7 @@ NEXT_PUBLIC_APP_TITLE=Idrop.in - 云集
 # 开发模式
 npm run dev
 
-# 访问 http://localhost:3000
+# 访问 http://localhost:5224
 ```
 
 ### 构建生产版本

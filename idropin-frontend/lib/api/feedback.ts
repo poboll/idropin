@@ -107,6 +107,13 @@ export async function editFeedback(id: string, data: {
 }
 
 /**
+ * 用户关闭自己的反馈
+ */
+export async function closeFeedback(id: string): Promise<void> {
+  await apiClient.post(`/feedback/${id}/close`);
+}
+
+/**
  * 获取状态显示文本
  */
 export function getStatusText(status: string): string {

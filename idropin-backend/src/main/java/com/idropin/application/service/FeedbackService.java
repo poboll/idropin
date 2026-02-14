@@ -85,4 +85,12 @@ public interface FeedbackService {
      * @param request 编辑请求
      */
     void editFeedback(String feedbackId, CreateFeedbackRequest request);
+
+    /**
+     * 用户关闭自己的反馈
+     *
+     * @param userId 用户ID
+     * @param feedbackId 反馈ID
+     */
+    void closeFeedback(String userId, String feedbackId);
 }

@@ -106,4 +106,12 @@ public class FeedbackController {
         feedbackService.editFeedback(id, request);
         return Result.success();
     }
+
+    @Operation(summary = "关闭反馈（用户）")
+    @PostMapping("/{id}/close")
+    public Result<Void> closeFeedback(@PathVariable String id) {
+        String userId = currentUser.getUserId();
+        feedbackService.closeFeedback(userId, id);
+        return Result.success();
+    }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { 
   Users, Database, FileText, Eye, Archive, AlertTriangle, HardDrive, Activity,
@@ -18,7 +18,7 @@ export default function ManageOverviewPage() {
   const [logPageSize, setLogPageSize] = useState(10);
   const [jumpPage, setJumpPage] = useState('');
 
-  const fetchData = async (page = logPage, size = logPageSize) => {
+  const fetchData = useCallback(async (page = logPage, size = logPageSize) => {
     setLoading(true);
     try {
       const [statsData, logsData] = await Promise.all([
@@ -35,11 +35,11 @@ export default function ManageOverviewPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [logPage, logPageSize]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const formatTime = (dateStr: string) => {
     return new Date(dateStr).toLocaleString('zh-CN', {

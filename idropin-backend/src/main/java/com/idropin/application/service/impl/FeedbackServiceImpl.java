@@ -204,6 +204,31 @@ public class FeedbackServiceImpl implements FeedbackService {
         log.info("反馈 {} 已编辑", feedbackId);
     }
     
+    @Override
+    @Transactional
+    public void closeFeedback(String userId, String feedbackId) {
+        Feedback feedback = feedbackMapper.selectById(feedbackId);
+        if (feedback == null) {
+            throw new BusinessException("反馈不存在");
+        }
+        
+        if (!feedback.getUserId().equals(userId)) {
+            throw new BusinessException("无权关闭此反馈");
+        }
+        
+        if ("closed".equals(feedback.getStatus())) {
+            throw new BusinessException("反馈已关闭");
+        }
+        
+        LambdaUpdateWrapper<Feedback> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(Feedback::getId, feedbackId)
+                .set(Feedback::getStatus, "closed")
+                .set(Feedback::getUpdatedAt, LocalDateTime.now());
+        feedbackMapper.update(null, updateWrapper);
+        
+        log.info("用户 {} 关闭反馈 {}", userId, feedbackId);
+    }
+    
     private String getStatusText(String status) {
         return switch (status) {
             case "pending" -> "待处理";

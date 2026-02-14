@@ -13,52 +13,6 @@ export function usePWA() {
   const [isOnline, setIsOnline] = useState(true);
   const [pendingUploads, setPendingUploads] = useState<number>(0);
 
-  useEffect(() => {
-    // 检查是否已安装
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsInstalled(true);
-    }
-
-    // 监听安装提示
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setInstallPrompt(e as PWAInstallPrompt);
-    };
-
-    // 监听在线/离线状态
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    // 注册Service Worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch((error) => {
-        console.error('Service Worker registration failed:', error);
-      });
-
-      // 监听来自Service Worker的消息
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data.type === 'UPLOAD_SUCCESS') {
-          console.log('Upload synced:', event.data.uploadId);
-          // 更新待同步上传数
-          updatePendingUploadsCount();
-        }
-      });
-    }
-
-    // 初始化待同步上传数
-    updatePendingUploadsCount();
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
   const updatePendingUploadsCount = useCallback(async () => {
     try {
       const db = await openIndexedDB();
@@ -68,6 +22,42 @@ export function usePWA() {
       console.error('Failed to get pending uploads count:', error);
     }
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e as PWAInstallPrompt);
+    };
+
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then((registration) => {
+        setIsInstalled(!!registration);
+      });
+    }
+
+    setIsOnline(navigator.onLine);
+
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstalled(true);
+    }
+
+    updatePendingUploadsCount();
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [updatePendingUploadsCount]);
 
   const install = useCallback(async () => {
     if (!installPrompt) return;

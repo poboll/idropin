@@ -23,6 +23,57 @@ export function usePWA() {
     offlineUploads: [],
   });
 
+  // 同步离线上传
+  const syncOfflineUploads = useCallback(async () => {
+    if (state.offlineUploads.length === 0) {
+      return;
+    }
+
+    console.log('[PWA] Syncing offline uploads...');
+
+    for (const upload of state.offlineUploads) {
+      try {
+        const response = await fetch('/api/files/upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${upload.token}`,
+          },
+          body: upload.formData,
+        });
+
+        if (response.ok) {
+          console.log('[PWA] Upload synced:', upload.id);
+
+          // 通知Service Worker
+          if (navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({
+              type: 'UPLOAD_SYNCED',
+              data: { id: upload.id },
+            });
+          }
+
+          // 从队列中移除
+          setState(prev => ({
+            ...prev,
+            offlineUploads: prev.offlineUploads.filter(u => u.id !== upload.id),
+          }));
+        }
+      } catch (error) {
+        console.error('[PWA] Upload sync failed:', upload.id, error);
+      }
+    }
+
+    // 更新localStorage
+    try {
+      localStorage.setItem(
+        'offlineUploads',
+        JSON.stringify(state.offlineUploads)
+      );
+    } catch (error) {
+      console.error('[PWA] Failed to save offline uploads:', error);
+    }
+  }, [state.offlineUploads]);
+
   // 检查在线状态
   useEffect(() => {
     const handleOnline = () => {
@@ -44,7 +95,7 @@ export function usePWA() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [syncOfflineUploads]);
 
   // 注册Service Worker
   useEffect(() => {
@@ -137,57 +188,6 @@ export function usePWA() {
 
     return upload.id;
   }, []);
-
-  // 同步离线上传
-  const syncOfflineUploads = useCallback(async () => {
-    if (state.offlineUploads.length === 0) {
-      return;
-    }
-
-    console.log('[PWA] Syncing offline uploads...');
-
-    for (const upload of state.offlineUploads) {
-      try {
-        const response = await fetch('/api/files/upload', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${upload.token}`,
-          },
-          body: upload.formData,
-        });
-
-        if (response.ok) {
-          console.log('[PWA] Upload synced:', upload.id);
-
-          // 通知Service Worker
-          if (navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({
-              type: 'UPLOAD_SYNCED',
-              data: { id: upload.id },
-            });
-          }
-
-          // 从队列中移除
-          setState(prev => ({
-            ...prev,
-            offlineUploads: prev.offlineUploads.filter(u => u.id !== upload.id),
-          }));
-        }
-      } catch (error) {
-        console.error('[PWA] Upload sync failed:', upload.id, error);
-      }
-    }
-
-    // 更新localStorage
-    try {
-      localStorage.setItem(
-        'offlineUploads',
-        JSON.stringify(state.offlineUploads)
-      );
-    } catch (error) {
-      console.error('[PWA] Failed to save offline uploads:', error);
-    }
-  }, [state.offlineUploads]);
 
   // 清除离线上传
   const clearOfflineUploads = useCallback(() => {
