@@ -19,6 +19,19 @@ export interface OverviewStats {
   invalidFileSize: number;
 }
 
+export interface StorageUsage {
+  used: number;
+  total: number;
+  percentage: number;
+  remaining: number;
+}
+
+export interface StorageStatistics {
+  totalFiles: number;
+  totalStorageSize: number;
+  storageUsage: StorageUsage;
+}
+
 export interface AdminUser {
   id: string;
   username: string;
@@ -69,6 +82,14 @@ export interface OperationLogPage {
 export async function getOverviewStats(): Promise<OverviewStats> {
   const response = await apiClient.get('/admin/overview');
   return response.data.data;
+}
+
+/**
+ * 获取系统存储统计
+ */
+export async function getStorageStatistics(): Promise<StorageStatistics> {
+  const response = await apiClient.get('/statistics/system');
+  return response.data;
 }
 
 /**
