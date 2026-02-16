@@ -32,4 +32,6 @@ public interface EmailService {
      * @param token 重置令牌
      */
     void sendPasswordResetEmail(String to, String token);
+
+    void refreshCache();
 }

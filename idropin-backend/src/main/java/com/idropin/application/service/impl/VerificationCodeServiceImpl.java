@@ -2,11 +2,10 @@ package com.idropin.application.service.impl;
 
 import com.idropin.application.service.VerificationCodeService;
 import com.idropin.common.exception.BusinessException;
+import com.idropin.infrastructure.email.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 import java.util.Random;
@@ -18,12 +17,11 @@ import java.util.concurrent.TimeUnit;
 public class VerificationCodeServiceImpl implements VerificationCodeService {
 
     private final StringRedisTemplate redisTemplate;
-    private final JavaMailSender mailSender;
+    private final EmailService emailService;
     
     private static final String CODE_PREFIX = "verification_code:";
     private static final int CODE_LENGTH = 6;
     private static final long CODE_EXPIRE_MINUTES = 5;
-    private static final String MAIL_FROM = "i@caiths.com";
 
     @Override
     public void sendEmailCode(String email, String purpose) {
@@ -33,16 +31,13 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
         redisTemplate.opsForValue().set(key, code, CODE_EXPIRE_MINUTES, TimeUnit.MINUTES);
         
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(MAIL_FROM);
-            message.setTo(email);
-            message.setSubject("验证码 - Idrop.in 云集");
-            message.setText(String.format(
+            String subject = "验证码 - Idrop.in 云集";
+            String content = String.format(
                 "您的验证码是：%s\n\n此验证码将在%d分钟后过期。\n\n如非本人操作，请忽略此邮件。\n\n--\nIdrop.in 云集团队",
                 code, CODE_EXPIRE_MINUTES
-            ));
+            );
             
-            mailSender.send(message);
+            emailService.sendSimpleEmail(email, subject, content);
             log.info("Email verification code sent to: {}", email);
         } catch (Exception e) {
             log.error("Failed to send email code to: {}", email, e);

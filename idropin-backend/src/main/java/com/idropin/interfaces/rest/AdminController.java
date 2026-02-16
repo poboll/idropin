@@ -3,6 +3,7 @@ package com.idropin.interfaces.rest;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.idropin.application.service.AdminService;
 import com.idropin.application.service.OperationLogService;
+import com.idropin.common.util.IpUtil;
 import com.idropin.common.vo.Result;
 import com.idropin.domain.dto.BindPhoneRequest;
 import com.idropin.domain.dto.SendMessageRequest;
@@ -61,7 +62,7 @@ public class AdminController {
             @Valid @RequestBody UpdateStatusRequest request,
             HttpServletRequest httpRequest) {
         String adminId = currentUser.getUserId();
-        String ipAddress = getClientIp(httpRequest);
+        String ipAddress = IpUtil.getClientIp(httpRequest);
         adminService.updateUserStatus(adminId, id, request, ipAddress);
         return Result.success();
     }
@@ -72,7 +73,7 @@ public class AdminController {
             @PathVariable String id,
             HttpServletRequest httpRequest) {
         String adminId = currentUser.getUserId();
-        String ipAddress = getClientIp(httpRequest);
+        String ipAddress = IpUtil.getClientIp(httpRequest);
         String newPassword = adminService.resetUserPassword(adminId, id, ipAddress);
         return Result.success(newPassword);
     }
@@ -84,7 +85,7 @@ public class AdminController {
             @Valid @RequestBody BindPhoneRequest request,
             HttpServletRequest httpRequest) {
         String adminId = currentUser.getUserId();
-        String ipAddress = getClientIp(httpRequest);
+        String ipAddress = IpUtil.getClientIp(httpRequest);
         adminService.bindUserPhone(adminId, id, request, ipAddress);
         return Result.success();
     }
@@ -106,7 +107,7 @@ public class AdminController {
             @Valid @RequestBody UpdateQuotaRequest request,
             HttpServletRequest httpRequest) {
         String adminId = currentUser.getUserId();
-        String ipAddress = getClientIp(httpRequest);
+        String ipAddress = IpUtil.getClientIp(httpRequest);
         adminService.updateUserQuota(adminId, id, request, ipAddress);
         return Result.success();
     }
@@ -117,7 +118,7 @@ public class AdminController {
             @PathVariable String id,
             HttpServletRequest httpRequest) {
         String adminId = currentUser.getUserId();
-        String ipAddress = getClientIp(httpRequest);
+        String ipAddress = IpUtil.getClientIp(httpRequest);
         adminService.forceUserLogout(adminId, id, ipAddress);
         return Result.success();
     }
@@ -138,24 +139,6 @@ public class AdminController {
         IPage<OperationLogVO> logs = operationLogService.getLogs(page, size);
         return Result.success(logs);
     }
-
-    private String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("Proxy-Client-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("WL-Proxy-Client-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        // 多个代理时取第一个IP
-        if (ip != null && ip.contains(",")) {
-            ip = ip.split(",")[0].trim();
-        }
-        return ip;
-    }
     
     @Operation(summary = "更新用户角色")
     @PutMapping("/users/{id}/role")
@@ -165,7 +148,7 @@ public class AdminController {
             @Valid @RequestBody com.idropin.domain.dto.UpdateRoleRequest request,
             HttpServletRequest httpRequest) {
         String adminId = currentUser.getUserId();
-        String ipAddress = getClientIp(httpRequest);
+        String ipAddress = IpUtil.getClientIp(httpRequest);
         adminService.updateUserRole(adminId, id, request, ipAddress);
         return Result.success();
     }

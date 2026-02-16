@@ -5,6 +5,7 @@ import com.idropin.domain.entity.SystemConfig;
 import com.idropin.domain.vo.RouteConfigVO;
 
 import java.util.List;
+import java.util.Map;
 
 public interface ConfigService {
     
@@ -29,4 +30,8 @@ public interface ConfigService {
     void updateSystemConfig(String adminId, String configId, String value, String ipAddress);
 
     void toggleSystemConfig(String adminId, String configId, Boolean enabled, String ipAddress);
+
+    List<SystemConfig> getConfigsByCategory(String category);
+
+    void batchUpdateConfigs(String adminId, Map<String, String> configMap, String ipAddress);
 }

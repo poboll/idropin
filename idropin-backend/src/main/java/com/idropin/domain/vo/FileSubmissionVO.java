@@ -53,9 +53,14 @@ public class FileSubmissionVO {
   
   // 文件详细信息
   /**
-   * 文件原始名称
+   * 文件显示名称（可能经过重命名）
    */
   private String fileName;
+  
+  /**
+   * 文件原始名称（用户上传时的文件名）
+   */
+  private String originalFileName;
   
   /**
    * 文件大小（字节）
@@ -81,4 +86,19 @@ public class FileSubmissionVO {
     * 提交者IP地址
     */
    private String submitterIp;
+   
+   /**
+    * 应用的限制名单（提交时的限制名单）
+    */
+   private java.util.List<String> appliedRestrictionList;
+
+    // --- AI 批阅字段 ---
+
+    private Integer aiStatus;
+
+    private AiEvaluationResult aiEvaluation;
+
+    private Boolean isPlagiarized;
+
+    private String similarToId;
 }

@@ -1,37 +1,85 @@
 package com.idropin.infrastructure.email;
 
+import com.idropin.application.service.ConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import java.util.Properties;
 
-/**
- * 邮件服务实现
- *
- * @author Idrop.in Team
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class EmailServiceImpl implements EmailService {
 
-    private final JavaMailSender mailSender;
+    private final ConfigService configService;
 
-    @Value("${spring.mail.username}")
-    private String from;
-
-    @Value("${app.frontend.url:http://localhost:3000}")
+    @Value("${app.frontend.url:http://localhost:5224}")
     private String frontendUrl;
+
+    private JavaMailSender cachedMailSender;
+    private long lastConfigUpdateTime = 0;
+    private static final long CACHE_TTL = 5 * 60 * 1000;
+
+    private synchronized JavaMailSender getMailSender() {
+        long now = System.currentTimeMillis();
+        if (cachedMailSender != null && (now - lastConfigUpdateTime) < CACHE_TTL) {
+            return cachedMailSender;
+        }
+
+        String host = configService.getSystemConfigValue("email.smtp.host");
+        String portStr = configService.getSystemConfigValue("email.smtp.port");
+        String username = configService.getSystemConfigValue("email.smtp.username");
+        String password = configService.getSystemConfigValue("email.smtp.password");
+        String authStr = configService.getSystemConfigValue("email.smtp.auth");
+        String starttlsStr = configService.getSystemConfigValue("email.smtp.starttls.enable");
+
+        JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
+        mailSender.setHost(host);
+        mailSender.setPort(Integer.parseInt(portStr));
+        mailSender.setUsername(username);
+        mailSender.setPassword(password);
+
+        Properties props = mailSender.getJavaMailProperties();
+        props.put("mail.transport.protocol", "smtp");
+        props.put("mail.smtp.auth", authStr);
+        props.put("mail.smtp.starttls.enable", starttlsStr);
+        props.put("mail.smtp.starttls.required", starttlsStr);
+        props.put("mail.smtp.ssl.trust", host);
+        props.put("mail.debug", "false");
+
+        cachedMailSender = mailSender;
+        lastConfigUpdateTime = now;
+        
+        log.info("邮件配置已更新: host={}, port={}, username={}", host, portStr, username);
+        return cachedMailSender;
+    }
+
+    public synchronized void refreshCache() {
+        cachedMailSender = null;
+        lastConfigUpdateTime = 0;
+        log.info("邮件配置缓存已清空");
+    }
+
+    private String getFromAddress() {
+        String username = configService.getSystemConfigValue("email.smtp.username");
+        String fromName = configService.getSystemConfigValue("email.from.name");
+        return fromName + " <" + username + ">";
+    }
 
     @Override
     public void sendSimpleEmail(String to, String subject, String content) {
         try {
+            JavaMailSender mailSender = getMailSender();
+            String from = getFromAddress();
+            
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(from);
             message.setTo(to);
@@ -48,6 +96,9 @@ public class EmailServiceImpl implements EmailService {
     @Override
     public void sendHtmlEmail(String to, String subject, String content) {
         try {
+            JavaMailSender mailSender = getMailSender();
+            String from = getFromAddress();
+            
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             helper.setFrom(from);
@@ -75,39 +126,40 @@ public class EmailServiceImpl implements EmailService {
     private String buildPasswordResetEmailContent(String resetUrl) {
         return """
                 <!DOCTYPE html>
-                <html>
+                <html lang="zh">
                 <head>
                     <meta charset="UTF-8">
-                    <style>
-                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                        .header { background: linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-                        .header h1 { color: white; margin: 0; }
-                        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-                        .button { display: inline-block; padding: 12px 30px; background: #409eff; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-                        .footer { text-align: center; margin-top: 20px; color: #999; font-size: 12px; }
-                    </style>
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 </head>
-                <body>
-                    <div class="container">
-                        <div class="header">
-                            <h1>🔐 密码重置</h1>
-                        </div>
-                        <div class="content">
-                            <p>您好，</p>
-                            <p>我们收到了您的密码重置请求。请点击下面的按钮重置您的密码：</p>
-                            <p style="text-align: center;">
-                                <a href="%s" class="button">重置密码</a>
-                            </p>
-                            <p>或者复制以下链接到浏览器：</p>
-                            <p style="word-break: break-all; background: #fff; padding: 10px; border-radius: 5px;">%s</p>
-                            <p><strong>注意：</strong>此链接将在 24 小时后失效。</p>
-                            <p>如果您没有请求重置密码，请忽略此邮件。</p>
-                        </div>
-                        <div class="footer">
-                            <p>© 2025 Idrop.in - 云集. All rights reserved.</p>
-                        </div>
-                    </div>
+                <body style="margin:0;padding:0;background:#fafafa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+                    <table width="100%%" cellpadding="0" cellspacing="0" style="padding:40px 20px;">
+                        <tr><td align="center">
+                            <table width="480" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid #eaeaea;border-radius:8px;overflow:hidden;">
+                                <tr><td style="padding:32px 32px 0;">
+                                    <p style="margin:0;font-size:14px;font-weight:600;color:#111;letter-spacing:-0.2px;">Idrop.in</p>
+                                </td></tr>
+                                <tr><td style="padding:24px 32px 0;">
+                                    <h1 style="margin:0;font-size:22px;font-weight:600;color:#111;letter-spacing:-0.5px;">重置您的密码</h1>
+                                </td></tr>
+                                <tr><td style="padding:16px 32px 0;">
+                                    <p style="margin:0;font-size:14px;line-height:1.6;color:#666;">我们收到了您的密码重置请求。点击下方按钮设置新密码，链接将在 24 小时后失效。</p>
+                                </td></tr>
+                                <tr><td style="padding:24px 32px;" align="center">
+                                    <a href="%s" style="display:inline-block;padding:10px 28px;background:#111;color:#fff;font-size:14px;font-weight:500;text-decoration:none;border-radius:6px;letter-spacing:-0.1px;">重置密码</a>
+                                </td></tr>
+                                <tr><td style="padding:0 32px;">
+                                    <p style="margin:0;font-size:12px;line-height:1.5;color:#999;">或复制链接到浏览器：</p>
+                                    <p style="margin:6px 0 0;font-size:12px;line-height:1.5;color:#666;word-break:break-all;background:#f5f5f5;padding:10px 12px;border-radius:4px;font-family:monospace;">%s</p>
+                                </td></tr>
+                                <tr><td style="padding:24px 32px;">
+                                    <p style="margin:0;font-size:12px;color:#999;">如果您没有请求重置密码，请忽略此邮件。</p>
+                                </td></tr>
+                                <tr><td style="padding:16px 32px;border-top:1px solid #eaeaea;">
+                                    <p style="margin:0;font-size:11px;color:#bbb;text-align:center;">Idrop.in 云集 &mdash; 智能化教育文件管理平台</p>
+                                </td></tr>
+                            </table>
+                        </td></tr>
+                    </table>
                 </body>
                 </html>
                 """.formatted(resetUrl, resetUrl);
