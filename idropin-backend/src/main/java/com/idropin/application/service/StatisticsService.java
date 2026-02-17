@@ -1,5 +1,6 @@
 package com.idropin.application.service;
 
+import com.idropin.domain.vo.ArchitectureMetricsVO;
 import com.idropin.domain.vo.FileStatisticsVO;
 
 /**
@@ -23,4 +24,9 @@ public interface StatisticsService {
    * @return 系统统计数据
    */
   FileStatisticsVO getSystemStatistics();
+
+  /**
+   * 获取系统架构指标
+   */
+  ArchitectureMetricsVO getArchitectureMetrics();
 }

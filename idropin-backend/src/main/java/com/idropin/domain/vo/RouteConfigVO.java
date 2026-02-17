@@ -1,6 +1,7 @@
 package com.idropin.domain.vo;
 
 import lombok.Data;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
@@ -9,7 +10,8 @@ import java.time.LocalDateTime;
  * @author Idrop.in Team
  */
 @Data
-public class RouteConfigVO {
+public class RouteConfigVO implements Serializable {
+    private static final long serialVersionUID = 1L;
     
     private String id;
     

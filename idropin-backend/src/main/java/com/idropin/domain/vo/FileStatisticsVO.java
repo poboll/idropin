@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
@@ -17,7 +18,8 @@ import java.util.Map;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class FileStatisticsVO {
+public class FileStatisticsVO implements Serializable {
+  private static final long serialVersionUID = 1L;
 
   /**
    * 总文件数
@@ -71,7 +73,8 @@ public class FileStatisticsVO {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
-  public static class FileTypeDistribution {
+  public static class FileTypeDistribution implements Serializable {
+    private static final long serialVersionUID = 1L;
     /**
      * 文件类型
      */
@@ -100,7 +103,8 @@ public class FileStatisticsVO {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
-  public static class UploadTrend {
+  public static class UploadTrend implements Serializable {
+    private static final long serialVersionUID = 1L;
     /**
      * 日期
      */
@@ -124,7 +128,8 @@ public class FileStatisticsVO {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
-  public static class CategoryStatistics {
+  public static class CategoryStatistics implements Serializable {
+    private static final long serialVersionUID = 1L;
     /**
      * 分类ID
      */
@@ -153,7 +158,8 @@ public class FileStatisticsVO {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
-  public static class StorageUsage {
+  public static class StorageUsage implements Serializable {
+    private static final long serialVersionUID = 1L;
     /**
      * 已使用（字节）
      */
