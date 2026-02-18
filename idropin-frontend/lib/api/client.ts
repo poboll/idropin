@@ -1,8 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
+import { API_BASE_URL } from './baseUrl';
 
 // API 基础配置
-// Back-end runs on 8081 with context-path "/api" (see idropin-backend application.yml).
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api';
 
 // 创建 Axios 实例
 export const apiClient = axios.create({
@@ -15,23 +14,32 @@ export const apiClient = axios.create({
 
 // Token 存储 key
 const TOKEN_KEY = 'idropin_token';
+const REFRESH_TOKEN_KEY = 'idropin_refresh_token';
 
-// 获取 Token
 export const getToken = (): string | null => {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem(TOKEN_KEY);
 };
 
-// 设置 Token
 export const setToken = (token: string): void => {
   if (typeof window === 'undefined') return;
   localStorage.setItem(TOKEN_KEY, token);
 };
 
-// 清除 Token
 export const clearToken = (): void => {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+};
+
+export const getRefreshToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(REFRESH_TOKEN_KEY);
+};
+
+export const setRefreshToken = (token: string): void => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(REFRESH_TOKEN_KEY, token);
 };
 
 // 请求拦截器 - 注入 Authorization header
@@ -48,21 +56,23 @@ apiClient.interceptors.request.use(
   }
 );
 
+// 静默刷新状态
+let isRefreshing = false;
+let pendingRequests: Array<(token: string) => void> = [];
+
+const processQueue = (token: string) => {
+  pendingRequests.forEach((cb) => cb(token));
+  pendingRequests = [];
+};
+
 // 响应拦截器 - 处理 401 错误和业务错误码
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
-    // 检查响应体中的业务错误码
-    // 后端可能返回 HTTP 200，但在 body 中包含 code != 200 表示业务错误
     if (response.data && typeof response.data === 'object') {
       const { code, message } = response.data;
       if (code !== undefined && code !== 200) {
-        // 将业务错误转换为 axios 错误，这样会被 catch 块捕获
         const error: any = new Error(message || '请求失败');
-        error.response = {
-          ...response,
-          status: code,
-          data: response.data
-        };
+        error.response = { ...response, status: code, data: response.data };
         error.code = code;
         error.isBusinessError = true;
         return Promise.reject(error);
@@ -70,14 +80,47 @@ apiClient.interceptors.response.use(
     }
     return response;
   },
-  (error: AxiosError) => {
-    // 只在真正的401 HTTP状态码时才重定向，避免业务错误码导致的重定向
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+      const refreshToken = getRefreshToken();
+      if (refreshToken) {
+        if (isRefreshing) {
+          return new Promise((resolve) => {
+            pendingRequests.push((newToken: string) => {
+              originalRequest.headers.Authorization = `Bearer ${newToken}`;
+              resolve(apiClient(originalRequest));
+            });
+          });
+        }
+
+        originalRequest._retry = true;
+        isRefreshing = true;
+
+        try {
+          const res = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
+          const { token, refreshToken: newRefresh } = res.data.data;
+          setToken(token);
+          setRefreshToken(newRefresh);
+          processQueue(token);
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return apiClient(originalRequest);
+        } catch {
+          clearToken();
+          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+            window.location.href = '/login';
+          }
+          return Promise.reject(error);
+        } finally {
+          isRefreshing = false;
+        }
+      }
+    }
+
     if (error.response?.status === 401) {
-      // 清除 Token
       clearToken();
-      // 重定向到登录页（仅在客户端）
       if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-        console.log('401 error, redirecting to login');
         window.location.href = '/login';
       }
     }

@@ -1,4 +1,6 @@
 import apiClient, { extractApiError, ApiError } from './client';
+import { API_BASE_URL } from './baseUrl';
+import axios from 'axios';
 
 // 用户信息类型
 export interface User {
@@ -21,6 +23,7 @@ export interface LoginRequest {
 // 登录响应
 export interface LoginResponse {
   token: string;
+  refreshToken: string;
   tokenType: string;
   expiresIn: number;
   user: User;
@@ -166,4 +169,8 @@ export const bindEmail = async (email: string, code: string): Promise<User> => {
   } catch (error) {
     throw extractApiError(error);
   }
+};
+
+export const logout = async (refreshToken: string): Promise<void> => {
+  await axios.post(`${API_BASE_URL}/auth/logout`, { refreshToken });
 };

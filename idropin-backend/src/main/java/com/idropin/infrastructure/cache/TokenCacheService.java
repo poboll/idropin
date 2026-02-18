@@ -1,62 +1,44 @@
 package com.idropin.infrastructure.cache;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 /**
- * Token缓存服务
- * 用于管理用户token的失效
- *
- * @author Idrop.in Team
+ * Refresh Token 缓存服务 — Redis 持久化
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class TokenCacheService {
 
-    // 存储被强制失效的用户ID
-    private final Set<String> invalidatedUsers = ConcurrentHashMap.newKeySet();
-    
-    // 存储用户token失效时间戳
-    private final Map<String, Long> userInvalidationTime = new ConcurrentHashMap<>();
+    private static final String UID_PREFIX = "refresh:uid:";
+    private static final String TOK_PREFIX = "refresh:tok:";
+    private static final long REFRESH_TTL_DAYS = 7;
 
-    /**
-     * 使用户所有token失效
-     *
-     * @param userId 用户ID
-     */
-    public void invalidateUserTokens(String userId) {
-        invalidatedUsers.add(userId);
-        userInvalidationTime.put(userId, System.currentTimeMillis());
-        log.info("用户 {} 的所有token已失效", userId);
-    }
+    private final StringRedisTemplate redisTemplate;
 
-    /**
-     * 检查用户token是否被强制失效
-     *
-     * @param userId 用户ID
-     * @param tokenIssuedAt token签发时间戳
-     * @return 是否被失效
-     */
-    public boolean isTokenInvalidated(String userId, long tokenIssuedAt) {
-        Long invalidationTime = userInvalidationTime.get(userId);
-        if (invalidationTime == null) {
-            return false;
+    public void storeRefreshToken(String userId, String refreshToken) {
+        String oldToken = redisTemplate.opsForValue().get(UID_PREFIX + userId);
+        if (oldToken != null) {
+            redisTemplate.delete(TOK_PREFIX + oldToken);
         }
-        // 如果token签发时间早于失效时间，则token无效
-        return tokenIssuedAt < invalidationTime;
+        redisTemplate.opsForValue().set(UID_PREFIX + userId, refreshToken, REFRESH_TTL_DAYS, TimeUnit.DAYS);
+        redisTemplate.opsForValue().set(TOK_PREFIX + refreshToken, userId, REFRESH_TTL_DAYS, TimeUnit.DAYS);
     }
 
-    /**
-     * 清除用户的失效状态（用户重新登录后）
-     *
-     * @param userId 用户ID
-     */
-    public void clearInvalidation(String userId) {
-        invalidatedUsers.remove(userId);
-        // 不清除失效时间，保持旧token无效
+    public String getUserIdByToken(String refreshToken) {
+        return redisTemplate.opsForValue().get(TOK_PREFIX + refreshToken);
+    }
+
+    public void invalidateUserTokens(String userId) {
+        String token = redisTemplate.opsForValue().get(UID_PREFIX + userId);
+        redisTemplate.delete(UID_PREFIX + userId);
+        if (token != null) {
+            redisTemplate.delete(TOK_PREFIX + token);
+        }
     }
 }

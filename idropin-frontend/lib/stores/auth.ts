@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import * as authApi from '../api/auth';
-import { setToken, clearToken, getToken } from '../api/client';
+import { setToken, clearToken, getToken, setRefreshToken, getRefreshToken } from '../api/client';
 
 // Auth Store State
 interface AuthState {
@@ -58,6 +58,9 @@ export const useAuthStore = create<AuthStore>()(
           }
 
           setToken(response.token);
+          if (response.refreshToken) {
+            setRefreshToken(response.refreshToken);
+          }
 
           const user = response.user ?? (await authApi.getCurrentUser());
           const isSuperAdmin = user.role === 'SUPER_ADMIN';
@@ -102,6 +105,10 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       logout: () => {
+        const rt = getRefreshToken();
+        if (rt) {
+          authApi.logout(rt).catch(() => {});
+        }
         clearToken();
         set({
           user: null,

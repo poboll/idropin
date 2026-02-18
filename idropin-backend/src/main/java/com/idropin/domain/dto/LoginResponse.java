@@ -17,23 +17,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class LoginResponse {
 
-    /**
-     * JWT Token
-     */
     private String token;
-
-    /**
-     * Token类型
-     */
+    private String refreshToken;
     private String tokenType;
-
-    /**
-     * 过期时间（秒）
-     */
     private Long expiresIn;
-
-    /**
-     * 用户信息
-     */
     private UserVO user;
 }

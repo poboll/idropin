@@ -47,10 +47,9 @@ public interface AuthService {
      */
     void requestPasswordReset(PasswordResetRequest request);
 
-    /**
-     * 确认密码重置
-     *
-     * @param request 密码重置确认请求
-     */
     void confirmPasswordReset(PasswordResetConfirmRequest request);
+
+    LoginResponse refreshToken(String refreshToken);
+
+    void logout(String refreshToken);
 }

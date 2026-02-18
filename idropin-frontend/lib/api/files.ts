@@ -1,5 +1,6 @@
 import apiClient, { extractApiError } from './client';
 import type { ApiResponse } from './auth';
+import { API_BASE_URL } from './baseUrl';
 
 // 文件类型
 export interface FileItem {
@@ -171,17 +172,14 @@ export const deleteFiles = async (ids: string[]): Promise<void> => {
  * 获取文件下载URL
  */
 export const getDownloadUrl = (id: string): string => {
-  // NEXT_PUBLIC_API_URL in this repo includes "/api".
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api';
-  return `${baseUrl}/files/${id}/download`;
+  return `${API_BASE_URL}/files/${id}/download`;
 };
 
 /**
  * 获取文件预览URL
  */
 export const getPreviewUrl = (id: string): string => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api';
-  return `${baseUrl}/files/${id}/preview`;
+  return `${API_BASE_URL}/files/${id}/preview`;
 };
 
 export interface AddFileOptions {
@@ -210,6 +208,88 @@ export const getUploadToken = async (): Promise<string> => {
   }
 };
 
+/**
+ * 获取预签名上传URL（MinIO直传）
+ */
+export interface PresignedUploadResponse {
+  uploadUrl: string;
+  objectName: string;
+}
+
+export const getPresignedUploadUrl = async (
+  objectName: string,
+  contentType: string = 'application/octet-stream',
+  expiry: number = 600
+): Promise<PresignedUploadResponse> => {
+  try {
+    const response = await apiClient.get<ApiResponse<PresignedUploadResponse>>('/files/presigned-upload', {
+      params: { objectName, contentType, expiry }
+    });
+    return response.data.data;
+  } catch (error) {
+    throw extractApiError(error);
+  }
+};
+
+/**
+ * 使用预签名URL直传文件到MinIO
+ */
+export const uploadFileWithPresignedUrl = async (
+  file: File,
+  presignedUrl: string,
+  onProgress?: (percent: number) => void
+): Promise<void> => {
+  try {
+    const xhr = new XMLHttpRequest();
+    
+    return new Promise((resolve, reject) => {
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable && onProgress) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          onProgress(percent);
+        }
+      });
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve();
+        } else {
+          reject(new Error(`Upload failed with status ${xhr.status}`));
+        }
+      });
+
+      xhr.addEventListener('error', () => {
+        reject(new Error('Upload failed'));
+      });
+
+      xhr.open('PUT', presignedUrl);
+      xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+      xhr.send(file);
+    });
+  } catch (error) {
+    throw extractApiError(error);
+  }
+};
+
+/**
+ * 预签名上传完成后，通知后端创建文件记录
+ */
+export const completePresignedUpload = async (
+  objectName: string,
+  originalName: string,
+  mimeType: string,
+  fileSize: number
+): Promise<FileItem> => {
+  try {
+    const response = await apiClient.post<ApiResponse<FileItem>>('/files/presigned-complete', {
+      objectName, originalName, mimeType, fileSize
+    });
+    return response.data.data;
+  } catch (error) {
+    throw extractApiError(error);
+  }
+};
+
 export const addFile = async (options: AddFileOptions): Promise<{ submissionId: number; fileName: string }> => {
   try {
     const response = await apiClient.post<ApiResponse<{ submissionId: number; fileName: string }>>('/files/add', options);
@@ -220,8 +300,7 @@ export const addFile = async (options: AddFileOptions): Promise<{ submissionId: 
 };
 
 export const getTemplateUrl = (template: string, key: string): string => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api';
-  return `${baseUrl}/files/template?template=${template}&key=${key}`;
+  return `${API_BASE_URL}/files/template?template=${template}&key=${key}`;
 };
 
 export const batchDownload = async (ids: number[], zipName?: string): Promise<any> => {

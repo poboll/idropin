@@ -1,6 +1,7 @@
 package com.idropin.interfaces.rest;
 
 import com.idropin.application.service.AuthService;
+import com.idropin.common.util.IpUtil;
 import com.idropin.common.vo.Result;
 import com.idropin.domain.dto.LoginRequest;
 import com.idropin.domain.dto.LoginResponse;
@@ -9,6 +10,7 @@ import com.idropin.domain.dto.PasswordResetRequest;
 import com.idropin.domain.dto.RegisterRequest;
 import com.idropin.domain.entity.User;
 import com.idropin.domain.vo.UserVO;
+import com.idropin.infrastructure.ratelimit.RateLimit;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,10 +34,11 @@ public class AuthController {
     /**
      * 用户注册
      */
+    @RateLimit(permits = 5, seconds = 60, key = "register")
     @Operation(summary = "用户注册", description = "新用户注册账号")
     @PostMapping("/register")
     public Result<UserVO> register(@Valid @RequestBody RegisterRequest request, HttpServletRequest httpRequest) {
-        String ipAddress = getClientIp(httpRequest);
+        String ipAddress = IpUtil.getClientIp(httpRequest);
         User user = authService.register(request, ipAddress);
         UserVO userVO = UserVO.builder()
                 .id(user.getId())
@@ -51,10 +54,11 @@ public class AuthController {
     /**
      * 用户登录
      */
+    @RateLimit(permits = 10, seconds = 60, key = "login")
     @Operation(summary = "用户登录", description = "用户登录获取Token")
     @PostMapping("/login")
     public Result<LoginResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
-        String ipAddress = getClientIp(httpRequest);
+        String ipAddress = IpUtil.getClientIp(httpRequest);
         LoginResponse response = authService.login(request, ipAddress);
         return Result.success(response);
     }
@@ -69,9 +73,6 @@ public class AuthController {
         return Result.<Void>success("密码重置邮件已发送，请查收", null);
     }
 
-    /**
-     * 确认密码重置
-     */
     @Operation(summary = "确认密码重置", description = "使用令牌重置密码")
     @PostMapping("/password-reset/confirm")
     public Result<Void> confirmPasswordReset(@Valid @RequestBody PasswordResetConfirmRequest request) {
@@ -79,27 +80,24 @@ public class AuthController {
         return Result.<Void>success("密码重置成功", null);
     }
 
-    /**
-     * 获取客户端IP地址
-     */
-    private String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("Proxy-Client-IP");
+    @RateLimit(permits = 10, seconds = 60, key = "refresh")
+    @Operation(summary = "刷新令牌", description = "使用 refresh token 获取新的 access token")
+    @PostMapping("/refresh")
+    public Result<LoginResponse> refresh(@RequestBody java.util.Map<String, String> body) {
+        String refreshToken = body.get("refreshToken");
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return Result.error(400, "refreshToken 不能为空");
         }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("WL-Proxy-Client-IP");
+        return Result.success(authService.refreshToken(refreshToken));
+    }
+
+    @Operation(summary = "用户登出", description = "注销 refresh token")
+    @PostMapping("/logout")
+    public Result<Void> logout(@RequestBody java.util.Map<String, String> body) {
+        String refreshToken = body.get("refreshToken");
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            authService.logout(refreshToken);
         }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("X-Real-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        // 多个代理时取第一个IP
-        if (ip != null && ip.contains(",")) {
-            ip = ip.split(",")[0].trim();
-        }
-        return ip;
+        return Result.<Void>success("已登出", null);
     }
 }

@@ -2,117 +2,91 @@ package com.idropin.infrastructure.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import javax.crypto.SecretKey;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Function;
 
 /**
- * JWT Token工具类
+ * JWT 工具类 — RS256 非对称签名
  *
- * @author Idrop.in Team
+ * 启动时生成 RSA-2048 密钥对。access token 15 分钟有效期。
+ * refresh token 由 AuthService 以 UUID 形式存 Redis，与本类无关。
  */
 @Slf4j
 @Component
 public class JwtTokenUtil {
 
-  @Value("${jwt.secret}")
-  private String secret;
+    public static final long ACCESS_TOKEN_EXPIRATION = 15 * 60 * 1000L;
 
-  @Value("${jwt.expiration}")
-  private Long expiration;
+    private RSAPublicKey publicKey;
+    private RSAPrivateKey privateKey;
 
-  /**
-   * 从Token中获取用户名
-   */
-  public String getUsernameFromToken(String token) {
-    return getClaimFromToken(token, Claims::getSubject);
-  }
-
-  /**
-   * 从Token中获取过期时间
-   */
-  public Date getExpirationDateFromToken(String token) {
-    return getClaimFromToken(token, Claims::getExpiration);
-  }
-
-  /**
-   * 从Token中获取指定声明
-   */
-  public <T> T getClaimFromToken(String token, Function<Claims, T> claimsResolver) {
-    final Claims claims = getAllClaimsFromToken(token);
-    if (claims == null) {
-      return null;
+    @PostConstruct
+    public void init() {
+        try {
+            KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+            kpg.initialize(2048);
+            KeyPair kp = kpg.generateKeyPair();
+            this.publicKey = (RSAPublicKey) kp.getPublic();
+            this.privateKey = (RSAPrivateKey) kp.getPrivate();
+            log.info("RS256 密钥对初始化完成");
+        } catch (Exception e) {
+            throw new IllegalStateException("RSA 密钥对生成失败", e);
+        }
     }
-    return claimsResolver.apply(claims);
-  }
 
-  /**
-   * 解析Token获取所有声明
-   */
-  private Claims getAllClaimsFromToken(String token) {
-    try {
-      return Jwts.parser()
-          .verifyWith(getSigningKey())
-          .build()
-          .parseSignedClaims(token)
-          .getPayload();
-    } catch (Exception e) {
-      log.error("解析JWT Token失败: {}", token, e);
-      return null;
+    /** 生成 RS256 access token */
+    public String generateAccessToken(String username) {
+        Date now = new Date();
+        return Jwts.builder()
+                .subject(username)
+                .issuedAt(now)
+                .expiration(new Date(now.getTime() + ACCESS_TOKEN_EXPIRATION))
+                .signWith(privateKey)
+                .compact();
     }
-  }
 
-  /**
-   * 检查Token是否过期
-   */
-  private Boolean isTokenExpired(String token) {
-    final Date expiration = getExpirationDateFromToken(token);
-    return expiration.before(new Date());
-  }
+    public String getUsernameFromToken(String token) {
+        return getClaim(token, Claims::getSubject);
+    }
 
-  /**
-   * 生成Token
-   */
-  public String generateToken(String username) {
-    Map<String, Object> claims = new HashMap<>();
-    return doGenerateToken(claims, username);
-  }
+    public boolean validateToken(String token, String username) {
+        try {
+            String subject = getUsernameFromToken(token);
+            return subject != null && subject.equals(username) && !isExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
-  /**
-   * 生成Token
-   */
-  private String doGenerateToken(Map<String, Object> claims, String subject) {
-    final Date createdDate = new Date();
-    final Date expirationDate = new Date(createdDate.getTime() + expiration);
+    private boolean isExpired(String token) {
+        Date exp = getClaim(token, Claims::getExpiration);
+        return exp == null || exp.before(new Date());
+    }
 
-    return Jwts.builder()
-        .claims(claims)
-        .subject(subject)
-        .issuedAt(createdDate)
-        .expiration(expirationDate)
-        .signWith(getSigningKey())
-        .compact();
-  }
+    private <T> T getClaim(String token, Function<Claims, T> resolver) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(publicKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            return resolver.apply(claims);
+        } catch (Exception e) {
+            log.debug("JWT 解析失败: {}", e.getMessage());
+            return null;
+        }
+    }
 
-  /**
-   * 验证Token
-   */
-  public Boolean validateToken(String token, String username) {
-    final String tokenUsername = getUsernameFromToken(token);
-    return (tokenUsername.equals(username) && !isTokenExpired(token));
-  }
-
-  /**
-   * 获取签名密钥
-   */
-  private SecretKey getSigningKey() {
-    return Keys.hmacShaKeyFor(secret.getBytes());
-  }
+    /** 向后兼容旧调用 */
+    public String generateToken(String username) {
+        return generateAccessToken(username);
+    }
 }
