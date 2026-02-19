@@ -1,30 +1,25 @@
 package com.idropin.infrastructure.storage;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
-import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.*;
 import java.nio.file.*;
 import java.util.List;
 
-/**
- * 本地文件存储服务 - 最轻量级方案，无需额外依赖
- */
 @Slf4j
-@Service
-@ConditionalOnProperty(name = "storage.type", havingValue = "local", matchIfMissing = true)
 public class LocalStorageService implements StorageService {
 
-    @Value("${storage.local.path:./uploads}")
-    private String basePath;
+    private final String basePath;
+    private final String baseUrl;
 
-    @Value("${storage.local.base-url:http://localhost:8081/api/files/download}")
-    private String baseUrl;
+    public LocalStorageService(String basePath, String baseUrl) {
+        this.basePath = basePath;
+        this.baseUrl = baseUrl;
+    }
 
-    @PostConstruct
     public void init() {
         try {
             Files.createDirectories(Paths.get(basePath));
@@ -72,7 +67,42 @@ public class LocalStorageService implements StorageService {
 
     @Override
     public String getFileUrl(String path) {
-        return baseUrl + "/" + path;
+        String dynamicBaseUrl = getDynamicBaseUrl();
+        return dynamicBaseUrl + "/" + path;
+    }
+    
+    private String getDynamicBaseUrl() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                
+                String scheme = getHeaderOrDefault(request, "X-Forwarded-Proto", request.getScheme());
+                String serverName = getHeaderOrDefault(request, "X-Forwarded-Host", request.getServerName());
+                String portHeader = request.getHeader("X-Forwarded-Port");
+                int serverPort = portHeader != null ? Integer.parseInt(portHeader) : request.getServerPort();
+                String contextPath = request.getContextPath();
+                
+                StringBuilder url = new StringBuilder();
+                url.append(scheme).append("://").append(serverName);
+                
+                if ((scheme.equals("http") && serverPort != 80) || 
+                    (scheme.equals("https") && serverPort != 443)) {
+                    url.append(":").append(serverPort);
+                }
+                
+                url.append(contextPath).append("/files/download");
+                return url.toString();
+            }
+        } catch (Exception e) {
+            log.warn("Failed to get dynamic base URL, falling back to configured base URL", e);
+        }
+        return baseUrl;
+    }
+    
+    private String getHeaderOrDefault(HttpServletRequest request, String headerName, String defaultValue) {
+        String value = request.getHeader(headerName);
+        return (value != null && !value.isEmpty()) ? value : defaultValue;
     }
 
     @Override

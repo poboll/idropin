@@ -83,4 +83,20 @@ public interface StorageService {
      * @return 内容类型
      */
     String getContentType(String objectName);
+
+    default String getPresignedUploadUrl(String objectName, String contentType, int expiry) {
+        throw new UnsupportedOperationException("Presigned upload not supported");
+    }
+
+    default String getUploadToken(String objectName, int expiry) {
+        return null;
+    }
+
+    default String getActiveStorageType() {
+        return "local";
+    }
+
+    default void composeObjects(List<String> sourceKeys, String destKey) {
+        throw new UnsupportedOperationException("Server-side compose not supported");
+    }
 }

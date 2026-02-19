@@ -35,7 +35,7 @@ public class ChunkUploadController {
   private final StorageService storageService;
 
   @PostMapping("/init")
-  @Operation(summary = "初始化分片上传")
+  @Operation(summary = "初始化分片上传", description = "返回 uploadId 用于后续分片上传。若文件 MD5 已存在则返回 `INSTANT:{fileId}` 实现秒传")
   public Result<String> initChunkUpload(
       @RequestParam("fileName") String fileName,
       @RequestParam("fileSize") Long fileSize,
@@ -47,7 +47,7 @@ public class ChunkUploadController {
   }
 
   @PostMapping("/upload")
-  @Operation(summary = "上传分片")
+  @Operation(summary = "上传分片", description = "chunkNumber 从 0 开始，isLastChunk=true 时自动触发合并")
   public Result<FileUploadResult> uploadChunk(
       @RequestParam("file") MultipartFile chunk,
       @RequestParam("uploadId") String uploadId,
@@ -96,7 +96,7 @@ public class ChunkUploadController {
   }
 
   @PostMapping("/merge")
-  @Operation(summary = "合并分片")
+  @Operation(summary = "合并分片", description = "优先使用对象存储服务端 compose 合并，降低内存占用；失败时回退到流式合并")
   public Result<FileVO> mergeChunks(
       @RequestParam("uploadId") String uploadId,
       @AuthenticationPrincipal UserDetails userDetails) {

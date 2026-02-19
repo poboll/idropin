@@ -1,57 +1,41 @@
 package com.idropin.infrastructure.storage;
 
 import com.idropin.common.exception.BusinessException;
-import com.idropin.infrastructure.config.MinioConfig;
 import io.minio.*;
+import io.minio.ComposeObjectArgs;
+import io.minio.ComposeSource;
 import io.minio.errors.*;
 import io.minio.http.Method;
 import io.minio.messages.DeleteError;
 import io.minio.messages.DeleteObject;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Service;
 
-import jakarta.annotation.PostConstruct;
 import java.io.InputStream;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-/**
- * MinIO 存储服务实现 - 兼容 S3/阿里云OSS/七牛云
- *
- * @author Idrop.in Team
- */
 @Slf4j
-@Service
-@RequiredArgsConstructor
-@ConditionalOnProperty(name = "storage.type", havingValue = "minio")
 public class MinioStorageService implements StorageService {
 
     private final MinioClient minioClient;
-    private final MinioConfig minioConfig;
+    private final String endpoint;
+    private final String bucket;
 
-    /**
-     * 初始化：确保存储桶存在
-     */
-    @PostConstruct
+    public MinioStorageService(MinioClient minioClient, String endpoint, String bucket) {
+        this.minioClient = minioClient;
+        this.endpoint = endpoint;
+        this.bucket = bucket;
+    }
+
     public void init() {
         try {
             boolean bucketExists = minioClient.bucketExists(
-                    BucketExistsArgs.builder()
-                            .bucket(minioConfig.getBucket())
-                            .build()
+                    BucketExistsArgs.builder().bucket(bucket).build()
             );
             if (!bucketExists) {
-                minioClient.makeBucket(
-                        MakeBucketArgs.builder()
-                                .bucket(minioConfig.getBucket())
-                                .build()
-                );
-                log.info("Created MinIO bucket: {}", minioConfig.getBucket());
+                minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
+                log.info("Created MinIO bucket: {}", bucket);
             }
         } catch (Exception e) {
             log.error("Failed to initialize MinIO bucket", e);
@@ -63,7 +47,7 @@ public class MinioStorageService implements StorageService {
         try {
             minioClient.putObject(
                     PutObjectArgs.builder()
-                            .bucket(minioConfig.getBucket())
+                            .bucket(bucket)
                             .object(objectName)
                             .stream(inputStream, size, -1)
                             .contentType(contentType)
@@ -82,7 +66,7 @@ public class MinioStorageService implements StorageService {
         try {
             return minioClient.getObject(
                     GetObjectArgs.builder()
-                            .bucket(minioConfig.getBucket())
+                            .bucket(bucket)
                             .object(objectName)
                             .build()
             );
@@ -97,7 +81,7 @@ public class MinioStorageService implements StorageService {
         try {
             minioClient.removeObject(
                     RemoveObjectArgs.builder()
-                            .bucket(minioConfig.getBucket())
+                            .bucket(bucket)
                             .object(objectName)
                             .build()
             );
@@ -117,7 +101,7 @@ public class MinioStorageService implements StorageService {
 
             Iterable<Result<DeleteError>> results = minioClient.removeObjects(
                     RemoveObjectsArgs.builder()
-                            .bucket(minioConfig.getBucket())
+                            .bucket(bucket)
                             .objects(objects)
                             .build()
             );
@@ -136,8 +120,8 @@ public class MinioStorageService implements StorageService {
     @Override
     public String getFileUrl(String objectName) {
         return String.format("%s/%s/%s", 
-                minioConfig.getEndpoint(), 
-                minioConfig.getBucket(), 
+                endpoint, 
+                bucket, 
                 objectName);
     }
 
@@ -147,7 +131,7 @@ public class MinioStorageService implements StorageService {
             return minioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.GET)
-                            .bucket(minioConfig.getBucket())
+                            .bucket(bucket)
                             .object(objectName)
                             .expiry(expiry, TimeUnit.SECONDS)
                             .build()
@@ -163,7 +147,7 @@ public class MinioStorageService implements StorageService {
         try {
             minioClient.statObject(
                     StatObjectArgs.builder()
-                            .bucket(minioConfig.getBucket())
+                            .bucket(bucket)
                             .object(objectName)
                             .build()
             );
@@ -183,7 +167,7 @@ public class MinioStorageService implements StorageService {
         try {
             StatObjectResponse stat = minioClient.statObject(
                     StatObjectArgs.builder()
-                            .bucket(minioConfig.getBucket())
+                            .bucket(bucket)
                             .object(objectName)
                             .build()
             );
@@ -199,7 +183,7 @@ public class MinioStorageService implements StorageService {
         try {
             StatObjectResponse stat = minioClient.statObject(
                     StatObjectArgs.builder()
-                            .bucket(minioConfig.getBucket())
+                            .bucket(bucket)
                             .object(objectName)
                             .build()
             );
@@ -207,6 +191,38 @@ public class MinioStorageService implements StorageService {
         } catch (Exception e) {
             log.error("Failed to get content type for: {}", objectName, e);
             throw new BusinessException("获取文件类型失败: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public String getPresignedUploadUrl(String objectName, String contentType, int expiry) {
+        try {
+            return minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Method.PUT)
+                            .bucket(bucket)
+                            .object(objectName)
+                            .expiry(expiry, TimeUnit.SECONDS)
+                            .build()
+            );
+        } catch (Exception e) {
+            log.error("Failed to get presigned upload URL for: {}", objectName, e);
+            throw new BusinessException("获取上传链接失败: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void composeObjects(List<String> sourceKeys, String destKey) {
+        try {
+            List<ComposeSource> sources = sourceKeys.stream()
+                .map(k -> ComposeSource.builder().bucket(bucket).object(k).build())
+                .collect(Collectors.toList());
+            minioClient.composeObject(ComposeObjectArgs.builder()
+                .bucket(bucket).object(destKey).sources(sources).build());
+            log.info("Composed {} chunks into {}", sourceKeys.size(), destKey);
+        } catch (Exception e) {
+            log.error("Failed to compose objects into {}", destKey, e);
+            throw new UnsupportedOperationException("composeObject failed: " + e.getMessage(), e);
         }
     }
 }

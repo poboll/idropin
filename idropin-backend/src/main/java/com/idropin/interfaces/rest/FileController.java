@@ -298,10 +298,11 @@ public class FileController {
     public void publicDownload(
             @PathVariable String path,
             HttpServletResponse response) throws IOException {
-        try (InputStream inputStream = storageService.downloadFile(path);
+        String objectKey = path.startsWith("/") ? path.substring(1) : path;
+        try (InputStream inputStream = storageService.downloadFile(objectKey);
              OutputStream outputStream = response.getOutputStream()) {
-            // 根据文件扩展名设置Content-Type
-            String contentType = getContentType(path);
+             // 根据文件扩展名设置Content-Type
+            String contentType = getContentType(objectKey);
             response.setContentType(contentType);
             byte[] buffer = new byte[8192];
             int bytesRead;
@@ -316,6 +317,52 @@ public class FileController {
     /**
      * 获取上传凭证（兼容旧版API）
      */
+    @GetMapping("/presigned-upload")
+    @Operation(summary = "获取预签名上传URL", description = "获取 MinIO 预签名 PUT URL，客户端直传对象存储")
+    public Result<java.util.Map<String, String>> getPresignedUploadUrl(
+            @RequestParam String objectName,
+            @RequestParam(defaultValue = "application/octet-stream") String contentType,
+            @RequestParam(defaultValue = "600") int expiry,
+            @RequestParam(required = false) String taskKey,
+            @RequestParam(required = false) String peopleName,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String userId = getUserId(userDetails);
+        String key;
+        if (taskKey != null && !taskKey.isEmpty()) {
+            String safeKey = taskKey.replaceAll("[\\\\/:*?\"<>|]", "_");
+            String prefix = (peopleName != null && !peopleName.isEmpty())
+                    ? peopleName.replaceAll("[\\\\/:*?\"<>|]", "_") + "_" : "";
+            key = "tasks/" + safeKey + "/" + prefix + objectName;
+        } else {
+            key = "users/" + userId + "/" + objectName;
+        }
+        String storageType = storageService.getActiveStorageType();
+        String uploadUrl = storageService.getPresignedUploadUrl(key, contentType, expiry);
+        String token = storageService.getUploadToken(key, expiry);
+        java.util.Map<String, String> result = new java.util.HashMap<>();
+        result.put("uploadUrl", uploadUrl);
+        result.put("objectName", key);
+        result.put("storageType", storageType);
+        if (token != null) result.put("token", token);
+        return Result.success(result);
+    }
+
+    @PostMapping("/presigned-complete")
+    @Operation(summary = "完成预签名上传", description = "预签名上传完成后，创建文件记录")
+    public Result<FileVO> completePresignedUpload(
+            @RequestBody java.util.Map<String, Object> request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String userId = getUserId(userDetails);
+        String objectName = (String) request.get("objectName");
+        String originalName = (String) request.get("originalName");
+        String mimeType = (String) request.get("mimeType");
+        Long fileSize = ((Number) request.get("fileSize")).longValue();
+        
+        File file = fileService.createFileRecord(objectName, originalName, mimeType, fileSize, userId);
+        String url = storageService.getFileUrl(file.getStoragePath());
+        return Result.success(FileVO.fromEntity(file, url));
+    }
+
     @GetMapping("/upload/token")
     @Operation(summary = "获取上传凭证")
     public Result<String> getUploadToken(@AuthenticationPrincipal UserDetails userDetails) {

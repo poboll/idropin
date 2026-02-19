@@ -86,9 +86,16 @@ public class CollectionTask {
   private String collectionType;
 
   /**
+   * 自定义AI评估提示词
+   */
+  private String aiPrompt;
+
+  /**
    * 软删除标记（回收站）
    */
   private Boolean deleted;
+
+  private LocalDateTime deletedAt;
 
   /**
    * 创建时间

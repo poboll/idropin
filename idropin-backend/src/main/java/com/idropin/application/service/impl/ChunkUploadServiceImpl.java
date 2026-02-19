@@ -1,7 +1,5 @@
 package com.idropin.application.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.idropin.application.service.ChunkUploadService;
 import com.idropin.common.exception.BusinessException;
@@ -20,11 +18,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.SequenceInputStream;
+import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -51,6 +51,9 @@ public class ChunkUploadServiceImpl implements ChunkUploadService {
   @Value("${file.upload.max-size:1073741824}")
   private long maxFileSize;
 
+  @Value("${storage.root-prefix:}")
+  private String rootPrefix;
+
   @Override
   @Transactional
   public String initChunkUpload(String fileName, Long fileSize, String fileMd5, String userId) {
@@ -58,28 +61,10 @@ public class ChunkUploadServiceImpl implements ChunkUploadService {
       throw new BusinessException("文件大小超过限制（最大 " + (maxFileSize / 1024 / 1024) + "MB）");
     }
 
-    LambdaQueryWrapper<File> wrapper = new LambdaQueryWrapper<>();
-    wrapper.eq(File::getUploaderId, userId)
-        .eq(File::getStatus, "ACTIVE");
-    List<File> existingFiles = fileMapper.selectList(wrapper);
-
-    for (File existingFile : existingFiles) {
-      String existingMd5 = null;
-      if (existingFile.getMetadata() != null) {
-        try {
-          JsonNode metadataNode = objectMapper.readTree(existingFile.getMetadata());
-          if (metadataNode.has("md5")) {
-            existingMd5 = metadataNode.get("md5").asText();
-          }
-        } catch (Exception e) {
-          log.warn("Failed to parse metadata for file: {}", existingFile.getId(), e);
-        }
-      }
-
-      if (existingFile.getFileSize().equals(fileSize) && fileMd5.equals(existingMd5)) {
-        log.info("File already exists, enabling instant upload: {}", fileName);
-        return "INSTANT:" + existingFile.getId();
-      }
+    File existing = fileMapper.findByUploaderIdAndMd5AndSize(userId, fileMd5, fileSize);
+    if (existing != null) {
+      log.info("File already exists, enabling instant upload: {}", fileName);
+      return "INSTANT:" + existing.getId();
     }
 
     String uploadId = UUID.randomUUID().toString().replace("-", "");
@@ -194,42 +179,48 @@ public class ChunkUploadServiceImpl implements ChunkUploadService {
       }
     }
 
+    FileChunk firstChunk = chunks.get(0);
+    String extension = getFileExtension(firstChunk.getFileName());
+    String finalStoragePath = generateFinalStoragePath(userId, extension);
+
     try {
-      ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-      for (FileChunk chunk : chunks) {
-        try (InputStream inputStream = storageService.downloadFile(chunk.getStoragePath())) {
-          byte[] buffer = new byte[8192];
-          int bytesRead;
-          while ((bytesRead = inputStream.read(buffer)) != -1) {
-            outputStream.write(buffer, 0, bytesRead);
-          }
+      long totalSize = chunks.stream().mapToLong(FileChunk::getChunkSize).sum();
+      String md5;
+
+      boolean serverSideComposed = false;
+      try {
+        List<String> chunkPaths = chunks.stream()
+            .map(FileChunk::getStoragePath)
+            .collect(Collectors.toList());
+        storageService.composeObjects(chunkPaths, finalStoragePath);
+        md5 = firstChunk.getFileMd5();
+        serverSideComposed = true;
+        log.info("Server-side compose succeeded for uploadId={}", uploadId);
+      } catch (UnsupportedOperationException ignored) {
+        List<InputStream> streams = chunks.stream()
+            .map(c -> storageService.downloadFile(c.getStoragePath()))
+            .collect(Collectors.toList());
+        MessageDigest digest = MessageDigest.getInstance("MD5");
+        try (SequenceInputStream sis = new SequenceInputStream(Collections.enumeration(streams));
+             DigestInputStream dis = new DigestInputStream(sis, digest)) {
+          storageService.uploadFile(finalStoragePath, dis, "application/octet-stream", totalSize);
         }
+        md5 = toHex(digest.digest());
       }
 
-      byte[] mergedData = outputStream.toByteArray();
-      String md5 = calculateMD5(mergedData);
-
-      FileChunk firstChunk = chunks.get(0);
-      if (!md5.equals(firstChunk.getFileMd5())) {
+      if (!serverSideComposed && !md5.equals(firstChunk.getFileMd5())) {
+        try { storageService.deleteFile(finalStoragePath); } catch (Exception ignored) {}
         throw new BusinessException("文件MD5校验失败，文件可能损坏");
       }
 
-      String extension = getFileExtension(firstChunk.getFileName());
-      String finalStoragePath = generateFinalStoragePath(userId, extension);
-
-      storageService.uploadFile(
-          finalStoragePath,
-          new java.io.ByteArrayInputStream(mergedData),
-          "application/octet-stream",
-          mergedData.length);
-
       File file = new File();
+      file.setId(UUID.randomUUID().toString());
       file.setName(firstChunk.getFileName());
       file.setOriginalName(firstChunk.getFileName());
       file.setFileSize(firstChunk.getTotalSize());
       file.setMimeType("application/octet-stream");
       file.setStoragePath(finalStoragePath);
-      file.setStorageProvider("MINIO");
+      file.setStorageProvider(storageService.getActiveStorageType().toUpperCase());
       file.setUploaderId(userId);
       file.setStatus("ACTIVE");
       file.setCreatedAt(LocalDateTime.now());
@@ -309,8 +300,8 @@ public class ChunkUploadServiceImpl implements ChunkUploadService {
 
   private String generateFinalStoragePath(String userId, String extension) {
     String uuid = UUID.randomUUID().toString().replace("-", "");
-    String datePath = LocalDateTime.now().toString().substring(0, 10).replace("-", "/");
-    return String.format("%s/%s/%s%s", userId, datePath, uuid, extension);
+    String prefix = (rootPrefix == null || rootPrefix.isEmpty()) ? "" : rootPrefix + "/";
+    return String.format("%susers/%s/%s%s", prefix, userId, uuid, extension);
   }
 
   private String getFileExtension(String filename) {
@@ -320,21 +311,9 @@ public class ChunkUploadServiceImpl implements ChunkUploadService {
     return filename.substring(filename.lastIndexOf("."));
   }
 
-  private String calculateMD5(byte[] data) {
-    try {
-      MessageDigest md = MessageDigest.getInstance("MD5");
-      byte[] hash = md.digest(data);
-      StringBuilder hexString = new StringBuilder();
-      for (byte b : hash) {
-        String hex = Integer.toHexString(0xff & b);
-        if (hex.length() == 1) {
-          hexString.append('0');
-        }
-        hexString.append(hex);
-      }
-      return hexString.toString();
-    } catch (Exception e) {
-      throw new BusinessException("计算MD5失败: " + e.getMessage());
-    }
+  private static String toHex(byte[] bytes) {
+    StringBuilder sb = new StringBuilder(bytes.length * 2);
+    for (byte b : bytes) sb.append(String.format("%02x", b));
+    return sb.toString();
   }
 }

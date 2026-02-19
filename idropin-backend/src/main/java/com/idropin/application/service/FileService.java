@@ -22,10 +22,13 @@ public interface FileService {
      */
     File uploadFile(MultipartFile file, String userId);
 
-    /**
-     * 上传单个文件（使用自定义文件名）
-     */
+    File createFileRecord(String storagePath, String originalName, String mimeType, Long fileSize, String userId);
+
     File uploadFileWithCustomName(MultipartFile file, String userId, String customFilename);
+
+    File uploadFileForTask(MultipartFile file, String userId, String taskKey, String filename);
+
+    String uploadFileForAvatar(MultipartFile file, String userId, String oldAvatarPath);
 
     /**
      * 上传多个文件
