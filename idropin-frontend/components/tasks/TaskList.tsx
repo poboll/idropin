@@ -2,9 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import { getUserTasks, deleteTask, type CollectionTask } from '@/lib/api/tasks';
-import { formatDistanceToNow } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
+
 import { Calendar, Clock, Eye, Trash2, Share2, Settings, MoreVertical, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+
+function relativeTime(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return '刚刚';
+  if (mins < 60) return `${mins}分钟前`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}小时前`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}天前`;
+  const months = Math.floor(days / 30);
+  return months < 12 ? `${months}个月前` : `${Math.floor(months / 12)}年前`;
+}
 
 export default function TaskList() {
   const [tasks, setTasks] = useState<CollectionTask[]>([]);
@@ -192,10 +204,7 @@ export default function TaskList() {
                 <div>
                   <p className="text-xs text-slate-400">创建时间</p>
                   <p className="font-medium text-slate-700">
-                    {formatDistanceToNow(new Date(task.createdAt), {
-                      addSuffix: true,
-                      locale: zhCN,
-                    })}
+                    {relativeTime(task.createdAt)}
                   </p>
                 </div>
               </div>

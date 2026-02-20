@@ -1,8 +1,7 @@
 'use client';
 
-import { X, CheckCircle2, Download, Copy, Check, Image, Loader2 } from 'lucide-react';
-import { useState, useRef } from 'react';
-import html2canvas from 'html2canvas';
+import { X, CheckCircle2, Download, Copy, Check } from 'lucide-react';
+import { useState } from 'react';
 
 interface SubmissionSuccessModalProps {
   isOpen: boolean;
@@ -20,8 +19,6 @@ interface SubmissionSuccessModalProps {
 
 export function SubmissionSuccessModal({ isOpen, onClose, submissionData }: SubmissionSuccessModalProps) {
   const [copied, setCopied] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen) return null;
 
@@ -36,36 +33,6 @@ export function SubmissionSuccessModal({ isOpen, onClose, submissionData }: Subm
       second: '2-digit',
       hour12: false
     });
-  };
-
-  const handleDownloadPNG = async () => {
-    if (!cardRef.current) return;
-
-    try {
-      setGenerating(true);
-
-      const canvas = await html2canvas(cardRef.current, {
-        backgroundColor: '#ffffff',
-        scale: 3, // 提高分辨率
-        useCORS: true,
-        logging: false,
-        width: 600, // 固定宽度
-        windowWidth: 600,
-      });
-
-      const url = canvas.toDataURL('image/png');
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `提交凭证-${submissionData.submitterName || '匿名'}-${new Date().toISOString().split('T')[0]}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch (err) {
-      console.error('Failed to generate PNG:', err);
-      alert('生成图片失败，请重试');
-    } finally {
-      setGenerating(false);
-    }
   };
 
   const handleDownloadJSON = () => {
@@ -108,8 +75,7 @@ export function SubmissionSuccessModal({ isOpen, onClose, submissionData }: Subm
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-[640px] w-full overflow-hidden animate-in fade-in zoom-in duration-200">
-        {/* Capture Area for PNG - 固定宽度布局 */}
-        <div ref={cardRef} className="bg-white" style={{ width: '600px', padding: 0 }}>
+        <div className="bg-white" style={{ width: '600px', padding: 0 }}>
           {/* Header */}
           <div style={{ 
             background: 'linear-gradient(to right, #10b981, #059669)',
@@ -240,16 +206,6 @@ export function SubmissionSuccessModal({ isOpen, onClose, submissionData }: Subm
             >
               {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
               {copied ? '已复制' : '复制'}
-            </button>
-            <button
-              onClick={handleDownloadPNG}
-              disabled={generating}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2
-                bg-green-500 hover:bg-green-600 disabled:bg-green-300
-                text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
-            >
-              {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Image className="w-3.5 h-3.5" />}
-              {generating ? '生成中' : '图片'}
             </button>
             <button
               onClick={handleDownloadJSON}

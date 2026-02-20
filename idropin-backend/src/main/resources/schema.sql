@@ -104,7 +104,8 @@ CREATE TABLE collection_task (
     collection_type VARCHAR(20) DEFAULT 'FILE',
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ai_prompt TEXT
 );
 
 COMMENT ON TABLE collection_task IS '收集任务表';
@@ -121,7 +122,13 @@ CREATE TABLE file_submission (
     submitter_email VARCHAR(100),
     submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     submitter_ip VARCHAR(45),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted BOOLEAN NOT NULL DEFAULT false,
+    ai_status SMALLINT NOT NULL DEFAULT 0,
+    report_vector vector(1024),
+    ai_evaluation JSONB,
+    similar_to_id VARCHAR(36),
+    is_plagiarized BOOLEAN NOT NULL DEFAULT false
 );
 
 COMMENT ON TABLE file_submission IS '文件提交记录表';
@@ -244,6 +251,10 @@ CREATE INDEX idx_file_submission_submitter ON file_submission(submitter_id);
 CREATE INDEX idx_file_submission_submitted_at ON file_submission(submitted_at DESC);
 CREATE INDEX idx_file_submission_ip ON file_submission(submitter_ip);
 CREATE INDEX idx_file_submission_created_at ON file_submission(created_at);
+CREATE INDEX idx_file_submission_deleted ON file_submission(deleted);
+CREATE INDEX idx_file_submission_ai_status ON file_submission(ai_status);
+CREATE INDEX idx_file_submission_similar ON file_submission(similar_to_id) WHERE similar_to_id IS NOT NULL;
+CREATE INDEX idx_file_submission_vector ON file_submission USING hnsw (report_vector vector_cosine_ops) WITH (m = 16, ef_construction = 64);
 
 -- 任务提交记录表索引
 CREATE INDEX IF NOT EXISTS idx_task_submission_task_key ON task_submission(task_key);

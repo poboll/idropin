@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock } from 'lucide-react';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, setHours, setMinutes } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
+
 
 interface DatePickerProps {
   value?: Date | null;
@@ -37,8 +36,14 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeho
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const applyTime = (d: Date, h: number, m: number) => {
+    const r = new Date(d);
+    r.setHours(h, m, 0, 0);
+    return r;
+  };
+
   const handleDateClick = (day: Date) => {
-    const newDate = setMinutes(setHours(day, time.hours), time.minutes);
+    const newDate = applyTime(day, time.hours, time.minutes);
     setSelectedDate(newDate);
     onChange(newDate);
     if (!showTime) setIsOpen(false);
@@ -59,20 +64,27 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeho
     setTime(newTime);
 
     if (selectedDate) {
-      const newDate = setMinutes(setHours(selectedDate, newTime.hours), newTime.minutes);
+      const newDate = applyTime(selectedDate, newTime.hours, newTime.minutes);
       setSelectedDate(newDate);
       onChange(newDate);
     }
   };
 
-  const days = eachDayOfInterval({
-    start: startOfMonth(currentMonth),
-    end: endOfMonth(currentMonth),
-  });
+  const y = currentMonth.getFullYear(), m = currentMonth.getMonth();
+  const monthStart = new Date(y, m, 1);
+  const monthEnd = new Date(y, m + 1, 0);
+  const days: Date[] = [];
+  for (let d = new Date(monthStart); d <= monthEnd; d.setDate(d.getDate() + 1)) days.push(new Date(d));
+  const startDay = monthStart.getDay();
+  const paddingDays = Array(startDay === 0 ? 6 : startDay - 1).fill(null);
 
-  // Calculate padding days for start of month
-  const startDay = startOfMonth(currentMonth).getDay(); // 0 is Sunday
-  const paddingDays = Array(startDay === 0 ? 6 : startDay - 1).fill(null); // Adjust for Monday start if needed
+  const fmtDate = (d: Date, withTime: boolean) => {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const base = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    return withTime ? `${base} ${pad(d.getHours())}:${pad(d.getMinutes())}` : base;
+  };
+  const sameDay = (a: Date, b: Date) => a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+  const todayDate = new Date();
 
   return (
     <div className="relative w-full" ref={containerRef}>
@@ -82,20 +94,20 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeho
       >
         <CalendarIcon className="w-4 h-4 text-slate-500 mr-2" />
         <span className={`text-sm ${selectedDate ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400'}`}>
-          {selectedDate ? format(selectedDate, showTime ? 'yyyy-MM-dd HH:mm' : 'yyyy-MM-dd') : placeholder}
+          {selectedDate ? fmtDate(selectedDate, showTime) : placeholder}
         </span>
       </div>
 
       {isOpen && (
         <div className="absolute top-full left-0 mt-2 p-4 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 z-50 w-[320px] animate-in fade-in zoom-in-95 duration-200">
           <div className="flex justify-between items-center mb-4">
-            <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors">
+            <button onClick={() => setCurrentMonth(new Date(y, m - 1, 1))} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors">
               <ChevronLeft className="w-5 h-5 text-slate-500" />
             </button>
             <div className="font-semibold text-slate-700 dark:text-slate-200">
-              {format(currentMonth, 'yyyy年 MM月', { locale: zhCN })}
+              {y}年 {String(m + 1).padStart(2, '0')}月
             </div>
-            <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors">
+            <button onClick={() => setCurrentMonth(new Date(y, m + 1, 1))} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors">
               <ChevronRight className="w-5 h-5 text-slate-500" />
             </button>
           </div>
@@ -109,8 +121,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeho
           <div className="grid grid-cols-7 gap-1 mb-4">
             {paddingDays.map((_, i) => <div key={`pad-${i}`} />)}
             {days.map((day) => {
-              const isSelected = selectedDate && isSameDay(day, selectedDate);
-              const isCurrent = isToday(day);
+              const isSelected = selectedDate && sameDay(day, selectedDate);
+              const isCurrent = sameDay(day, todayDate);
               
               return (
                 <button
@@ -125,7 +137,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeho
                         : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'}
                   `}
                 >
-                  {format(day, 'd')}
+                  {day.getDate()}
                 </button>
               );
             })}

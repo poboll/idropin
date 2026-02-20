@@ -16,20 +16,22 @@
         <result column="status" property="status" jdbcType="VARCHAR"/>
         <result column="collection_type" property="collectionType" jdbcType="VARCHAR"/>
         <result column="deleted" property="deleted" jdbcType="BOOLEAN"/>
+        <result column="deleted_at" property="deletedAt" jdbcType="TIMESTAMP"/>
         <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
         <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+        <result column="ai_prompt" property="aiPrompt" jdbcType="VARCHAR"/>
     </resultMap>
 
     <select id="selectByIdString" resultMap="BaseResultMap">
         SELECT id, title, description, deadline, allow_anonymous, require_login,
-               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, created_at, updated_at
+               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, deleted_at, created_at, updated_at, ai_prompt
         FROM collection_task
         WHERE id::text = #{id}
     </select>
 
     <select id="selectByCreatedBy" resultMap="BaseResultMap">
         SELECT id, title, description, deadline, allow_anonymous, require_login,
-               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, created_at, updated_at
+               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, deleted_at, created_at, updated_at, ai_prompt
         FROM collection_task
         WHERE created_by::text = #{createdBy}
           AND (deleted = false OR deleted IS NULL)
@@ -38,7 +40,7 @@
 
     <select id="selectDeletedByCreatedBy" resultMap="BaseResultMap">
         SELECT id, title, description, deadline, allow_anonymous, require_login,
-               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, created_at, updated_at
+               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, deleted_at, created_at, updated_at, ai_prompt
         FROM collection_task
         WHERE created_by::text = #{createdBy}
           AND deleted = true
@@ -48,6 +50,7 @@
     <update id="softDeleteByIdAndCreatedBy">
         UPDATE collection_task
         SET deleted = true,
+            deleted_at = CURRENT_TIMESTAMP,
             updated_at = CURRENT_TIMESTAMP
         WHERE id::text = #{id}
           AND created_by::text = #{createdBy}
@@ -57,6 +60,7 @@
     <update id="restoreByIdAndCreatedBy">
         UPDATE collection_task
         SET deleted = false,
+            deleted_at = NULL,
             updated_at = CURRENT_TIMESTAMP
         WHERE id::text = #{id}
           AND created_by::text = #{createdBy}
