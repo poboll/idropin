@@ -33,4 +33,10 @@ public interface FileCategoryMapper extends BaseMapper<FileCategory> {
      */
     @Select("SELECT * FROM file_category WHERE parent_id IS NULL AND user_id = #{userId} ORDER BY sort_order")
     List<FileCategory> findRootCategories(@Param("userId") String userId);
+
+    /**
+     * 查询所有分类（用于批量查找，避免N+1）
+     */
+    @Select("SELECT * FROM file_category")
+    List<FileCategory> findAll();
 }

@@ -199,4 +199,26 @@ public interface FileMapper extends BaseMapper<File> {
 
     @Select("SELECT * FROM file WHERE uploader_id::text = #{uploaderId} AND deleted = true AND deleted_at < #{threshold}")
     List<File> findExpiredDeletedFiles(@Param("uploaderId") String uploaderId, @Param("threshold") java.time.LocalDateTime threshold);
+
+    @Select("SELECT * FROM file WHERE replace(uploader_id::text, '-', '') = replace(#{uploaderId}, '-', '') AND file_size = #{fileSize} AND metadata::jsonb->>'md5' = #{md5} AND status = 'ACTIVE' AND (deleted IS NULL OR deleted = false) LIMIT 1")
+    File findByUploaderIdAndMd5AndSize(@Param("uploaderId") String uploaderId, @Param("md5") String md5, @Param("fileSize") Long fileSize);
+
+    @Select("SELECT COUNT(*) FROM file WHERE status = 'ACTIVE' AND (deleted IS NULL OR deleted = false)")
+    long countAllActive();
+
+    @Select("SELECT COALESCE(SUM(file_size), 0) FROM file WHERE status = 'ACTIVE' AND (deleted IS NULL OR deleted = false)")
+    long sumAllActiveFileSize();
+
+    @Select("SELECT COUNT(*) FROM file WHERE status = 'ACTIVE' AND (deleted IS NULL OR deleted = false) AND created_at >= #{startDate} AND created_at < #{endDate}")
+    long countAllActiveByDateRange(@Param("startDate") java.time.LocalDateTime startDate, @Param("endDate") java.time.LocalDateTime endDate);
+
+    @Select("SELECT mime_type FROM file WHERE status = 'ACTIVE' AND (deleted IS NULL OR deleted = false)")
+    List<String> findAllActiveMimeTypes();
+
+    @Select("SELECT category_id, file_size FROM file WHERE status = 'ACTIVE' AND (deleted IS NULL OR deleted = false) AND category_id IS NOT NULL")
+    List<File> findAllActiveCategoryStats();
+
+    @Select("SELECT COUNT(*), COALESCE(SUM(file_size), 0) FROM file WHERE status = 'ACTIVE' AND (deleted IS NULL OR deleted = false) AND created_at >= #{startDate} AND created_at < #{endDate}")
+    @MapKey("count")
+    java.util.Map<String, Object> countAndSumByDateRange(@Param("startDate") java.time.LocalDateTime startDate, @Param("endDate") java.time.LocalDateTime endDate);
 }

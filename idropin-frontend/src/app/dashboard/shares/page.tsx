@@ -13,17 +13,18 @@ export default function SharesPage() {
       <div className="space-y-6 page-enter">
         {/* Header */}
         <div className="page-header animate-slide-in-down">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start sm:items-center justify-between gap-4">
             <div>
               <h1 className="page-title">文件分享</h1>
               <p className="page-description">管理你的文件分享链接</p>
             </div>
             <button
               onClick={() => (window.location.href = '/dashboard/files')}
-              className="btn-primary hover-lift"
+              className="btn-primary hover-lift flex-shrink-0"
             >
               <Share2 className="w-4 h-4" />
-              去分享文件
+              <span className="hidden sm:inline">去分享文件</span>
+              <span className="sm:hidden">分享</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

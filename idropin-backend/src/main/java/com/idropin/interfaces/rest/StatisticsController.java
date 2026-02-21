@@ -1,6 +1,9 @@
 package com.idropin.interfaces.rest;
 
+import com.idropin.application.service.AiGradingService;
 import com.idropin.application.service.StatisticsService;
+import java.util.Map;
+import com.idropin.domain.vo.ArchitectureMetricsVO;
 import com.idropin.domain.vo.FileStatisticsVO;
 import com.idropin.infrastructure.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class StatisticsController {
 
   private final StatisticsService statisticsService;
+  private final AiGradingService aiGradingService;
 
   /**
    * 获取文件统计数据
@@ -47,5 +52,18 @@ public class StatisticsController {
   public ResponseEntity<FileStatisticsVO> getSystemStatistics() {
     FileStatisticsVO statistics = statisticsService.getSystemStatistics();
     return ResponseEntity.ok(statistics);
+  }
+
+  @PreAuthorize("hasRole('ADMIN')")
+  @GetMapping("/architecture")
+  public ResponseEntity<ArchitectureMetricsVO> getArchitectureMetrics() {
+    return ResponseEntity.ok(statisticsService.getArchitectureMetrics());
+  }
+
+  @PreAuthorize("hasRole('ADMIN')")
+  @PostMapping("/ai/retry-pending")
+  public ResponseEntity<Map<String, Integer>> retryPendingAiGrading() {
+    int triggered = aiGradingService.retryAllPending();
+    return ResponseEntity.ok(Map.of("triggered", triggered));
   }
 }

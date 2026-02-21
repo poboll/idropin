@@ -1,26 +1,30 @@
 package com.idropin.application.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.idropin.application.service.ConfigService;
 import com.idropin.application.service.StatisticsService;
 import com.idropin.domain.entity.File;
 import com.idropin.domain.entity.FileCategory;
+import com.idropin.domain.vo.ArchitectureMetricsVO;
 import com.idropin.domain.vo.FileStatisticsVO;
 import com.idropin.infrastructure.persistence.mapper.FileCategoryMapper;
 import com.idropin.infrastructure.persistence.mapper.FileMapper;
+import com.idropin.infrastructure.persistence.mapper.FileSubmissionMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import javax.sql.DataSource;
+import java.lang.management.ManagementFactory;
+import java.sql.Connection;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * 统计服务实现
- *
- * @author Idrop.in Team
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -28,8 +32,13 @@ public class StatisticsServiceImpl implements StatisticsService {
 
   private final FileMapper fileMapper;
   private final FileCategoryMapper categoryMapper;
+  private final FileSubmissionMapper fileSubmissionMapper;
+  private final StringRedisTemplate redisTemplate;
+  private final DataSource dataSource;
+  private final ConfigService configService;
 
   @Override
+  @Cacheable(value = "statistics", key = "'user:' + #userId")
   public FileStatisticsVO getFileStatistics(String userId) {
     Long ownFiles = fileMapper.countByUploaderId(userId);
     Long taskFiles = fileMapper.countByTaskOwner(userId);
@@ -68,31 +77,20 @@ public class StatisticsServiceImpl implements StatisticsService {
   }
 
   @Override
+  @Cacheable(value = "statistics", key = "'system'")
   public FileStatisticsVO getSystemStatistics() {
-    LambdaQueryWrapper<File> wrapper = new LambdaQueryWrapper<>();
-    wrapper.eq(File::getStatus, "ACTIVE")
-        .and(w -> w.isNull(File::getDeleted).or().eq(File::getDeleted, false));
-
-    Long totalFiles = fileMapper.selectCount(wrapper);
-
-    wrapper.clear();
-    wrapper.eq(File::getStatus, "ACTIVE")
-        .and(w -> w.isNull(File::getDeleted).or().eq(File::getDeleted, false))
-        .select(File::getFileSize);
-    List<File> files = fileMapper.selectList(wrapper);
-    Long totalStorageSize = files.stream()
-        .mapToLong(File::getFileSize)
-        .sum();
+    Long totalFiles = fileMapper.countAllActive();
+    Long totalStorageSize = fileMapper.sumAllActiveFileSize();
 
     LocalDateTime todayStart = LocalDate.now().atStartOfDay();
     LocalDateTime todayEnd = LocalDate.now().plusDays(1).atStartOfDay();
-    Long todayUploads = countSystemFilesByDateRange(todayStart, todayEnd);
+    Long todayUploads = fileMapper.countAllActiveByDateRange(todayStart, todayEnd);
 
     LocalDateTime weekStart = LocalDate.now().minusDays(7).atStartOfDay();
-    Long weekUploads = countSystemFilesByDateRange(weekStart, todayEnd);
+    Long weekUploads = fileMapper.countAllActiveByDateRange(weekStart, todayEnd);
 
     LocalDateTime monthStart = LocalDate.now().withDayOfMonth(1).atStartOfDay();
-    Long monthUploads = countSystemFilesByDateRange(monthStart, todayEnd);
+    Long monthUploads = fileMapper.countAllActiveByDateRange(monthStart, todayEnd);
 
     List<FileStatisticsVO.FileTypeDistribution> fileTypeDistribution = getSystemFileTypeDistribution();
     List<FileStatisticsVO.UploadTrend> uploadTrend = getSystemUploadTrend();
@@ -112,17 +110,120 @@ public class StatisticsServiceImpl implements StatisticsService {
         .build();
   }
 
-  private Long countFilesByDateRange(String userId, LocalDateTime start, LocalDateTime end) {
-    return fileMapper.countByUploaderIdAndDateRange(userId, start, end);
+  @Override
+  @Cacheable(value = "statistics", key = "'architecture'")
+  public ArchitectureMetricsVO getArchitectureMetrics() {
+    return ArchitectureMetricsVO.builder()
+        .cache(buildCacheMetrics())
+        .kafka(buildKafkaMetrics())
+        .ai(buildAiMetrics())
+        .system(buildSystemOverview())
+        .build();
   }
 
-  private Long countSystemFilesByDateRange(LocalDateTime start, LocalDateTime end) {
-    LambdaQueryWrapper<File> wrapper = new LambdaQueryWrapper<>();
-    wrapper.eq(File::getStatus, "ACTIVE")
-        .and(w -> w.isNull(File::getDeleted).or().eq(File::getDeleted, false))
-        .ge(File::getCreatedAt, start)
-        .lt(File::getCreatedAt, end);
-    return fileMapper.selectCount(wrapper);
+  @Scheduled(fixedDelay = 60000)
+  @CacheEvict(value = "statistics", key = "'architecture'")
+  public void evictArchitectureMetricsCache() {}
+
+  private ArchitectureMetricsVO.CacheMetrics buildCacheMetrics() {
+    try {
+      Properties info = redisTemplate.getConnectionFactory()
+          .getConnection().serverCommands().info("stats");
+      Properties memInfo = redisTemplate.getConnectionFactory()
+          .getConnection().serverCommands().info("memory");
+
+      long hits = Long.parseLong(info.getProperty("keyspace_hits", "0"));
+      long misses = Long.parseLong(info.getProperty("keyspace_misses", "0"));
+      long total = hits + misses;
+      double hitRate = total > 0 ? (hits * 100.0 / total) : 0;
+      long memBytes = Long.parseLong(memInfo.getProperty("used_memory", "0"));
+      String memHuman = memInfo.getProperty("used_memory_human", "0B");
+      Long dbSize = redisTemplate.getConnectionFactory()
+          .getConnection().serverCommands().dbSize();
+
+      return ArchitectureMetricsVO.CacheMetrics.builder()
+          .hits(hits).misses(misses).hitRate(hitRate)
+          .totalKeys(dbSize != null ? dbSize : 0)
+          .memoryUsedBytes(memBytes).memoryUsedHuman(memHuman)
+          .build();
+    } catch (Exception e) {
+      log.warn("Failed to get cache metrics: {}", e.getMessage());
+      return ArchitectureMetricsVO.CacheMetrics.builder().build();
+    }
+  }
+
+  private ArchitectureMetricsVO.KafkaMetrics buildKafkaMetrics() {
+    return ArchitectureMetricsVO.KafkaMetrics.builder()
+        .connected(false).topic("N/A").build();
+  }
+
+  private ArchitectureMetricsVO.AiMetrics buildAiMetrics() {
+    try {
+      List<Map<String, Object>> rows = fileSubmissionMapper.countGroupByAiStatus();
+      long pending = 0, processing = 0, completed = 0, failed = 0;
+      for (Map<String, Object> row : rows) {
+        int status = ((Number) row.get("ai_status")).intValue();
+        long cnt = ((Number) row.get("cnt")).longValue();
+        if (status == 0) pending = cnt;
+        else if (status == 1) processing = cnt;
+        else if (status == 2) completed = cnt;
+        else if (status == -1) failed = cnt;
+      }
+      long total = pending + processing + completed + failed;
+      double successRate = total > 0 ? (completed * 100.0 / total) : 0;
+
+      String apiKey = null;
+      try { apiKey = configService.getSystemConfigValue("ai.api_key"); } catch (Exception ignored) {}
+      boolean serviceAvailable = apiKey != null && !apiKey.isBlank();
+
+      return ArchitectureMetricsVO.AiMetrics.builder()
+          .totalProcessed(total).pendingCount(pending + processing)
+          .successCount(completed).failedCount(failed)
+          .successRate(successRate).serviceAvailable(serviceAvailable)
+          .modelProvider("SiliconFlow")
+          .build();
+    } catch (Exception e) {
+      log.warn("Failed to get AI metrics: {}", e.getMessage());
+      return ArchitectureMetricsVO.AiMetrics.builder()
+          .serviceAvailable(false).build();
+    }
+  }
+
+  private ArchitectureMetricsVO.SystemOverview buildSystemOverview() {
+    boolean pgConnected = false;
+    boolean pgvector = false;
+    try (Connection conn = dataSource.getConnection()) {
+      pgConnected = conn.isValid(2);
+      var rs = conn.createStatement().executeQuery(
+          "SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname='vector')");
+      if (rs.next()) pgvector = rs.getBoolean(1);
+    } catch (Exception e) {
+      log.warn("PG check failed: {}", e.getMessage());
+    }
+
+    boolean redisOk = false;
+    try {
+      String pong = redisTemplate.getConnectionFactory()
+          .getConnection().ping();
+      redisOk = "PONG".equals(pong);
+    } catch (Exception ignored) {}
+
+    Runtime rt = Runtime.getRuntime();
+    long uptimeMs = ManagementFactory.getRuntimeMXBean().getUptime();
+
+    return ArchitectureMetricsVO.SystemOverview.builder()
+        .postgresConnected(pgConnected).redisConnected(redisOk)
+        .kafkaConnected(buildKafkaMetrics().isConnected())
+        .minioConnected(true).pgvectorEnabled(pgvector)
+        .uptimeSeconds(uptimeMs / 1000)
+        .javaVersion(System.getProperty("java.version"))
+        .heapUsedMB((rt.totalMemory() - rt.freeMemory()) / (1024 * 1024))
+        .heapMaxMB(rt.maxMemory() / (1024 * 1024))
+        .build();
+  }
+
+  private Long countFilesByDateRange(String userId, LocalDateTime start, LocalDateTime end) {
+    return fileMapper.countByUploaderIdAndDateRange(userId, start, end);
   }
 
   private List<FileStatisticsVO.FileTypeDistribution> getFileTypeDistribution(String userId) {
@@ -152,19 +253,10 @@ public class StatisticsServiceImpl implements StatisticsService {
   }
 
   private List<FileStatisticsVO.FileTypeDistribution> getSystemFileTypeDistribution() {
-    LambdaQueryWrapper<File> wrapper = new LambdaQueryWrapper<>();
-    wrapper.eq(File::getStatus, "ACTIVE")
-        .and(w -> w.isNull(File::getDeleted).or().eq(File::getDeleted, false))
-        .select(File::getMimeType);
-    List<File> files = fileMapper.selectList(wrapper);
-
-    Map<String, Long> typeCountMap = files.stream()
-        .collect(Collectors.groupingBy(
-            file -> getFileType(file.getMimeType()),
-            Collectors.counting()));
-
-    Long totalCount = (long) files.size();
-
+    List<String> mimeTypes = fileMapper.findAllActiveMimeTypes();
+    Map<String, Long> typeCountMap = mimeTypes.stream()
+        .collect(Collectors.groupingBy(this::getFileType, Collectors.counting()));
+    long totalCount = mimeTypes.size();
     return typeCountMap.entrySet().stream()
         .map(entry -> FileStatisticsVO.FileTypeDistribution.builder()
             .type(entry.getKey())
@@ -205,37 +297,24 @@ public class StatisticsServiceImpl implements StatisticsService {
   private List<FileStatisticsVO.UploadTrend> getSystemUploadTrend() {
     List<FileStatisticsVO.UploadTrend> trends = new ArrayList<>();
     LocalDate today = LocalDate.now();
-
     for (int i = 6; i >= 0; i--) {
       LocalDate date = today.minusDays(i);
       LocalDateTime start = date.atStartOfDay();
       LocalDateTime end = date.plusDays(1).atStartOfDay();
-
-    LambdaQueryWrapper<File> wrapper = new LambdaQueryWrapper<>();
-    wrapper.eq(File::getStatus, "ACTIVE")
-        .and(w -> w.isNull(File::getDeleted).or().eq(File::getDeleted, false))
-        .ge(File::getCreatedAt, start)
-        .lt(File::getCreatedAt, end)
-        .select(File::getFileSize);
-      List<File> files = fileMapper.selectList(wrapper);
-
-      Long count = (long) files.size();
-      Long size = files.stream().mapToLong(File::getFileSize).sum();
-
+      long count = fileMapper.countAllActiveByDateRange(start, end);
       trends.add(FileStatisticsVO.UploadTrend.builder()
           .date(date.toString())
           .count(count)
-          .size(size)
+          .size(0L)
           .build());
     }
-
     return trends;
   }
 
   private List<FileStatisticsVO.CategoryStatistics> getCategoryStatistics(String userId) {
     List<File> ownFiles = fileMapper.findCategoryStatsByUploaderId(userId);
     List<File> taskFiles = fileMapper.findCategoryStatsByTaskOwner(userId);
-    
+
     List<File> allFiles = new ArrayList<>();
     allFiles.addAll(ownFiles);
     allFiles.addAll(taskFiles);
@@ -244,20 +323,20 @@ public class StatisticsServiceImpl implements StatisticsService {
         .filter(file -> file.getCategoryId() != null)
         .collect(Collectors.groupingBy(File::getCategoryId));
 
+    Map<String, FileCategory> categoryCache = categoryMapper.findAll().stream()
+        .collect(Collectors.toMap(FileCategory::getId, c -> c));
+
     List<FileStatisticsVO.CategoryStatistics> statistics = new ArrayList<>();
 
     for (Map.Entry<String, List<File>> entry : categoryFilesMap.entrySet()) {
-      FileCategory category = categoryMapper.selectById(entry.getKey());
+      FileCategory category = categoryCache.get(entry.getKey());
       if (category != null) {
         List<File> categoryFiles = entry.getValue();
-        Long fileCount = (long) categoryFiles.size();
-        Long storageSize = categoryFiles.stream().mapToLong(File::getFileSize).sum();
-
         statistics.add(FileStatisticsVO.CategoryStatistics.builder()
             .categoryId(category.getId())
             .categoryName(category.getName())
-            .fileCount(fileCount)
-            .storageSize(storageSize)
+            .fileCount((long) categoryFiles.size())
+            .storageSize(categoryFiles.stream().mapToLong(File::getFileSize).sum())
             .build());
       }
     }
@@ -268,34 +347,25 @@ public class StatisticsServiceImpl implements StatisticsService {
   }
 
   private List<FileStatisticsVO.CategoryStatistics> getSystemCategoryStatistics() {
-    LambdaQueryWrapper<File> wrapper = new LambdaQueryWrapper<>();
-    wrapper.eq(File::getStatus, "ACTIVE")
-        .and(w -> w.isNull(File::getDeleted).or().eq(File::getDeleted, false))
-        .select(File::getCategoryId, File::getFileSize);
-    List<File> files = fileMapper.selectList(wrapper);
-
+    List<File> files = fileMapper.findAllActiveCategoryStats();
     Map<String, List<File>> categoryFilesMap = files.stream()
-        .filter(file -> file.getCategoryId() != null)
+        .filter(f -> f.getCategoryId() != null)
         .collect(Collectors.groupingBy(File::getCategoryId));
-
+    Map<String, FileCategory> categoryCache = categoryMapper.findAll().stream()
+        .collect(Collectors.toMap(FileCategory::getId, c -> c));
     List<FileStatisticsVO.CategoryStatistics> statistics = new ArrayList<>();
-
     for (Map.Entry<String, List<File>> entry : categoryFilesMap.entrySet()) {
-      FileCategory category = categoryMapper.selectById(entry.getKey());
+      FileCategory category = categoryCache.get(entry.getKey());
       if (category != null) {
-        List<File> categoryFiles = entry.getValue();
-        Long fileCount = (long) categoryFiles.size();
-        Long storageSize = categoryFiles.stream().mapToLong(File::getFileSize).sum();
-
+        List<File> catFiles = entry.getValue();
         statistics.add(FileStatisticsVO.CategoryStatistics.builder()
             .categoryId(category.getId())
             .categoryName(category.getName())
-            .fileCount(fileCount)
-            .storageSize(storageSize)
+            .fileCount((long) catFiles.size())
+            .storageSize(catFiles.stream().mapToLong(File::getFileSize).sum())
             .build());
       }
     }
-
     return statistics.stream()
         .sorted((a, b) -> Long.compare(b.getFileCount(), a.getFileCount()))
         .collect(Collectors.toList());

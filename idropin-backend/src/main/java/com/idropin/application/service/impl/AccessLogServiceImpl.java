@@ -1,12 +1,14 @@
 package com.idropin.application.service.impl;
 
 import com.idropin.application.service.AccessLogService;
+import com.idropin.common.util.IpUtil;
 import com.idropin.domain.entity.AccessLog;
 import com.idropin.infrastructure.persistence.mapper.AccessLogMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,12 +27,13 @@ public class AccessLogServiceImpl implements AccessLogService {
     private final AccessLogMapper accessLogMapper;
 
     @Override
+    @Async
     @Transactional
     public void logAccess(HttpServletRequest request, String userId) {
         try {
             AccessLog accessLog = new AccessLog();
             accessLog.setUserId(userId);
-            accessLog.setIpAddress(getClientIp(request));
+            accessLog.setIpAddress(IpUtil.getClientIp(request));
             accessLog.setUserAgent(request.getHeader("User-Agent"));
             accessLog.setRequestPath(request.getRequestURI());
             accessLog.setRequestMethod(request.getMethod());
@@ -71,32 +74,5 @@ public class AccessLogServiceImpl implements AccessLogService {
     @Override
     public Long getTotalUV() {
         return accessLogMapper.countTotalUV();
-    }
-
-    /**
-     * 获取客户端真实IP地址
-     */
-    private String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("Proxy-Client-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("WL-Proxy-Client-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("HTTP_CLIENT_IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("HTTP_X_FORWARDED_FOR");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        // 处理多个IP的情况，取第一个
-        if (ip != null && ip.contains(",")) {
-            ip = ip.split(",")[0].trim();
-        }
-        return ip;
     }
 }

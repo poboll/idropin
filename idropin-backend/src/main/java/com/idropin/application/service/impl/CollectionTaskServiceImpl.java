@@ -9,6 +9,7 @@ import com.idropin.domain.entity.CollectionTask;
 import com.idropin.domain.entity.File;
 import com.idropin.domain.entity.FileSubmission;
 import com.idropin.domain.entity.TaskSubmission;
+import com.idropin.domain.entity.PeopleList;
 import com.idropin.domain.vo.TaskStatisticsVO;
 import com.idropin.domain.entity.TaskMoreInfo;
 import com.idropin.infrastructure.persistence.mapper.CollectionTaskMapper;
@@ -16,9 +17,15 @@ import com.idropin.infrastructure.persistence.mapper.FileMapper;
 import com.idropin.infrastructure.persistence.mapper.FileSubmissionMapper;
 import com.idropin.infrastructure.persistence.mapper.TaskMoreInfoMapper;
 import com.idropin.infrastructure.persistence.mapper.TaskSubmissionMapper;
+import com.idropin.infrastructure.persistence.mapper.PeopleListMapper;
 import com.idropin.infrastructure.storage.StorageService;
+import com.idropin.application.service.AiGradingService;
+import com.idropin.application.service.ConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -44,6 +51,9 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
   private final StorageService storageService;
   private final TaskSubmissionMapper taskSubmissionMapper;
   private final TaskMoreInfoMapper taskMoreInfoMapper;
+  private final PeopleListMapper peopleListMapper;
+  private final AiGradingService aiGradingService;
+  private final ConfigService configService;
 
   /**
    * 生成6位短码
@@ -290,6 +300,7 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
     submission.setCreatedAt(LocalDateTime.now());
 
     submissionMapper.insert(submission);
+    triggerAiGrading(submission.getId());
     log.info("File submitted to task: {} by {} from IP: {}", taskId, submitterId != null ? submitterId : submitterEmail, submitterIp);
 
     return submission;
@@ -319,6 +330,12 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
 
       List<FileSubmission> submissions = submissionMapper.selectList(wrapper);
       
+      // 查询任务的限制名单配置
+      TaskMoreInfo taskMoreInfo = taskMoreInfoMapper.selectOne(
+        new LambdaQueryWrapper<TaskMoreInfo>().eq(TaskMoreInfo::getTaskId, taskId)
+      );
+      String bindField = taskMoreInfo != null ? taskMoreInfo.getBindField() : null;
+      
       // 转换为VO，关联查询文件信息
       return submissions.stream().map(submission -> {
         com.idropin.domain.vo.FileSubmissionVO vo = new com.idropin.domain.vo.FileSubmissionVO();
@@ -335,14 +352,40 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
         if (submission.getFileId() != null) {
           File file = fileMapper.selectById(submission.getFileId());
           if (file != null) {
-            vo.setFileName(file.getOriginalName());
+            vo.setFileName(file.getName());
+            vo.setOriginalFileName(file.getOriginalName());
             vo.setFileSize(file.getFileSize());
             vo.setMimeType(file.getMimeType());
             vo.setStoragePath(file.getStoragePath());
-            // 生成文件URL
             vo.setFileUrl(storageService.getFileUrl(file.getStoragePath()));
           }
         }
+        
+        // 查询应用的限制名单
+        List<String> restrictionList = new ArrayList<>();
+        if (bindField != null && !bindField.isEmpty() && submission.getSubmitterName() != null) {
+          LambdaQueryWrapper<PeopleList> peopleWrapper = new LambdaQueryWrapper<>();
+          peopleWrapper.eq(PeopleList::getPeopleName, submission.getSubmitterName());
+          List<PeopleList> peopleRecords = peopleListMapper.selectList(peopleWrapper);
+          
+          for (PeopleList record : peopleRecords) {
+            String restrictionValue = null;
+            if ("parentName".equals(bindField) && record.getParentName() != null) {
+              restrictionValue = record.getParentName();
+            } else if ("childName".equals(bindField) && record.getChildName() != null) {
+              restrictionValue = record.getChildName();
+            }
+            if (restrictionValue != null && !restrictionList.contains(restrictionValue)) {
+              restrictionList.add(restrictionValue);
+            }
+          }
+        }
+        vo.setAppliedRestrictionList(restrictionList);
+
+        vo.setAiStatus(submission.getAiStatus());
+        vo.setAiEvaluation(submission.getAiEvaluation());
+        vo.setIsPlagiarized(submission.getIsPlagiarized());
+        vo.setSimilarToId(submission.getSimilarToId());
         
         return vo;
       }).collect(Collectors.toList());
@@ -456,6 +499,7 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
   }
 
   @Override
+  @Cacheable(value = "submissions", key = "#userId")
   public List<com.idropin.domain.vo.FileSubmissionVO> getAllUserTaskSubmissions(String userId) {
     List<CollectionTask> userTasks = getUserTasks(userId);
     List<com.idropin.domain.vo.FileSubmissionVO> allSubmissions = new ArrayList<>();
@@ -539,5 +583,16 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
       throw new BusinessException("永久删除失败，请重试");
     }
     log.info("Collection task permanently deleted: {} by user {}", taskId, userId);
+  }
+
+  @Async("aiGradingExecutor")
+  public void triggerAiGrading(String submissionId) {
+    String enabled = configService.getSystemConfigValue("ai.enabled");
+    if (!"true".equalsIgnoreCase(enabled)) return;
+    try {
+      aiGradingService.processSubmission(submissionId);
+    } catch (Exception e) {
+      log.error("Async AI grading failed for {}: {}", submissionId, e.getMessage());
+    }
   }
 }
