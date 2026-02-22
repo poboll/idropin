@@ -9,7 +9,7 @@ import CreateTaskForm from '@/components/tasks/CreateTaskForm';
 import { ShareDialog } from '@/components/tasks/ShareDialog';
 import { EditTaskDialog } from '@/components/tasks/EditTaskDialog';
 import { MoreSettingsDialog } from '@/components/tasks/MoreSettingsDialog';
-import { Inbox, Plus, X, Loader2 } from 'lucide-react';
+import { Inbox, Plus, X, Loader2, Search } from 'lucide-react';
 import AuthGuard from '@/components/auth/AuthGuard';
 import { SkeletonLoader } from '@/components/SkeletonLoader';
 
@@ -37,6 +37,7 @@ export default function TasksPage() {
 
   const [selectedCategory, setSelectedCategory] = useState('default');
   const [collectionTypeFilter, setCollectionTypeFilter] = useState<'all' | 'FILE' | 'INFO'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
@@ -65,16 +66,17 @@ export default function TasksPage() {
       }
     };
     loadData();
-  }, []);
+  }, [getCategory, getTask]);
 
   const filteredTasks = useMemo(() => {
     return taskList.filter((t) => {
       const taskCat = t.category || 'default';
       const matchesCategory = taskCat === selectedCategory;
       const matchesType = collectionTypeFilter === 'all' || t.collectionType === collectionTypeFilter;
-      return matchesCategory && matchesType;
+      const matchesSearch = !searchQuery || [t.name, t.description].filter(Boolean).join(' ').toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesType && matchesSearch;
     });
-  }, [taskList, selectedCategory, collectionTypeFilter]);
+  }, [taskList, selectedCategory, collectionTypeFilter, searchQuery]);
 
   // 统计各类型任务数量
   const taskCounts = useMemo(() => {
@@ -137,7 +139,7 @@ export default function TasksPage() {
 
   return (
     <AuthGuard>
-      <div className="space-y-6">
+      <div className="space-y-6 page-enter">
         {/* Page Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -165,68 +167,80 @@ export default function TasksPage() {
 
           {/* Task List */}
           <div className="lg:col-span-3">
-            {/* Collection Type Filter */}
-            <div className="card mb-4 p-4">
-              <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  筛选任务
-                </span>
-                <div className="h-4 w-px bg-gray-200 dark:bg-gray-700"></div>
-                <div className="flex items-center gap-2 flex-wrap">
+            <div className="mb-4 space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="搜索任务名称或描述..."
+                  className="w-full pl-10 pr-9 py-2.5 border border-gray-200 dark:border-gray-800 rounded-xl bg-white dark:bg-gray-950 text-gray-900 dark:text-white text-sm placeholder:text-gray-400 dark:placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-gray-700 transition-colors shadow-sm"
+                />
+                {searchQuery && (
                   <button
-                    onClick={() => setCollectionTypeFilter('all')}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 hover-lift ${
-                      collectionTypeFilter === 'all'
-                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                    }`}
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   >
-                    全部
-                    <span className={`ml-1.5 px-1.5 py-0.5 rounded text-xs ${
-                      collectionTypeFilter === 'all'
-                        ? 'bg-white/20 dark:bg-gray-900/20'
-                        : 'bg-gray-200 dark:bg-gray-700'
-                    }`}>
-                      {taskCounts.all}
-                    </span>
+                    <X className="w-3.5 h-3.5" />
                   </button>
-                  <button
-                    onClick={() => setCollectionTypeFilter('FILE')}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 hover-lift ${
-                      collectionTypeFilter === 'FILE'
-                        ? 'bg-gray-900 text-white shadow-md shadow-gray-900/30'
-                        : 'bg-gray-50 dark:bg-gray-900/20 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-800'
-                    }`}
-                  >
-                    <span className="text-base">📁</span>
-                    <span>文件收集</span>
-                    <span className={`px-1.5 py-0.5 rounded text-xs ${
-                      collectionTypeFilter === 'FILE'
-                        ? 'bg-white/20'
-                        : 'bg-gray-100 dark:bg-gray-800'
-                    }`}>
-                      {taskCounts.FILE}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => setCollectionTypeFilter('INFO')}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 hover-lift ${
-                      collectionTypeFilter === 'INFO'
-                        ? 'bg-green-500 text-white shadow-md shadow-green-500/30'
-                        : 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/30 border border-green-200 dark:border-green-800'
-                    }`}
-                  >
-                    <span className="text-base">📝</span>
-                    <span>信息收集</span>
-                    <span className={`px-1.5 py-0.5 rounded text-xs ${
-                      collectionTypeFilter === 'INFO'
-                        ? 'bg-white/20'
-                        : 'bg-green-100 dark:bg-green-800'
-                    }`}>
-                      {taskCounts.INFO}
-                    </span>
-                  </button>
-                </div>
+                )}
+              </div>
+
+              <div className="inline-flex items-center bg-gray-100 dark:bg-gray-800/80 rounded-xl p-1 gap-0.5">
+                <button
+                  onClick={() => setCollectionTypeFilter('all')}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ${
+                    collectionTypeFilter === 'all'
+                      ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  }`}
+                >
+                  全部
+                  <span className={`text-xs tabular-nums px-1.5 py-0.5 rounded-md ${
+                    collectionTypeFilter === 'all'
+                      ? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
+                      : 'bg-gray-200/70 dark:bg-gray-700/70 text-gray-500 dark:text-gray-400'
+                  }`}>
+                    {taskCounts.all}
+                  </span>
+                </button>
+                <button
+                  onClick={() => setCollectionTypeFilter('FILE')}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ${
+                    collectionTypeFilter === 'FILE'
+                      ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  }`}
+                >
+                  <span className="text-blue-400 dark:text-blue-500 text-xs">●</span>
+                  文件
+                  <span className={`text-xs tabular-nums px-1.5 py-0.5 rounded-md ${
+                    collectionTypeFilter === 'FILE'
+                      ? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
+                      : 'bg-gray-200/70 dark:bg-gray-700/70 text-gray-500 dark:text-gray-400'
+                  }`}>
+                    {taskCounts.FILE}
+                  </span>
+                </button>
+                <button
+                  onClick={() => setCollectionTypeFilter('INFO')}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ${
+                    collectionTypeFilter === 'INFO'
+                      ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  }`}
+                >
+                  <span className="text-emerald-400 dark:text-emerald-500 text-xs">●</span>
+                  信息
+                  <span className={`text-xs tabular-nums px-1.5 py-0.5 rounded-md ${
+                    collectionTypeFilter === 'INFO'
+                      ? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
+                      : 'bg-gray-200/70 dark:bg-gray-700/70 text-gray-500 dark:text-gray-400'
+                  }`}>
+                    {taskCounts.INFO}
+                  </span>
+                </button>
               </div>
             </div>
 
@@ -236,7 +250,7 @@ export default function TasksPage() {
                   <div
                     key={task.key}
                     className="animate-slide-in-up"
-                    style={{ animationDelay: `${index * 50}ms` }}
+                    style={{ animationDelay: `${index * 40}ms` }}
                   >
                     <TaskInfoCard
                       task={task}
@@ -250,19 +264,19 @@ export default function TasksPage() {
                 ))}
               </div>
             ) : (
-              <div className="card">
-                <div className="empty-state py-20">
-                  <Inbox className="empty-state-icon" />
-                  <p className="empty-state-title">暂无任务</p>
-                  <p className="empty-state-description">在此分类下还没有创建任务</p>
-                  <button
-                    onClick={() => setShowCreateForm(true)}
-                    className="btn-primary mt-4"
-                  >
-                    <Plus className="w-4 h-4" />
-                    创建任务
-                  </button>
+              <div className="flex flex-col items-center justify-center py-24 px-8 rounded-xl border border-dashed border-violet-200 dark:border-violet-800/40 bg-violet-50/30 dark:bg-violet-900/10">
+                <div className="w-14 h-14 rounded-2xl bg-violet-50 dark:bg-violet-900/30 border border-violet-100 dark:border-violet-800/40 shadow-sm flex items-center justify-center mb-4">
+                  <Inbox className="w-7 h-7 text-violet-400 dark:text-violet-500" />
                 </div>
+                <p className="text-[15px] font-semibold text-gray-900 dark:text-white mb-1">暂无任务</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">在此分类下还没有创建任务</p>
+                <button
+                  onClick={() => setShowCreateForm(true)}
+                  className="btn-primary"
+                >
+                  <Plus className="w-4 h-4" />
+                  创建任务
+                </button>
               </div>
             )}
           </div>

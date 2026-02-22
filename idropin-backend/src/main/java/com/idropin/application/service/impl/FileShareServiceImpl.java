@@ -17,6 +17,8 @@ import com.idropin.infrastructure.persistence.mapper.FileSubmissionMapper;
 import com.idropin.infrastructure.persistence.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -170,10 +172,21 @@ public class FileShareServiceImpl implements FileShareService {
     if (share == null) {
       throw new BusinessException("分享不存在");
     }
-    if (!share.getCreatedBy().equals(userId)) {
+    if (!isAdmin() && !normalizeUuid(share.getCreatedBy()).equals(normalizeUuid(userId))) {
       throw new BusinessException("无权限访问此分享");
     }
     return share;
+  }
+
+  private String normalizeUuid(String uuid) {
+    return uuid != null ? uuid.replace("-", "") : "";
+  }
+
+  private boolean isAdmin() {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    if (auth == null) return false;
+    return auth.getAuthorities().stream()
+        .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()) || "ROLE_SUPER_ADMIN".equals(a.getAuthority()));
   }
 
   @Override

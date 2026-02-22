@@ -47,6 +47,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/health").permitAll()
+                        .requestMatchers("/user/avatar/**").permitAll() // 头像代理，无需登录
                         .requestMatchers("/files/download/**").permitAll() // 公开文件下载
                         .requestMatchers("/public/**").permitAll()
                         .requestMatchers("/tasks/*/public-info").permitAll() // 公开任务信息（用于收集链接）
@@ -68,8 +69,10 @@ public class SecurityConfig {
                         .requestMatchers("/shares/*/info").permitAll() // 公开分享信息查询
                         .requestMatchers("/shares/*/download").permitAll() // 公开分享文件下载
                         .requestMatchers("/shares/access/**").permitAll() // 公开分享访问
-                        .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/config/system/**").permitAll() // 公开系统配置查询
+                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers("/doc.html", "/swagger-ui/**", "/v3/api-docs/**", "/webjars/**").permitAll()
+                        .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter,
@@ -81,23 +84,27 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // 允许所有常用的本地开发端口
-        configuration.setAllowedOrigins(
+        // 允许所有常用的本地开发端口 + 局域网访问
+        configuration.setAllowedOriginPatterns(
                 Arrays.asList(
                     "http://localhost:3000", 
                     "http://localhost:3001", 
-                     "http://localhost:5173",
-                     "http://localhost:5174",
-                     "http://localhost:5175",
-                     "http://localhost:5224",
-                     "http://localhost:5225",
-                     "http://127.0.0.1:3000",
-                     "http://127.0.0.1:5173",
-                     "http://127.0.0.1:5174",
-                     "http://127.0.0.1:5175",
-                     "http://127.0.0.1:5224",
-                     "http://127.0.0.1:5225"
-                 ));
+                      "http://localhost:5173",
+                      "http://localhost:5174",
+                      "http://localhost:5175",
+                      "http://localhost:5224",
+                      "http://localhost:5225",
+                      "http://127.0.0.1:3000",
+                      "http://127.0.0.1:5173",
+                      "http://127.0.0.1:5174",
+                      "http://127.0.0.1:5175",
+                      "http://127.0.0.1:5224",
+                      "http://127.0.0.1:5225",
+                      "http://192.168.*.*:3000",
+                      "http://192.168.*.*:5173",
+                      "http://192.168.*.*:5224",
+                      "http://192.168.*.*:5225"
+                  ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setExposedHeaders(Arrays.asList("Content-Disposition", "Content-Length"));

@@ -3,9 +3,21 @@
 import { useState, useEffect } from 'react';
 import { getUserShares, cancelShare, getShareUrl, type FileShare } from '@/lib/api/shares';
 import { extractApiError } from '@/lib/api/client';
-import { formatDistanceToNow } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
+
 import { Share2, Calendar, Download, Clock, Copy, Check, X, Lock, RefreshCw } from 'lucide-react';
+
+function relativeTime(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return '刚刚';
+  if (mins < 60) return `${mins}分钟前`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}小时前`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}天前`;
+  const months = Math.floor(days / 30);
+  return months < 12 ? `${months}个月前` : `${Math.floor(months / 12)}年前`;
+}
 
 export default function ShareList() {
   const [shares, setShares] = useState<FileShare[]>([]);
@@ -75,6 +87,7 @@ export default function ShareList() {
   }
 
   if (error) {
+    const isAuthError = error.includes('权限') || error.includes('认证') || error.includes('登录') || error.includes('401');
     return (
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-4">
@@ -83,13 +96,22 @@ export default function ShareList() {
           </div>
           <div>
             <h3 className="text-base font-medium text-gray-900 dark:text-white">加载失败</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{error}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {isAuthError ? '登录状态已过期，请重新登录后查看分享列表' : error}
+            </p>
           </div>
         </div>
-        <button onClick={loadShares} className="btn-primary w-full">
-          <RefreshCw className="w-4 h-4" />
-          重试
-        </button>
+        <div className="flex gap-2">
+          <button onClick={loadShares} className="btn-primary flex-1">
+            <RefreshCw className="w-4 h-4" />
+            重试
+          </button>
+          {isAuthError && (
+            <button onClick={() => window.location.href = '/login'} className="btn-secondary flex-1">
+              重新登录
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -116,7 +138,7 @@ export default function ShareList() {
             key={share.id}
             className={`card p-5 ${inactive ? 'opacity-60' : 'card-hover'}`}
           >
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-3">
                   <code className="px-2.5 py-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-md font-mono text-sm">
@@ -153,17 +175,13 @@ export default function ShareList() {
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
                     <span>
-                      创建于{' '}
-                      {formatDistanceToNow(new Date(share.createdAt), {
-                        addSuffix: true,
-                        locale: zhCN,
-                      })}
+                      创建于 {relativeTime(share.createdAt)}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex gap-2 flex-shrink-0">
+              <div className="flex gap-2 sm:flex-shrink-0">
                 <button
                   onClick={() => handleCopyLink(share.shareCode)}
                   disabled={inactive}

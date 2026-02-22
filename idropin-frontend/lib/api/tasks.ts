@@ -60,12 +60,25 @@ export interface FileSubmissionVO {
   submitterId?: string;
   submitterName?: string;
   submitterEmail?: string;
+  submitterIp?: string;
   submittedAt: string;
   fileName?: string;
+  originalFileName?: string;
   fileSize?: number;
   mimeType?: string;
   fileUrl?: string;
   storagePath?: string;
+  appliedRestrictionList?: string[];
+  aiStatus?: number;
+  aiEvaluation?: {
+    score: number;
+    dimensions: Record<string, number>;
+    feedback: string;
+    summary: string;
+    evaluatedAt: string;
+  };
+  isPlagiarized?: boolean;
+  similarToId?: string;
 }
 
 export interface TaskStatistics {
@@ -227,6 +240,7 @@ export async function getTaskInfoPublic(key: string): Promise<{
   creatorName?: string;
   creatorAvatarUrl?: string;
   collectionType?: 'INFO' | 'FILE';
+  requireLogin?: boolean;
 }> {
   try {
     const response = await apiClient.get<ApiResponse<any>>(`/tasks/${key}/public-info`);
@@ -368,6 +382,23 @@ function getFilenameFromContentDisposition(headerValue: string | undefined): str
 /**
  * 导出信息收集提交记录（后端输出 CSV；format 参数预留）
  */
+export async function getTaskAiPrompt(taskId: string): Promise<string> {
+  const response = await apiClient.get<ApiResponse<{ prompt: string }>>(`/tasks/${taskId}/ai-prompt`);
+  return response.data.data.prompt;
+}
+
+export async function saveTaskAiPrompt(taskId: string, prompt: string): Promise<void> {
+  await apiClient.put(`/tasks/${taskId}/ai-prompt`, { prompt });
+}
+
+export async function regradeSubmission(taskId: string, submissionId: string, prompt?: string): Promise<void> {
+  await apiClient.post(`/tasks/${taskId}/submissions/${submissionId}/regrade`, { prompt });
+}
+
+export async function batchRegradeSubmissions(taskId: string, submissionIds: string[], prompt?: string): Promise<void> {
+  await apiClient.post(`/tasks/${taskId}/submissions/batch-regrade`, { submissionIds, prompt });
+}
+
 export async function exportInfoSubmissions(
   taskId: string,
   format: 'csv' | 'excel' = 'csv'

@@ -94,7 +94,7 @@
   /* Vercel-style button */
   .btn {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150;
-    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900 dark:focus-visible:ring-white;
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-violet-500 dark:focus-visible:ring-violet-400;
     @apply disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
@@ -126,7 +126,7 @@
   .input {
     @apply w-full px-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg;
     @apply text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500;
-    @apply focus:outline-none focus:ring-2 focus:ring-gray-900/10 dark:focus:ring-white/10 focus:border-gray-400 dark:focus:border-gray-600;
+    @apply focus:outline-none focus:ring-2 focus:ring-violet-500/20 dark:focus:ring-violet-400/20 focus:border-violet-400 dark:focus:border-violet-500;
     @apply transition-all duration-150;
   }
 
@@ -249,9 +249,14 @@
   .modal {
     @apply relative w-full bg-white dark:bg-gray-900;
     @apply border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl;
+    @apply max-h-[90vh] flex flex-col;
     animation: modalSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
     pointer-events: auto;
     z-index: 61;
+  }
+
+  .modal-body {
+    @apply px-6 py-4 overflow-y-auto flex-1;
   }
 
   .modal-card {
@@ -263,10 +268,6 @@
 
   .modal-header {
     @apply flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800;
-  }
-
-  .modal-body {
-    @apply px-6 py-4;
   }
 
   .modal-footer {
@@ -609,7 +610,7 @@
 
   /* Focus ring */
   .focus-ring {
-    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 dark:focus-visible:ring-white focus-visible:ring-offset-2;
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:focus-visible:ring-violet-400 focus-visible:ring-offset-2;
   }
 
   /* Truncate */

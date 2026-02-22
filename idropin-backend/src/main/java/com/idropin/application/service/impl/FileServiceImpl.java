@@ -13,10 +13,13 @@ import com.idropin.domain.vo.FileUploadResult;
 import com.idropin.domain.vo.FileVO;
 import com.idropin.infrastructure.persistence.mapper.FileMapper;
 import com.idropin.infrastructure.persistence.mapper.FileCategoryMapper;
+import com.idropin.infrastructure.persistence.mapper.UserMapper;
 import com.idropin.infrastructure.storage.StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -43,12 +46,16 @@ public class FileServiceImpl implements FileService {
     private final FileMapper fileMapper;
     private final StorageService storageService;
     private final FileCategoryMapper categoryMapper;
+    private final UserMapper userMapper;
 
     @Value("${file.upload.max-size:104857600}")
     private long maxFileSize;
 
     @Value("${file.upload.allowed-types:}")
     private List<String> allowedTypes;
+
+    @Value("${storage.root-prefix:}")
+    private String rootPrefix;
 
     private static final int MAX_BATCH_SIZE = 10;
     
@@ -64,12 +71,43 @@ public class FileServiceImpl implements FileService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "statistics", allEntries = true),
+        @CacheEvict(value = "submissions", allEntries = true)
+    })
     public File uploadFile(MultipartFile multipartFile, String userId) {
         return uploadFileWithCustomName(multipartFile, userId, multipartFile.getOriginalFilename());
     }
 
     @Override
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "statistics", allEntries = true),
+        @CacheEvict(value = "submissions", allEntries = true)
+    })
+    public File createFileRecord(String storagePath, String originalName, String mimeType, Long fileSize, String userId) {
+        File file = new File();
+        file.setId(UUID.randomUUID().toString());
+        file.setName(originalName);
+        file.setOriginalName(originalName);
+        file.setFileSize(fileSize);
+        file.setMimeType(mimeType);
+        file.setStoragePath(storagePath);
+        file.setStorageProvider(storageService.getActiveStorageType().toUpperCase());
+        file.setUploaderId(userId);
+        file.setStatus("ACTIVE");
+        file.setCategoryId(determineCategoryId(mimeType));
+        file.setCreatedAt(LocalDateTime.now());
+        file.setUpdatedAt(LocalDateTime.now());
+        
+        fileMapper.insert(file);
+        log.info("Created file record for presigned upload: id={}, name={}, size={}", file.getId(), originalName, fileSize);
+        return file;
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "statistics", allEntries = true)
     public File uploadFileWithCustomName(MultipartFile multipartFile, String userId, String customFilename) {
         validateFile(multipartFile);
 
@@ -92,7 +130,7 @@ public class FileServiceImpl implements FileService {
             file.setFileSize(multipartFile.getSize());
             file.setMimeType(multipartFile.getContentType());
             file.setStoragePath(storagePath);
-            file.setStorageProvider("MINIO");
+            file.setStorageProvider(storageService.getActiveStorageType().toUpperCase());
             file.setUploaderId(userId);
             file.setStatus("ACTIVE");
             file.setCategoryId(determineCategoryId(multipartFile.getContentType()));
@@ -111,6 +149,58 @@ public class FileServiceImpl implements FileService {
         } catch (Exception e) {
             log.error("Failed to upload file: {}", multipartFile.getOriginalFilename(), e);
             throw new BusinessException("文件上传失败: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "statistics", allEntries = true),
+        @CacheEvict(value = "submissions", allEntries = true)
+    })
+    public File uploadFileForTask(MultipartFile multipartFile, String userId, String taskKey, String filename) {
+        validateFile(multipartFile);
+        try {
+            String storagePath = generateTaskStoragePath(taskKey, filename);
+            storageService.uploadFile(storagePath, multipartFile.getInputStream(),
+                    multipartFile.getContentType(), multipartFile.getSize());
+            File file = new File();
+            file.setId(UUID.randomUUID().toString());
+            file.setName(filename);
+            file.setOriginalName(filename);
+            file.setFileSize(multipartFile.getSize());
+            file.setMimeType(multipartFile.getContentType());
+            file.setStoragePath(storagePath);
+            file.setStorageProvider(storageService.getActiveStorageType().toUpperCase());
+            file.setUploaderId(userId);
+            file.setStatus("ACTIVE");
+            file.setCategoryId(determineCategoryId(multipartFile.getContentType()));
+            file.setCreatedAt(LocalDateTime.now());
+            file.setUpdatedAt(LocalDateTime.now());
+            fileMapper.insertFile(file);
+            return file;
+        } catch (Exception e) {
+            log.error("Failed to upload task file: {}", filename, e);
+            throw new BusinessException("文件上传失败: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
+    public String uploadFileForAvatar(MultipartFile multipartFile, String userId, String oldAvatarPath) {
+        validateFile(multipartFile);
+        try {
+            if (oldAvatarPath != null && !oldAvatarPath.isBlank() && !oldAvatarPath.startsWith("http")) {
+                try { storageService.deleteFile(oldAvatarPath); } catch (Exception ignored) {}
+            }
+            String extension = getFileExtension(multipartFile.getOriginalFilename());
+            String storagePath = generateAvatarStoragePath(userId, extension);
+            storageService.uploadFile(storagePath, multipartFile.getInputStream(),
+                    multipartFile.getContentType(), multipartFile.getSize());
+            return storagePath;
+        } catch (Exception e) {
+            log.error("Failed to upload avatar for user: {}", userId, e);
+            throw new BusinessException("头像上传失败: " + e.getMessage());
         }
     }
 
@@ -167,10 +257,31 @@ public class FileServiceImpl implements FileService {
         if (file == null) {
             throw new BusinessException("文件不存在");
         }
+        
+        // 检查权限：文件所有者或管理员可以访问
         if (file.getUploaderId() != null && !file.getUploaderId().equals(userId)) {
-            throw new BusinessException("无权限访问此文件");
+            // 检查用户是否是管理员
+            if (!isAdmin(userId)) {
+                throw new BusinessException("无权限访问此文件");
+            }
         }
         return file;
+    }
+    
+    /**
+     * 检查用户是否是管理员
+     */
+    private boolean isAdmin(String userId) {
+        if (userId == null) {
+            return false;
+        }
+        var user = userMapper.selectById(userId);
+        if (user == null) {
+            return false;
+        }
+        // 检查用户角色是否包含 ADMIN 或 SUPER_ADMIN
+        String role = user.getRole();
+        return role != null && (role.contains("ADMIN") || role.contains("SUPER_ADMIN"));
     }
 
     @Override
@@ -209,6 +320,10 @@ public class FileServiceImpl implements FileService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "statistics", allEntries = true),
+        @CacheEvict(value = "submissions", allEntries = true)
+    })
     public void deleteFile(String fileId, String userId) {
         File file = getFile(fileId, userId);
 
@@ -224,6 +339,10 @@ public class FileServiceImpl implements FileService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "statistics", allEntries = true),
+        @CacheEvict(value = "submissions", allEntries = true)
+    })
     public void deleteFiles(List<String> fileIds, String userId) {
         List<String> storagePaths = new ArrayList<>();
         
@@ -268,6 +387,7 @@ public class FileServiceImpl implements FileService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "statistics", allEntries = true)
     public void moveToTrash(String fileId, String userId) {
         File file = getFile(fileId, userId);
         if (Boolean.TRUE.equals(file.getDeleted())) {
@@ -279,6 +399,7 @@ public class FileServiceImpl implements FileService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "statistics", allEntries = true)
     public void moveToTrash(List<String> fileIds, String userId) {
         LocalDateTime now = LocalDateTime.now();
         for (String fileId : fileIds) {
@@ -437,11 +558,23 @@ public class FileServiceImpl implements FileService {
         }
     }
 
+    private String withPrefix(String path) {
+        return (rootPrefix == null || rootPrefix.isEmpty()) ? path : rootPrefix + "/" + path;
+    }
+
     private String generateStoragePath(String userId, String extension) {
         String uuid = UUID.randomUUID().toString().replace("-", "");
-        String datePath = LocalDateTime.now().toString().substring(0, 10).replace("-", "/");
         String owner = (userId != null && !userId.isEmpty()) ? userId : "anonymous";
-        return String.format("%s/%s/%s%s", owner, datePath, uuid, extension);
+        return withPrefix(String.format("users/%s/%s%s", owner, uuid, extension));
+    }
+
+    private String generateTaskStoragePath(String taskKey, String filename) {
+        String safeKey = taskKey.replaceAll("[\\\\/:*?\"<>|]", "_");
+        return withPrefix(String.format("tasks/%s/%s", safeKey, filename));
+    }
+
+    private String generateAvatarStoragePath(String userId, String extension) {
+        return withPrefix(String.format("avatars/%s%s", userId, extension));
     }
 
     private String getFileExtension(String filename) {

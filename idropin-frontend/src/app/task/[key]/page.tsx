@@ -14,6 +14,8 @@ import SubmissionHistoryModal from '@/components/submission/SubmissionHistoryMod
 import { getTaskInfoPublic, getTaskMoreInfoPublic, TaskInfo, getPublicSubmissions, InfoSubmission, withdrawSubmission } from '@/lib/api/tasks';
 import { checkPeopleIsExist, updatePeopleStatus } from '@/lib/api/people';
 import { getUploadToken, checkSubmitStatus, getTemplateUrl } from '@/lib/api/files';
+import { API_BASE_URL, normalizeBackendUrl } from '@/lib/api/baseUrl';
+import { getToken } from '@/lib/api/client';
 import { 
   formatDate, 
   parseInfo, 
@@ -33,7 +35,8 @@ interface TaskBasicInfo {
   deadline?: string;
   creatorName?: string;
   creatorAvatarUrl?: string;
-  collectionType?: 'INFO' | 'FILE'; // 收集类型
+  collectionType?: 'INFO' | 'FILE';
+  requireLogin?: boolean;
 }
 
 export default function TaskSubmissionPage() {
@@ -82,6 +85,12 @@ export default function TaskSubmissionPage() {
   // 历史记录弹窗状态
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [historySubmissions, setHistorySubmissions] = useState<InfoSubmission[]>([]);
+
+  // 客户端登录状态（避免SSR时localStorage未就绪导致误判）
+  const [isLoggedIn, setIsLoggedIn] = useState(true); // 默认true，避免闪烁
+  useEffect(() => {
+    setIsLoggedIn(!!getToken());
+  }, []);
 
   // 自动关闭ErrorToast
   useEffect(() => {
@@ -157,16 +166,19 @@ export default function TaskSubmissionPage() {
       setIsLoading(true);
       try {
         const info = await getTaskInfoPublic(taskKey);
-        console.log('Task info from API:', info); // 调试日志
-        console.log('Creator avatar URL:', info.creatorAvatarUrl); // 调试日志
+        const rawAvatarUrl = info.creatorAvatarUrl;
+        const resolvedAvatarUrl = rawAvatarUrl
+          ? (rawAvatarUrl.startsWith('http') ? rawAvatarUrl : `${API_BASE_URL}/user/avatar/${info.createdBy}`)
+          : undefined;
         setTaskInfo({
           name: info.title || '',
           description: info.description || '',
           limitUpload: false,
           deadline: info.deadline || '',
           creatorName: info.creatorName || '',
-          creatorAvatarUrl: info.creatorAvatarUrl || undefined,
-          collectionType: info.collectionType || 'FILE', // 默认为收集文件
+          creatorAvatarUrl: resolvedAvatarUrl,
+          collectionType: info.collectionType || 'FILE',
+          requireLogin: info.requireLogin || false,
         });
         setDisabledUpload(false);
 
@@ -286,7 +298,7 @@ export default function TaskSubmissionPage() {
         formData.append('infoData', JSON.stringify(infoData));
 
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api'}/tasks/${taskKey}/submit-info`, {
+          const response = await fetch(`${API_BASE_URL}/tasks/${taskKey}/submit-info`, {
             method: 'POST',
             body: formData,
             credentials: 'include',
@@ -345,7 +357,7 @@ export default function TaskSubmissionPage() {
             formData.append('infoData', JSON.stringify(infoDataObj));
             
             // Use the proper task submission endpoint that uploads file AND creates submission record
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api'}/tasks/${taskKey}/submit`, {
+            const response = await fetch(`${API_BASE_URL}/tasks/${taskKey}/submit`, {
               method: 'POST',
               body: formData,
               credentials: 'include',
@@ -524,17 +536,17 @@ export default function TaskSubmissionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50/80 to-white dark:from-gray-950 dark:to-black">
+    <div className="min-h-screen bg-gray-50 dark:bg-black">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-black/80 backdrop-blur-2xl border-b border-gray-100/60 dark:border-gray-800/40">
-        <div className="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 hover:opacity-80 active:scale-[0.98] transition-all duration-200">
-            <div className="relative h-9 w-28">
+      <header className="sticky top-0 z-40 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50">
+        <div className="max-w-2xl mx-auto px-5 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 hover:opacity-70 transition-opacity">
+            <div className="relative h-8 w-24">
               <Image
                 src="https://pic.imgdb.cn/item/668cd877d9c307b7e99e9061.png"
                 alt="IdropIn"
                 fill
-                sizes="112px"
+                sizes="96px"
                 className="object-contain"
                 priority
               />
@@ -544,85 +556,83 @@ export default function TaskSubmissionPage() {
             href="https://idrop.caiths.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="px-4 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-gray-800/50 rounded-full transition-all duration-200 border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
+            className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
           >
             我也要收集 →
           </a>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-6 py-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <main className="max-w-2xl mx-auto px-5 py-8">
         {/* Task Title Card */}
-        <div className="relative bg-white/90 dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-100 dark:border-gray-800/50 p-10 mb-8 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-bl from-gray-100/40 dark:from-gray-800/20 to-transparent rounded-bl-full pointer-events-none" />
-          
-          <div className="relative flex items-start justify-between gap-4 mb-5">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-4 flex-wrap">
-                <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white leading-tight">
-                  {taskInfo.name}
-                </h1>
-                {taskInfo.collectionType && (
-                  <span className={`px-3 py-1 text-[11px] font-semibold rounded-full tracking-wide uppercase ${
-                    taskInfo.collectionType === 'FILE'
-                      ? 'bg-gray-100/80 dark:bg-gray-500/20 text-gray-600 dark:text-gray-400'
-                      : 'bg-emerald-50/80 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                  }`}>
-                    {taskInfo.collectionType === 'FILE' ? '收集文件' : '收集信息'}
-                  </span>
-                )}
-              </div>
-              
-              {taskInfo.description && taskInfo.description.trim() && (
-                <p className="text-gray-500 dark:text-gray-400 text-[15px] leading-relaxed whitespace-pre-wrap max-w-2xl">
-                  {taskInfo.description}
-                </p>
-              )}
-            </div>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-7 mb-5">
+          {/* Title row */}
+          <div className="flex items-start gap-3 mb-1 flex-wrap">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white leading-snug">
+              {taskInfo.name}
+            </h1>
+            {taskInfo.collectionType && (
+              <span className={`mt-1 px-2.5 py-0.5 text-[11px] font-medium rounded-md ${
+                taskInfo.collectionType === 'FILE'
+                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                  : 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+              }`}>
+                {taskInfo.collectionType === 'FILE' ? '收集文件' : '收集信息'}
+              </span>
+            )}
           </div>
-          
-          {/* Task Meta Info */}
-          <div className="relative flex flex-wrap gap-8 pt-6 border-t border-gray-100/80 dark:border-gray-800/50">
+
+          {taskInfo.description && taskInfo.description.trim() && (
+            <p className="mt-3 text-gray-500 dark:text-gray-400 text-sm leading-relaxed whitespace-pre-wrap">
+              {taskInfo.description}
+            </p>
+          )}
+
+          {/* Meta row */}
+          <div className="mt-5 pt-5 border-t border-gray-100 dark:border-gray-800 flex flex-wrap gap-x-6 gap-y-3">
             {taskInfo.creatorName && (
-              <div className="flex items-center gap-3 group">
+              <div className="flex items-center gap-2.5">
                 {taskInfo.creatorAvatarUrl ? (
-                  <img
-                    src={taskInfo.creatorAvatarUrl}
+                  <Image
+                    src={taskInfo.creatorAvatarUrl!}
                     alt={taskInfo.creatorName}
-                    className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-100 dark:ring-gray-800 group-hover:ring-gray-200 dark:group-hover:ring-gray-700 transition-all duration-200"
+                    width={32}
+                    height={32}
+                    className="rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-700"
+                    unoptimized
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold text-sm ring-2 ring-gray-100 dark:ring-gray-800">
+                  <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold text-xs">
                     {taskInfo.creatorName.charAt(0).toUpperCase()}
                   </div>
                 )}
                 <div>
-                  <p className="text-[11px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-medium">收件人</p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{taskInfo.creatorName}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">收件人</p>
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-tight">{taskInfo.creatorName}</p>
                 </div>
               </div>
             )}
             {(taskInfo.deadline || ddlStr) && (
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center flex-shrink-0">
+                  <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div>
-                  <p className="text-[11px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-medium">截止时间</p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">截止时间</p>
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-tight">
                     {ddlStr || (taskInfo.deadline ? formatDate(new Date(taskInfo.deadline)) : '')}
                   </p>
                 </div>
               </div>
             )}
             {taskMoreInfo.people && (
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
+                  <Users className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                 </div>
                 <div>
-                  <p className="text-[11px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-medium">验证方式</p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">需验证名单</p>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">验证方式</p>
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-tight">需验证名单</p>
                 </div>
               </div>
             )}
@@ -631,46 +641,34 @@ export default function TaskSubmissionPage() {
 
         {/* Storage Full Warning */}
         {disabledUpload && (
-          <div className="bg-red-50/80 dark:bg-red-950/20 backdrop-blur-sm border border-red-200/60 dark:border-red-900/30 rounded-2xl p-5 mb-8">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
-                <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
-              </div>
-              <div>
-                <p className="font-semibold text-red-800 dark:text-red-300 text-sm">存储空间已满</p>
-                <p className="text-red-700/80 dark:text-red-400/70 text-sm mt-1 leading-relaxed">
-                  任务存储空间容量已达到上限，请联系发起人扩容空间
-                </p>
-              </div>
+          <div className="flex items-start gap-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl p-4 mb-5">
+            <AlertCircle className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-red-700 dark:text-red-300">存储空间已满</p>
+              <p className="text-xs text-red-600/70 dark:text-red-400/70 mt-0.5">任务存储空间已达到上限，请联系发起人扩容空间</p>
             </div>
           </div>
         )}
 
         {/* Deadline Countdown */}
         {ddlStr && (
-          <div className="bg-white/90 dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-100 dark:border-gray-800/50 p-6 mb-8 shadow-sm">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
-                  <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                </div>
-                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">截止时间</span>
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+                <span className="text-sm text-gray-600 dark:text-gray-400">截止时间</span>
               </div>
-              <span className="font-semibold text-gray-900 dark:text-white text-sm">{ddlStr}</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">{ddlStr}</span>
             </div>
             {!isOver && (
-              <div className="mt-4 pt-4 border-t border-gray-100/80 dark:border-gray-800/50">
-                <div className="text-center">
-                  <span className="text-sm font-mono font-semibold text-gray-700 dark:text-gray-300 tabular-nums tracking-wider">{waitTimeStr()}</span>
-                </div>
+              <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 text-center">
+                <span className="text-sm font-mono font-semibold text-gray-700 dark:text-gray-300 tabular-nums tracking-wider">{waitTimeStr()}</span>
               </div>
             )}
             {isOver && (
-              <div className="mt-5 text-center py-10">
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-full">
-                  <AlertCircle className="w-4 h-4 text-gray-400" />
-                  <p className="text-gray-500 dark:text-gray-400 font-medium text-sm">任务已结束，无法继续提交</p>
-                </div>
+              <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-center gap-2 py-6">
+                <AlertCircle className="w-4 h-4 text-gray-400" />
+                <p className="text-sm text-gray-400 dark:text-gray-500">任务已结束，无法继续提交</p>
               </div>
             )}
           </div>
@@ -678,48 +676,35 @@ export default function TaskSubmissionPage() {
 
         {/* Tips Section */}
         {(tipData.text || tipData.imgs.length > 0) && (!ddlStr || !isOver) && (
-          <div className="bg-amber-50/50 dark:bg-amber-950/10 backdrop-blur-sm rounded-2xl border border-amber-200/30 dark:border-amber-900/15 p-6 mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-7 h-7 rounded-full bg-amber-100/80 dark:bg-amber-900/25 flex items-center justify-center">
-                <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-              </div>
+          <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/30 rounded-xl p-4 mb-5">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
               <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider">注意事项</span>
             </div>
-            
             {tipData.text && (
-              <p className="text-sm text-amber-800/60 dark:text-amber-300/60 whitespace-pre-wrap leading-relaxed">
+              <p className="text-sm text-amber-800/70 dark:text-amber-300/60 whitespace-pre-wrap leading-relaxed">
                 {tipData.text}
               </p>
             )}
-            
             {tipData.imgs && tipData.imgs.length > 0 && (
-              <div className="mt-5">
-                <p className="text-[10px] text-amber-600/50 dark:text-amber-400/50 mb-3 font-semibold uppercase tracking-widest">参考图片</p>
-                <div className="flex flex-wrap justify-center gap-4">
+              <div className="mt-4">
+                <p className="text-[10px] text-amber-600/50 dark:text-amber-400/50 mb-2 font-semibold uppercase tracking-widest">参考图片</p>
+                <div className="flex flex-wrap justify-center gap-3">
                   {tipData.imgs.map((img, index) => (
-                    <div 
-                      key={img.uid || index} 
-                      className="relative group w-full sm:w-[calc(50%-0.5rem)] max-w-md aspect-[4/3] rounded-2xl overflow-hidden border border-amber-200/30 dark:border-amber-800/20 cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-[1.02] hover:border-amber-300 dark:hover:border-amber-700"
+                    <div
+                      key={img.uid || index}
+                      className="relative group w-full sm:w-[calc(50%-0.375rem)] max-w-md aspect-[4/3] rounded-xl overflow-hidden border border-amber-200/40 dark:border-amber-800/20 cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01]"
                       onClick={() => setPreviewImage(img.name)}
                     >
                       <Image
-                        src={img.name}
+                        src={normalizeBackendUrl(img.name)}
                         alt={`批注图片 ${index + 1}`}
                         fill
-                        sizes="(max-width: 640px) 100vw, 50vw"
-                        className="object-cover transition-transform group-hover:scale-105"
+                        className="object-cover"
+                        loading="lazy"
                       />
-                      {/* 悬停遮罩提示 */}
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
-                        <span className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <path d="m21 21-4.3-4.3"></path>
-                            <path d="M11 8v6"></path>
-                            <path d="M8 11h6"></path>
-                          </svg>
-                          点击放大图片
-                        </span>
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center">
+                        <span className="text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">点击放大</span>
                       </div>
                     </div>
                   ))}
@@ -732,6 +717,29 @@ export default function TaskSubmissionPage() {
         {/* Main Form Section */}
         {(!ddlStr || !isOver) && (
           <>
+            {/* Login Required Notice */}
+            {taskInfo.requireLogin && !isLoggedIn && (
+              <div className="bg-amber-50/80 dark:bg-amber-950/20 backdrop-blur-sm rounded-2xl border border-amber-200/60 dark:border-amber-900/30 p-5 mb-8">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-amber-800 dark:text-amber-300 text-sm">需要登录才能提交</p>
+                    <p className="text-amber-700/80 dark:text-amber-400/70 text-sm mt-1 leading-relaxed">
+                      该任务要求提交者登录账号后才能上传文件。
+                    </p>
+                    <a
+                      href={`/login?redirect=${encodeURIComponent(window.location.pathname)}`}
+                      className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors"
+                    >
+                      前往登录
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* People Validation Notice */}
             {taskMoreInfo.people && (
               <div className="bg-gray-50/80 dark:bg-gray-900/30 backdrop-blur-sm rounded-2xl border border-gray-100 dark:border-gray-800/50 p-5 mb-8">
@@ -752,8 +760,8 @@ export default function TaskSubmissionPage() {
             {/* Form Section */}
             <div className="bg-white/90 dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-100 dark:border-gray-800/50 p-8 mb-8 shadow-sm hover:shadow-md transition-shadow duration-300">
               <div className="flex items-center gap-3 mb-7">
-                <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                  <FileText className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                  <FileText className="w-4 h-4 text-gray-700 dark:text-gray-300" />
                 </div>
                 <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 tracking-wide">必要信息</span>
               </div>
@@ -771,11 +779,7 @@ export default function TaskSubmissionPage() {
                     disabled={isUploading}
                     maxLength={14}
                     placeholder={`请输入 ${limitBindField}`}
-                    className="w-full px-4 py-3.5 text-sm border border-gray-200/80 dark:border-gray-700/50 rounded-xl 
-                      bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white
-                      focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 focus:border-gray-300 dark:focus:border-gray-600 focus:bg-white dark:focus:bg-gray-800
-                      disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:cursor-not-allowed
-                      transition-all duration-200 placeholder:text-gray-400"
+                    className="w-full px-4 py-3.5 text-sm border border-gray-200/80 dark:border-gray-700/50 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 focus:border-gray-300 dark:focus:border-gray-600 focus:bg-white dark:focus:bg-gray-800 disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:cursor-not-allowed transition-all duration-200 placeholder:text-gray-400"
                   />
                 </div>
               )}
@@ -791,8 +795,8 @@ export default function TaskSubmissionPage() {
             {taskInfo.collectionType === 'FILE' && (
               <div className="bg-white/90 dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-100 dark:border-gray-800/50 p-8 mb-8 shadow-sm hover:shadow-md transition-shadow duration-300">
                 <div className="flex items-center gap-3 mb-7">
-                  <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                    <Upload className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                  <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                    <Upload className="w-4 h-4 text-gray-700 dark:text-gray-300" />
                   </div>
                   <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 tracking-wide">文件上传</span>
                 </div>
@@ -815,7 +819,7 @@ export default function TaskSubmissionPage() {
                   正在提交 <span className="font-semibold tabular-nums">{uploadProgress.completed + 1}</span> / <span className="font-semibold tabular-nums">{uploadProgress.total}</span> 个文件
                 </div>
                 <div className="flex-1 max-w-32 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-gradient-to-r from-gray-700 to-gray-900 dark:from-gray-300 dark:to-white transition-all duration-300 rounded-full"
                     style={{ width: `${((uploadProgress.completed + 1) / uploadProgress.total) * 100}%` }}
                   />
@@ -845,16 +849,16 @@ export default function TaskSubmissionPage() {
                   <button
                     onClick={handleSubmit}
                     disabled={
-                      (taskInfo.collectionType === 'FILE' ? !allowUpload : false) || 
-                      isSubmitting
+                      (taskInfo.collectionType === 'FILE' ? !allowUpload : false) ||
+                      isSubmitting ||
+                      (taskInfo.requireLogin === true && !isLoggedIn)
                     }
-                    className="px-8 py-3 bg-gray-900 dark:bg-white 
-                      hover:bg-black dark:hover:bg-gray-100
+                    className="px-8 py-3 bg-gray-900 dark:bg-white hover:bg-black dark:hover:bg-gray-100
                       text-white dark:text-gray-900 text-sm font-semibold rounded-xl
                       disabled:opacity-50 disabled:cursor-not-allowed
-                      flex items-center gap-2.5 transition-all duration-200 
-                      shadow-lg shadow-gray-900/20 dark:shadow-gray-200/20 
-                      hover:shadow-xl hover:shadow-gray-900/30 dark:hover:shadow-gray-200/30 
+                      flex items-center gap-2.5 transition-all duration-200
+                      shadow-lg shadow-gray-900/20 dark:shadow-gray-200/20
+                      hover:shadow-xl hover:shadow-gray-900/30 dark:hover:shadow-gray-200/30
                       hover:scale-[1.02] active:scale-[0.98]"
                   >
                     {isSubmitting ? (
@@ -946,12 +950,10 @@ export default function TaskSubmissionPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <Image
-              src={previewImage}
+              src={normalizeBackendUrl(previewImage)}
               alt="预览大图"
               fill
-              sizes="90vw"
               className="object-contain"
-              priority
             />
           </div>
         </div>

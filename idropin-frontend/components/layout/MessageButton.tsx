@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { useMessageStore } from '@/lib/stores/messages';
+import { useAuthStore } from '@/lib/stores/auth';
 import { MessagePanel } from '../messages/MessagePanel';
 
 interface MessageButtonProps {
@@ -12,13 +13,17 @@ interface MessageButtonProps {
 export function MessageButton({ className }: MessageButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { unreadCount, fetchUnreadCount } = useMessageStore();
+  const { isAuthenticated } = useAuthStore();
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000);
+    const interval = setInterval(() => {
+      if (!document.hidden) fetchUnreadCount();
+    }, 60000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isAuthenticated]);
 
   return (
     <>

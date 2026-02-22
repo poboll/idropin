@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores';
 
 interface AuthGuardProps {
@@ -10,54 +10,26 @@ interface AuthGuardProps {
 
 export default function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
-  const { isAuthenticated, isLoading, fetchCurrentUser } = useAuthStore();
-  const [isChecking, setIsChecking] = useState(true);
-  const [isMounted, setIsMounted] = useState(false);
+  const pathname = usePathname();
+  const { isAuthenticated, fetchCurrentUser } = useAuthStore();
+  const [isVerifying, setIsVerifying] = useState(true);
+  const verified = useRef(false);
 
   useEffect(() => {
-    setIsMounted(true);
+    if (verified.current) return;
+    verified.current = true;
+    fetchCurrentUser().finally(() => setIsVerifying(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (!isMounted) return;
-    
-    const checkAuth = async () => {
-      // 尝试获取当前用户信息验证 token
-      await fetchCurrentUser();
-      setIsChecking(false);
-    };
-
-    checkAuth();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMounted]); // 只依赖 isMounted，避免 fetchCurrentUser 导致无限循环
-
-  useEffect(() => {
-    if (!isMounted) return;
-    
-    if (!isChecking && !isLoading && !isAuthenticated) {
-      router.push('/login');
+    if (!isVerifying && !isAuthenticated) {
+      const redirectParam = pathname ? `?redirect=${encodeURIComponent(pathname)}` : '';
+      router.push(`/login${redirectParam}`);
     }
-  }, [isChecking, isLoading, isAuthenticated, router, isMounted]);
+  }, [isVerifying, isAuthenticated, router, pathname]);
 
-  // 防止 hydration 错误：在客户端挂载前不渲染任何内容
-  if (!isMounted) {
-    return null;
-  }
-
-  // 显示加载状态
-  if (isChecking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black">
-        <div className="text-center">
-          <div className="spinner mx-auto mb-4" />
-          <p className="text-sm text-gray-500 dark:text-gray-400">验证登录状态...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // 未认证时不渲染内容（等待跳转）
-  if (!isAuthenticated) {
+  if (isVerifying || !isAuthenticated) {
     return null;
   }
 

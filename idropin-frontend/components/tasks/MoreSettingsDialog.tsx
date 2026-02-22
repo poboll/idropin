@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
+import Image from 'next/image';
 import Modal from '@/components/Modal';
 import { Task } from '@/lib/stores/task';
 import * as TaskApi from '@/lib/api/tasks';
 import { addPeopleByUser, getPeople, deletePeople } from '@/lib/api/people';
 import { Calendar, Info, Users, FileText, Settings, Plus, X, Clock, Check, Upload, Trash2, Image as ImageIcon, Download, Eye } from 'lucide-react';
 import { DatePicker } from '@/components/ui/DatePicker';
+import { API_BASE_URL } from '@/lib/api/baseUrl';
 
 interface MoreSettingsDialogProps {
   task: Task | null;
@@ -57,8 +59,9 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
   const [maxFileCount, setMaxFileCount] = useState<number>(10);
   const [maxFileSizeValue, setMaxFileSizeValue] = useState<number>(0);
   
-  // Auto rename state
-  const [autoRename, setAutoRename] = useState<boolean>(true); // 默认开启
+  const [autoRename, setAutoRename] = useState<boolean>(true);
+  const [allowAnonymous, setAllowAnonymous] = useState<boolean>(true);
+  const [requireLogin, setRequireLogin] = useState<boolean>(false);
   
   // Task import dialog state
   const [showTaskImportDialog, setShowTaskImportDialog] = useState(false);
@@ -88,6 +91,8 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
       }
       setMaxFileCount(taskDetails.maxFileCount || 10);
       setMaxFileSizeValue(taskDetails.maxFileSize || 0);
+      setAllowAnonymous(taskDetails.allowAnonymous !== false);
+      setRequireLogin(taskDetails.requireLogin === true);
       
       const info = await TaskApi.getTaskMoreInfo(key);
       setTaskInfo(info);
@@ -355,7 +360,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
         window.open(taskInfo.template, '_blank');
       } else {
         // 使用模板下载接口预览
-        const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api'}/files/template?template=${encodeURIComponent(taskInfo.template)}&key=${task?.key}`;
+        const url = `${API_BASE_URL}/files/template?template=${encodeURIComponent(taskInfo.template)}&key=${task?.key}`;
         window.open(url, '_blank');
       }
     }
@@ -371,7 +376,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
         link.click();
       } else {
         // 使用模板下载接口
-        const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api'}/files/template?template=${encodeURIComponent(taskInfo.template)}&key=${task?.key}`;
+        const url = `${API_BASE_URL}/files/template?template=${encodeURIComponent(taskInfo.template)}&key=${task?.key}`;
         const link = document.createElement('a');
         link.href = url;
         link.download = taskInfo.template;
@@ -396,7 +401,8 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
       await TaskApi.updateTask(task.key, {
         title: currentTask.title,
         deadline: deadline ? deadline.toISOString() : null,
-        requireLogin: currentTask.requireLogin,
+        requireLogin: requireLogin,
+        allowAnonymous: allowAnonymous,
         limitOnePerDevice: currentTask.limitOnePerDevice,
         maxFileSize: maxFileSizeValue,
         allowedTypes: allowedTypesArray,
@@ -502,38 +508,45 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
     }
   };
 
+  const isInfoTask = task?.collectionType === 'INFO';
+
   const tabs = [
     { id: 'ddl', label: '截止日期', icon: Calendar },
+    { id: 'submit', label: '提交设置', icon: Settings },
     { id: 'tip', label: '批注信息', icon: Info },
     { id: 'people', label: '限制名单', icon: Users },
-    { id: 'info', label: '必填信息', icon: Settings },
-    { id: 'template', label: '模板文件', icon: FileText },
-    { id: 'fileProps', label: '文件属性管理', icon: Settings },
+    { id: 'info', label: '必填信息', icon: FileText },
+    { id: 'template', label: '模板文件', icon: Upload },
+    ...(!isInfoTask ? [{ id: 'fileProps', label: '文件属性', icon: Settings }] : []),
   ];
 
   if (!task) return null;
 
   return (
-    <Modal isOpen={open} onClose={onClose} title="更多设置" size="lg">
-      <div className="flex flex-col h-[600px]">
-        <div className="flex border-b border-gray-100 dark:border-gray-800/50 overflow-x-auto bg-gray-50/50 dark:bg-gray-900/30">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-5 py-3.5 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'border-gray-900 dark:border-white text-gray-900 dark:text-white bg-white dark:bg-gray-900'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-white/50 dark:hover:bg-gray-800/50'
-              }`}
-            >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          ))}
+    <Modal isOpen={open} onClose={onClose} title="更多设置" size="md">
+      <div className="flex flex-col h-[520px]">
+        {/* tab navigation */}
+        <div className="flex border-b border-gray-100 dark:border-gray-800/60 overflow-x-auto shrink-0 bg-white dark:bg-gray-900/50">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`relative flex items-center gap-1.5 px-4 py-3 text-xs font-semibold border-b-2 transition-all duration-150 whitespace-nowrap select-none ${
+                  isActive
+                    ? 'border-gray-900 dark:border-white text-gray-900 dark:text-white'
+                    : 'border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:border-gray-200 dark:hover:border-gray-700'
+                }`}
+              >
+                <tab.icon className={`w-3.5 h-3.5 ${isActive ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500'}`} />
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
-        <div className="flex-1 p-8 overflow-y-auto bg-white dark:bg-gray-900">
+        <div className="flex-1 p-5 overflow-y-auto bg-white dark:bg-gray-900">
           {loading ? (
             <div className="flex items-center justify-center h-full text-gray-400">
               <div className="text-center">
@@ -543,6 +556,62 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
             </div>
           ) : (
             <>
+              {activeTab === 'submit' && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">提交方式设置</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">控制谁可以提交以及是否允许匿名提交。</p>
+                  </div>
+                  <div className="space-y-4">
+                    <button
+                      type="button"
+                      onClick={() => setAllowAnonymous(v => !v)}
+                      className={`w-full flex items-center justify-between px-5 py-4 rounded-2xl border transition-all duration-200 ${
+                        allowAnonymous
+                          ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
+                          : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      <div className="text-left">
+                        <p className={`text-sm font-semibold ${allowAnonymous ? 'text-white dark:text-gray-900' : 'text-gray-800 dark:text-gray-200'}`}>允许匿名提交</p>
+                        <p className={`text-xs mt-0.5 ${allowAnonymous ? 'text-gray-300 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400'}`}>提交者无需登录账号，姓名信息可任意填写</p>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                        allowAnonymous ? 'bg-white dark:bg-gray-900 border-white dark:border-gray-900' : 'border-gray-300 dark:border-gray-600'
+                      }`}>
+                        {allowAnonymous && <Check className="w-3 h-3 text-gray-900 dark:text-white" />}
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setRequireLogin(v => !v)}
+                      className={`w-full flex items-center justify-between px-5 py-4 rounded-2xl border transition-all duration-200 ${
+                        requireLogin
+                          ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
+                          : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      <div className="text-left">
+                        <p className={`text-sm font-semibold ${requireLogin ? 'text-white dark:text-gray-900' : 'text-gray-800 dark:text-gray-200'}`}>需要登录才能提交</p>
+                        <p className={`text-xs mt-0.5 ${requireLogin ? 'text-gray-300 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400'}`}>提交者必须登录系统账号后才能上传或提交信息</p>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                        requireLogin ? 'bg-white dark:bg-gray-900 border-white dark:border-gray-900' : 'border-gray-300 dark:border-gray-600'
+                      }`}>
+                        {requireLogin && <Check className="w-3 h-3 text-gray-900 dark:text-white" />}
+                      </div>
+                    </button>
+                  </div>
+
+                  {requireLogin && allowAnonymous && (
+                    <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-xl text-xs text-amber-700 dark:text-amber-300">
+                      提示：同时开启&ldquo;需要登录&rdquo;和&ldquo;允许匿名&rdquo;时，&ldquo;需要登录&rdquo;优先生效。
+                    </div>
+                  )}
+                </div>
+              )}
+
               {activeTab === 'ddl' && (
                 <div className="space-y-6">
                   <div>
@@ -557,16 +626,16 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                     </div>
                   </div>
                   {deadline ? (
-                    <div className="p-5 bg-blue-50/80 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-2xl text-sm border border-blue-100 dark:border-blue-800/50 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-800/50 flex items-center justify-center flex-shrink-0">
-                        <Clock className="w-5 h-5" />
+                    <div className="p-5 bg-gray-50 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 rounded-2xl text-sm border border-gray-200/80 dark:border-gray-700/80 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                        <Clock className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                       </div>
                       <span>任务将在 <strong>{deadline.toLocaleString()}</strong> 截止</span>
                     </div>
                   ) : (
-                    <div className="p-5 bg-emerald-50/80 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-2xl text-sm border border-emerald-100 dark:border-emerald-800/50 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-800/50 flex items-center justify-center flex-shrink-0">
-                        <Check className="w-5 h-5" />
+                    <div className="p-5 bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 rounded-2xl text-sm border border-gray-200/80 dark:border-gray-700/80 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                        <Check className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                       </div>
                       <span>当前任务永久有效，无截止时间限制</span>
                     </div>
@@ -580,7 +649,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                     <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">批注/备注信息</h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">在提交页面展示给用户的提示信息。</p>
                     <textarea
-                      className="w-full h-48 py-3.5 px-4 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all text-gray-700 dark:text-gray-200 placeholder:text-gray-400"
+                      className="w-full h-48 py-3.5 px-4 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-gray-900/10 dark:focus:ring-white/10 focus:border-gray-400 dark:focus:border-gray-500 transition-all text-gray-700 dark:text-gray-200 placeholder:text-gray-400"
                       placeholder="请输入提示信息..."
                       value={taskInfo.tip || ''}
                       onChange={(e) => setTaskInfo({...taskInfo, tip: e.target.value})}
@@ -600,7 +669,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                         className={`px-4 py-2 text-sm rounded-xl flex items-center gap-2 transition-all font-medium ${
                           tipImages.length >= 3
                             ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/30 hover:scale-[1.02]'
+                            : 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-black dark:hover:bg-gray-100'
                         }`}
                       >
                         <ImageIcon className="w-4 h-4" />
@@ -612,11 +681,12 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                     {tipImages.length > 0 && (
                       <div className="grid grid-cols-3 gap-4">
                         {tipImages.map((image, index) => (
-                          <div key={index} className="relative group aspect-square rounded-2xl overflow-hidden border-2 border-gray-200/80 dark:border-gray-700/80 hover:border-blue-400 dark:hover:border-blue-500 transition-all shadow-sm hover:shadow-md">
-                            <img
+                          <div key={index} className="relative group aspect-square rounded-2xl overflow-hidden border-2 border-gray-200/80 dark:border-gray-700/80 hover:border-gray-400 dark:hover:border-gray-500 transition-all shadow-sm hover:shadow-md">
+                            <Image
                               src={image}
                               alt={`批注图片 ${index + 1}`}
-                              className="w-full h-full object-cover"
+                              fill
+                              className="object-cover"
                             />
                             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-3">
                               <button
@@ -629,7 +699,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                               </button>
                               <button
                                 onClick={() => removeTipImage(index)}
-                                className="p-2.5 bg-red-500/95 rounded-full hover:bg-red-500 transition-all hover:scale-110 shadow-lg"
+                                className="p-2.5 bg-gray-800/90 rounded-full hover:bg-gray-900 transition-all hover:scale-110 shadow-lg"
                               >
                                 <Trash2 className="w-4 h-4 text-white" />
                               </button>
@@ -642,7 +712,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                     {tipImages.length === 0 && (
                       <div 
                         onClick={() => tipImageInputRef.current?.click()}
-                        className="border-2 border-dashed border-gray-200/80 dark:border-gray-700/80 rounded-2xl p-8 text-center text-gray-400 dark:text-gray-500 text-sm cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all"
+                        className="border-2 border-dashed border-gray-200/80 dark:border-gray-700/80 rounded-2xl p-8 text-center text-gray-400 dark:text-gray-500 text-sm cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-all"
                       >
                         <ImageIcon className="w-10 h-10 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
                         <p>点击或拖拽图片到此处上传</p>
@@ -672,7 +742,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                       onClick={() => setNameListEnabled(false)}
                       className={`flex-1 py-3 rounded-xl font-medium transition-all ${
                         !nameListEnabled
-                          ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md shadow-red-500/25'
+                          ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
                           : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                       }`}
                     >
@@ -682,11 +752,11 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                       onClick={() => setNameListEnabled(true)}
                       className={`flex-1 py-3 rounded-xl font-medium transition-all ${
                         nameListEnabled
-                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md shadow-blue-500/25'
+                          ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
                           : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                       }`}
                     >
-                      查看提交情况
+                      开启
                     </button>
                   </div>
 
@@ -715,7 +785,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                               setTimeout(() => addPersonManually(), 0);
                             }
                           }}
-                          className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl text-sm font-medium shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/30 hover:scale-[1.02] transition-all flex items-center gap-2"
+                          className="px-4 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm font-medium hover:bg-black dark:hover:bg-gray-100 transition-all flex items-center gap-2"
                         >
                           <Plus className="w-4 h-4" />
                           手动添加
@@ -729,7 +799,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                           onChange={(e) => setNewPersonName(e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && addPersonManually()}
                           placeholder="请输入姓名"
-                          className="flex-1 py-3 px-4 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
+                          className="flex-1 py-3 px-4 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 dark:focus:ring-white/10 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
                         />
                         <button
                           onClick={addPersonManually}
@@ -801,8 +871,8 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                   
                   <div className="space-y-3">
                     {requiredFields.map((field, index) => (
-                      <div key={field.id} className="flex items-center gap-3 p-4 bg-white dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-xl shadow-sm hover:border-blue-400 dark:hover:border-blue-500 transition-all group">
-                        <span className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white text-xs font-bold shadow-sm">{index + 1}</span>
+                      <div key={field.id} className="flex items-center gap-3 p-4 bg-white dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-xl shadow-sm hover:border-gray-300 dark:hover:border-gray-600 transition-all group">
+                        <span className="flex items-center justify-center w-7 h-7 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs font-bold">{index + 1}</span>
                         <input 
                           type="text" 
                           value={field.name} 
@@ -836,11 +906,11 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                         onChange={(e) => setNewFieldName(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && addRequiredField()}
                         placeholder="输入字段名称（如：姓名、学号）"
-                        className="flex-1 py-3.5 px-4 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
+                        className="flex-1 py-3.5 px-4 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 dark:focus:ring-white/10 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
                       />
                       <button
                         onClick={addRequiredField}
-                        className="px-6 py-3.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl text-sm font-medium shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/30 hover:scale-[1.02] transition-all flex items-center gap-2"
+                        className="px-6 py-3.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm font-medium hover:bg-black dark:hover:bg-gray-100 transition-all flex items-center gap-2"
                       >
                         <Plus className="w-4 h-4" />
                         添加
@@ -857,7 +927,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                       <select
                         value={bindFieldName}
                         onChange={(e) => setBindFieldName(e.target.value)}
-                        className="w-full py-3.5 px-4 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all appearance-none cursor-pointer"
+                        className="w-full py-3.5 px-4 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 dark:focus:ring-white/10 focus:border-gray-400 dark:focus:border-gray-500 transition-all appearance-none cursor-pointer"
                       >
                         {requiredFields.map(field => (
                           <option key={field.id} value={field.name}>{field.name}</option>
@@ -882,8 +952,8 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                     <div className="p-5 border border-gray-200/80 dark:border-gray-700/80 rounded-2xl bg-white dark:bg-gray-800/50 shadow-sm">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-500/25">
-                            <FileText className="w-6 h-6 text-white" />
+                          <div className="w-12 h-12 rounded-xl bg-gray-900 dark:bg-white flex items-center justify-center">
+                             <FileText className="w-6 h-6 text-white dark:text-gray-900" />
                           </div>
                           <div>
                             <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{taskInfo.template}</p>
@@ -893,7 +963,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                         <div className="flex items-center gap-1">
                           <button
                             onClick={handleTemplatePreview}
-                            className="p-2.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all hover:scale-110"
+                            className="p-2.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all hover:scale-110"
                             title="预览"
                           >
                             <Eye className="w-5 h-5" />
@@ -919,7 +989,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                   
                   <div 
                     onClick={() => templateInputRef.current?.click()}
-                    className="border-2 border-dashed border-gray-200/80 dark:border-gray-700/80 rounded-2xl p-10 text-center hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all cursor-pointer bg-gray-50/50 dark:bg-gray-800/30"
+                    className="border-2 border-dashed border-gray-200/80 dark:border-gray-700/80 rounded-2xl p-10 text-center hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all cursor-pointer bg-gray-50/50 dark:bg-gray-800/30"
                   >
                     <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                       <Upload className="w-7 h-7 text-gray-400 dark:text-gray-500" />
@@ -955,8 +1025,8 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                         onClick={() => setAutoRename(true)}
                         className={`flex-1 py-3 rounded-xl font-medium transition-all ${
                           autoRename
-                            ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md shadow-emerald-500/25'
-                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                          ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                         }`}
                       >
                         开启
@@ -965,15 +1035,15 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                         onClick={() => setAutoRename(false)}
                         className={`flex-1 py-3 rounded-xl font-medium transition-all ${
                           !autoRename
-                            ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md shadow-red-500/25'
-                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                          ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                         }`}
                       >
                         关闭
                       </button>
                     </div>
-                    <div className="p-4 bg-blue-50/80 dark:bg-blue-900/20 border border-blue-200/80 dark:border-blue-800/50 rounded-xl">
-                      <p className="text-xs text-blue-700 dark:text-blue-400">
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/50 rounded-xl">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
                         开启后，文件名将自动更新为：<span className="font-mono font-medium">任务名_必填信息_原文件名</span>
                         <br />
                         例如：<span className="font-mono font-medium">智协_25-26社团骨干备案表_朱思鑫.docx</span>
@@ -991,8 +1061,8 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                         onClick={() => setFileTypeRestriction('none')}
                         className={`flex-1 py-3 rounded-xl font-medium transition-all ${
                           fileTypeRestriction === 'none'
-                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md shadow-blue-500/25'
-                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                          ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                         }`}
                       >
                         不限制文件类型
@@ -1001,8 +1071,8 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                         onClick={() => setFileTypeRestriction('restricted')}
                         className={`flex-1 py-3 rounded-xl font-medium transition-all ${
                           fileTypeRestriction === 'restricted'
-                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md shadow-blue-500/25'
-                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                          ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                         }`}
                       >
                         限制文件类型
@@ -1016,7 +1086,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                           value={allowedFileTypes}
                           onChange={(e) => setAllowedFileTypes(e.target.value)}
                           placeholder="例如: txt,png,jpeg,webp,pdf,doc,docx"
-                          className="w-full py-3.5 px-4 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
+                          className="w-full py-3.5 px-4 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 dark:focus:ring-white/10 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
                         />
                         <p className="text-xs text-gray-400 dark:text-gray-500">
                           输入允许的文件扩展名，用逗号分隔，不区分大小写
@@ -1037,7 +1107,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                         max="16"
                         value={maxFileCount}
                         onChange={(e) => setMaxFileCount(parseInt(e.target.value))}
-                        className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                        className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-gray-700 dark:accent-gray-300"
                       />
                       <div className="flex items-center gap-2">
                         <input
@@ -1051,7 +1121,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                               setMaxFileCount(val);
                             }
                           }}
-                          className="w-20 py-2.5 px-3 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-xl text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
+                          className="w-20 py-2.5 px-3 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-xl text-sm text-center focus:outline-none focus:ring-2 focus:ring-gray-900/10 dark:focus:ring-white/10 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
                         />
                         <span className="text-sm text-gray-500 dark:text-gray-400">个</span>
                       </div>
@@ -1073,43 +1143,54 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                         value={maxFileSizeValue}
                         onChange={(e) => setMaxFileSizeValue(parseInt(e.target.value) || 0)}
                         placeholder="0"
-                        className="flex-1 py-3.5 px-4 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
+                        className="flex-1 py-3.5 px-4 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 dark:focus:ring-white/10 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
                       />
-                      <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">字节 (Bytes)</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">字节 (B)</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div className="p-2.5 bg-gray-50/80 dark:bg-gray-800/50 rounded-xl border border-gray-200/80 dark:border-gray-700/80 text-center">
-                        <div className="font-medium text-gray-600 dark:text-gray-400">1 KB = 1,024 B</div>
-                      </div>
-                      <div className="p-2.5 bg-gray-50/80 dark:bg-gray-800/50 rounded-xl border border-gray-200/80 dark:border-gray-700/80 text-center">
-                        <div className="font-medium text-gray-600 dark:text-gray-400">1 MB = 1,024 KB</div>
-                      </div>
-                      <div className="p-2.5 bg-gray-50/80 dark:bg-gray-800/50 rounded-xl border border-gray-200/80 dark:border-gray-700/80 text-center">
-                        <div className="font-medium text-gray-600 dark:text-gray-400">1 GB = 1,024 MB</div>
-                      </div>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { label: '不限制', value: 0 },
+                        { label: '5 MB', value: 5 * 1024 * 1024 },
+                        { label: '10 MB', value: 10 * 1024 * 1024 },
+                        { label: '50 MB', value: 50 * 1024 * 1024 },
+                        { label: '100 MB', value: 100 * 1024 * 1024 },
+                        { label: '500 MB', value: 500 * 1024 * 1024 },
+                      ].map(({ label, value }) => (
+                        <button
+                          key={label}
+                          onClick={() => setMaxFileSizeValue(value)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            maxFileSizeValue === value
+                              ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border border-gray-900 dark:border-white'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-transparent hover:border-gray-300 dark:hover:border-gray-600'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
                     </div>
                     <p className="text-xs text-gray-400 dark:text-gray-500">
-                      设置为 0 表示不限制文件大小。常用值：10MB = 10485760，100MB = 104857600
+                      设置为 0 表示不限制。当前值：{maxFileSizeValue === 0 ? '不限制' : `${(maxFileSizeValue / 1024 / 1024).toFixed(1)} MB`}
                     </p>
                   </div>
 
                   {/* 预览当前设置 */}
-                  <div className="p-5 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200/80 dark:border-blue-800/50 rounded-2xl">
-                    <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-3 flex items-center gap-2">
+                  <div className="p-5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/50 rounded-2xl">
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
                       <Settings className="w-4 h-4" />
                       当前设置预览
                     </h4>
-                    <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-2">
+                    <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
                       <li className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500"></span>
                         文件类型：{fileTypeRestriction === 'none' ? '不限制' : `仅允许 ${allowedFileTypes || '未设置'}`}
                       </li>
                       <li className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500"></span>
                         最多提交：{maxFileCount} 个文件
                       </li>
                       <li className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500"></span>
                         文件大小：{maxFileSizeValue === 0 ? '不限制' : `最大 ${(maxFileSizeValue / 1024 / 1024).toFixed(2)} MB`}
                       </li>
                     </ul>
@@ -1120,20 +1201,23 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
           )}
         </div>
 
-        <div className="p-5 border-t border-gray-200/80 dark:border-gray-800/80 flex justify-end gap-3 bg-gray-50/50 dark:bg-gray-900/30">
-          <button
-            onClick={onClose}
-            className="px-6 py-2.5 bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700/80 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all"
-          >
-            取消
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl text-sm font-medium shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/30 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-          >
-            {saving ? '保存中...' : '保存设置'}
-          </button>
+        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800/60 flex items-center justify-between bg-gray-50/30 dark:bg-gray-900/20 shrink-0">
+          <p className="text-xs text-gray-400 dark:text-gray-500">修改后点击保存生效</p>
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              className="px-5 py-2 bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700/80 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+            >
+              取消
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-5 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium hover:bg-gray-700 dark:hover:bg-gray-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? '保存中...' : '保存设置'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1155,9 +1239,9 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                   <button
                     key={t.key}
                     onClick={() => handleImportFromTask(t.key)}
-                    className="w-full p-4 text-left border border-gray-200/80 dark:border-gray-700/80 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:border-blue-400 dark:hover:border-blue-500 transition-all group"
+                    className="w-full p-4 text-left border border-gray-200/80 dark:border-gray-700/80 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:border-gray-300 dark:hover:border-gray-600 transition-all group"
                   >
-                    <p className="font-medium text-gray-800 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{t.name}</p>
+                    <p className="font-medium text-gray-800 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">{t.name}</p>
                     {t.createdAt && (
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">创建于 {new Date(t.createdAt).toLocaleDateString()}</p>
                     )}

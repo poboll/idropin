@@ -64,11 +64,30 @@ export interface StorageInfo {
   localBaseUrl: string;
   minioEndpoint: string;
   minioBucket: string;
+  minioAccessKey: string;
+  ossEndpoint: string;
+  ossBucket: string;
+  ossRegion: string;
+  ossAccessKeyId: string;
+  ossDomain: string;
+  qiniuAccessKey: string;
+  qiniuBucket: string;
+  qiniuDomain: string;
+  qiniuRegion: string;
+  s3Endpoint: string;
+  s3Bucket: string;
+  s3Region: string;
+  s3AccessKey: string;
+  s3SecretKeyConfigured: boolean;
 }
 
 export async function getStorageInfo(): Promise<StorageInfo> {
   const response = await apiClient.get('/config/admin/storage-info');
   return response.data.data;
+}
+
+export async function saveStorageConfig(configMap: Record<string, string>): Promise<void> {
+  await apiClient.post('/config/admin/storage', configMap);
 }
 
 export function getRouteDisplayName(routePath: string): string {
@@ -87,4 +106,36 @@ export function getRouteDescription(routePath: string): string {
     '/reset-password': '关闭后用户将无法找回密码'
   };
   return descMap[routePath] || '';
+}
+
+export async function backupConfigs(): Promise<SystemConfig[]> {
+  const response = await apiClient.get('/config/admin/backup');
+  return response.data.data;
+}
+
+export async function restoreConfigs(configMap: Record<string, string>): Promise<void> {
+  await apiClient.post('/config/admin/restore', configMap);
+}
+
+export async function refreshEmailCache(): Promise<void> {
+  await apiClient.post('/config/admin/email/refresh-cache');
+}
+
+export async function getAiConfigs(): Promise<SystemConfig[]> {
+  const response = await apiClient.get('/config/admin/ai');
+  return response.data.data;
+}
+
+export async function updateAiConfigs(configMap: Record<string, string>): Promise<void> {
+  await apiClient.put('/config/admin/ai', configMap);
+}
+
+export async function testStorageConnection(): Promise<string> {
+  const response = await apiClient.post('/config/admin/storage/test');
+  return response.data.data;
+}
+
+export async function testAiConnection(configMap: Record<string, string>): Promise<string> {
+  const response = await apiClient.post('/config/admin/ai/test', configMap);
+  return response.data.data;
 }

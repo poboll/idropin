@@ -1,12 +1,20 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import {
-  Loader2,
   Download,
   Trash2,
   FileIcon,
+  FileText,
+  FileImage,
+  FileVideo,
+  FileAudio,
+  FileArchive,
+  FileSpreadsheet,
+  FileCode,
   Search,
   RefreshCw,
   ChevronLeft,
@@ -14,25 +22,31 @@ import {
   X,
   Check,
   Copy,
-  ExternalLink,
   Edit3,
   Eye,
   Share2,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  Calendar,
   User,
-  HardDrive,
-  FolderOpen
+  FolderOpen,
+  Brain,
+  AlertCircle,
+  Loader2,
+  SlidersHorizontal,
 } from 'lucide-react';
+
+const AiRadarChart = dynamic(() => import('@/components/ai/AiRadarChart'), { ssr: false });
 import { AuthGuard } from '@/components/auth';
 import { apiClient } from '@/lib/api/client';
+import { normalizeBackendUrl } from '@/lib/api/baseUrl';
 import { useCategoryStore } from '@/lib/stores/category';
 import { useTaskStore } from '@/lib/stores/task';
 import { formatDate, formatSize, getFileSuffix } from '@/lib/utils/string';
 import { copyRes } from '@/lib/utils/string';
 import { SkeletonLoader } from '@/components/SkeletonLoader';
+import DownloadHistoryPanel, { DownloadAction, DownloadStatus, ActionType } from '@/components/files/DownloadHistoryPanel';
+import FileModals from '@/components/files/FileModals';
 
 interface FileRecord {
   id: string | number;
@@ -43,11 +57,47 @@ interface FileRecord {
   origin_name?: string;
   size: number;
   people?: string;
+  submitterIp?: string;
   info: string;
   cover?: string;
   downloadCount?: number;
   fileId?: string;
   mimeType?: string;
+  restriction_list?: string[];
+  aiStatus?: number;
+  aiScore?: number;
+  isPlagiarized?: boolean;
+}
+
+function getFileTypeIcon(mimeType?: string, className = 'w-4 h-4') {
+  if (!mimeType) return <FileIcon className={`${className} text-gray-400`} />;
+  if (mimeType.startsWith('image/')) return <FileImage className={`${className} text-pink-500`} />;
+  if (mimeType.startsWith('video/')) return <FileVideo className={`${className} text-purple-500`} />;
+  if (mimeType.startsWith('audio/')) return <FileAudio className={`${className} text-green-500`} />;
+  if (mimeType.includes('pdf')) return <FileText className={`${className} text-red-500`} />;
+  if (mimeType.includes('word') || mimeType.includes('document') || mimeType.includes('msword') || mimeType.includes('wordprocessingml'))
+    return <FileText className={`${className} text-blue-600`} />;
+  if (mimeType.includes('excel') || mimeType.includes('spreadsheet') || mimeType.includes('ms-excel'))
+    return <FileSpreadsheet className={`${className} text-emerald-600`} />;
+  if (mimeType.includes('powerpoint') || mimeType.includes('presentation') || mimeType.includes('ms-powerpoint'))
+    return <FileText className={`${className} text-orange-500`} />;
+  if (mimeType.includes('zip') || mimeType.includes('rar') || mimeType.includes('7z') || mimeType.includes('tar') || mimeType.includes('gzip'))
+    return <FileArchive className={`${className} text-amber-500`} />;
+  if (mimeType.startsWith('text/') || mimeType.includes('json') || mimeType.includes('xml'))
+    return <FileCode className={`${className} text-cyan-500`} />;
+  return <FileIcon className={`${className} text-gray-400`} />;
+}
+
+function formatRelativeTime(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return '刚刚';
+  if (minutes < 60) return `${minutes}分钟前`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}小时前`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}天前`;
+  return new Date(dateStr).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
 }
 
 // 飞书风格的任务颜色配置
@@ -75,7 +125,98 @@ function getTaskColorIndex(taskKey: string): number {
 type SortField = 'date' | 'name' | 'size' | 'task_name' | 'people';
 type SortOrder = 'asc' | 'desc';
 
+function ToggleSwitch({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="inline-flex items-center gap-2 cursor-pointer select-none text-sm text-gray-600 dark:text-gray-400">
+      <span>{label}</span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+          checked ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'
+        }`}
+      >
+        <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${
+          checked ? 'translate-x-[18px]' : 'translate-x-[3px]'
+        }`} />
+      </button>
+      <span className={`text-xs font-medium ${checked ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'}`}>
+        {checked ? '是' : '否'}
+      </span>
+    </label>
+  );
+}
+
+function AiDrawerContent({ file }: { file: FileRecord }) {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const submissionId = String(file.id).replace('submission-', '');
+    apiClient.get(`/tasks/${file.task_key}/info-submissions`)
+      .then(res => {
+        const submissions = res.data?.data?.submissions || [];
+        const found = submissions.find((s: any) => s.id === submissionId);
+        setData(found || null);
+      })
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
+  }, [file]);
+
+  if (loading) return <div className="p-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>;
+
+  const evaluation = data?.aiEvaluation;
+  if (!evaluation) return (
+    <div className="p-12 text-center">
+      <AlertCircle className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+      <p className="text-gray-500 dark:text-gray-400">暂无评估数据</p>
+    </div>
+  );
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="text-center py-4">
+        <div className="text-5xl font-bold text-gray-900 dark:text-white">{evaluation.score}</div>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">综合评分</p>
+        {data?.isPlagiarized && (
+          <span className="inline-flex items-center gap-1 mt-3 px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full text-xs font-medium">
+            <AlertCircle className="w-3 h-3" />涉嫌与其他提交高度相似
+          </span>
+        )}
+      </div>
+      {evaluation.dimensions && Object.keys(evaluation.dimensions).length > 0 && (
+        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">维度分析</h4>
+          <AiRadarChart dimensions={evaluation.dimensions} />
+        </div>
+      )}
+      {evaluation.summary && (
+        <div>
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">评价摘要</h4>
+          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{evaluation.summary}</p>
+        </div>
+      )}
+      {evaluation.feedback && (
+        <div>
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">详细反馈</h4>
+          <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
+            {evaluation.feedback}
+          </div>
+        </div>
+      )}
+      <div className="text-xs text-gray-400 dark:text-gray-500 pt-2 border-t border-gray-100 dark:border-gray-800">
+        评估时间：{new Date(evaluation.evaluatedAt).toLocaleString('zh-CN')}
+      </div>
+    </div>
+  );
+}
+
 function FilesPageContent() {
+  const searchParams = useSearchParams();
+  const taskParam = searchParams?.get('task');
+  
   const { categoryList: categories, getCategory: fetchCategories } = useCategoryStore();
   const { taskList: tasks, getTask: fetchTasks } = useTaskStore();
 
@@ -84,7 +225,13 @@ function FilesPageContent() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedTask, setSelectedTask] = useState('all');
   const [searchWord, setSearchWord] = useState('');
+  const [ipFilter, setIpFilter] = useState('');
   const [selectedItems, setSelectedItems] = useState<(string | number)[]>([]);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [showSearchHistory, setShowSearchHistory] = useState(false);
+  const SEARCH_HISTORY_KEY = 'idropin-file-search-history';
+
+  const selectAllCheckboxRef = useRef<HTMLInputElement | null>(null);
 
   // 排序状态
   const [sortField, setSortField] = useState<SortField>('date');
@@ -92,6 +239,15 @@ function FilesPageContent() {
 
   const [pageSize, setPageSize] = useState(10);
   const [pageCurrent, setPageCurrent] = useState(1);
+  const [gotoPage, setGotoPage] = useState('');
+
+  // 显示开关
+  const [showImages, setShowImages] = useState(true);
+  const [showOriginalName, setShowOriginalName] = useState(false);
+  const [showSubmitterName, setShowSubmitterName] = useState(false);
+  const [showSubmitterIp, setShowSubmitterIp] = useState(false);
+  const [showRestrictionList, setShowRestrictionList] = useState(true);
+  const [showDownloadHistory, setShowDownloadHistory] = useState(false);
 
   const [activeModal, setActiveModal] = useState<'info' | 'rename' | 'download' | 'share' | null>(null);
   const [currentFile, setCurrentFile] = useState<FileRecord | null>(null);
@@ -102,6 +258,43 @@ function FilesPageContent() {
     downloadLimit: '',
   });
   const [shareResult, setShareResult] = useState<{ shareCode: string; url: string } | null>(null);
+
+  const [downloadHistory, setDownloadHistory] = useState<DownloadAction[]>([]);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [isBatchDownloading, setIsBatchDownloading] = useState(false);
+  const [aiDrawerFile, setAiDrawerFile] = useState<FileRecord | null>(null);
+  const [batchRegrading, setBatchRegrading] = useState(false);
+  const [showTogglesPanel, setShowTogglesPanel] = useState(false);
+  const HISTORY_PAGE_SIZE = 10;
+  const HISTORY_STORAGE_KEY = 'idropin-download-history';
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(HISTORY_STORAGE_KEY);
+      if (stored) setDownloadHistory(JSON.parse(stored));
+    } catch { /* ignore */ }
+    try {
+      const h = localStorage.getItem(SEARCH_HISTORY_KEY);
+      if (h) setSearchHistory(JSON.parse(h));
+    } catch { /* ignore */ }
+  }, []);
+
+  const addDownloadAction = useCallback((action: DownloadAction) => {
+    setDownloadHistory(prev => {
+      const next = [action, ...prev].slice(0, 200);
+      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const saveSearchHistory = useCallback((word: string) => {
+    if (!word.trim()) return;
+    setSearchHistory(prev => {
+      const next = [word, ...prev.filter(h => h !== word)].slice(0, 10);
+      localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
 
   // 任务颜色映射缓存
   const taskColorMap = useMemo(() => {
@@ -121,20 +314,25 @@ function FilesPageContent() {
       const apiFiles: FileRecord[] = submissions
         .filter((s: any) => s.fileId)
         .map((s: any, index: number) => ({
-        id: `submission-${s.id || index}`,
-        date: s.submittedAt || new Date().toISOString(),
-        task_key: s.taskId,
-        task_name: s.taskTitle || '未知任务',
-        name: s.fileName || (s.submitterName ? `提交_${s.submitterName}` : '未命名'),
-        origin_name: s.fileName,
-        size: s.fileSize || 0,
-        people: s.submitterName || '-',
-        info: '[]',
-        downloadCount: 0,
-        fileId: s.fileId,
-        mimeType: s.mimeType,
-        cover: s.mimeType?.startsWith('image/') ? s.fileUrl : undefined,
-      }));
+         id: `submission-${s.id || index}`,
+         date: s.submittedAt || new Date().toISOString(),
+         task_key: s.taskId,
+         task_name: s.taskTitle || '未知任务',
+         name: s.fileName || (s.submitterName ? `提交_${s.submitterName}` : '未命名'),
+         origin_name: s.originalFileName || s.fileName,
+         size: s.fileSize || 0,
+         people: s.submitterName || '-',
+         submitterIp: s.submitterIp || '-',
+         info: '[]',
+         downloadCount: 0,
+         fileId: s.fileId,
+         mimeType: s.mimeType,
+         cover: s.mimeType?.startsWith('image/') && s.fileUrl ? normalizeBackendUrl(s.fileUrl) : undefined,
+         restriction_list: s.appliedRestrictionList || [],
+         aiStatus: s.aiStatus,
+         aiScore: s.aiEvaluation?.score,
+         isPlagiarized: s.isPlagiarized,
+       }));
 
       setFiles(apiFiles);
     } catch (error) {
@@ -198,13 +396,17 @@ function FilesPageContent() {
         return true;
       })
       .filter(f => {
+        if (ipFilter && !f.submitterIp?.includes(ipFilter)) return false;
         if (!searchWord) return true;
-        const searchStr = JSON.stringify([f.name, f.task_name, f.people]).toLowerCase();
+        const searchStr = [f.name, f.origin_name, f.task_name, f.people, f.submitterIp]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
         return searchStr.includes(searchWord.toLowerCase());
       });
 
     return sortFiles(filtered);
-  }, [files, selectedCategory, selectedTask, searchWord, tasks, filteredTasks, sortFiles]);
+  }, [files, selectedCategory, selectedTask, searchWord, ipFilter, tasks, filteredTasks, sortFiles]);
 
   const pageCount = Math.ceil(filteredFiles.length / pageSize);
   const paginatedFiles = useMemo(() => {
@@ -212,7 +414,32 @@ function FilesPageContent() {
     return filteredFiles.slice(start, start + pageSize);
   }, [filteredFiles, pageCurrent, pageSize]);
 
+  const selectedOnPageCount = useMemo(() => {
+    if (paginatedFiles.length === 0 || selectedItems.length === 0) return 0;
+    const selectedSet = new Set(selectedItems);
+    return paginatedFiles.reduce((acc, f) => acc + (selectedSet.has(f.id) ? 1 : 0), 0);
+  }, [paginatedFiles, selectedItems]);
+
+  const isAllSelectedOnPage = paginatedFiles.length > 0 && selectedOnPageCount === paginatedFiles.length;
+  const isSomeSelectedOnPage = selectedOnPageCount > 0 && !isAllSelectedOnPage;
+
+  useEffect(() => {
+    if (!selectAllCheckboxRef.current) return;
+    selectAllCheckboxRef.current.indeterminate = isSomeSelectedOnPage;
+  }, [isSomeSelectedOnPage]);
+
   const totalSize = useMemo(() => formatSize(files.reduce((acc, f) => acc + f.size, 0)), [files]);
+
+  const currentTaskSize = useMemo(() => {
+    if (selectedTask === 'all') return totalSize;
+    return formatSize(files.filter(f => f.task_key === selectedTask).reduce((acc, f) => acc + f.size, 0));
+  }, [files, selectedTask, totalSize]);
+
+  const aiAvgScore = useMemo(() => {
+    const graded = files.filter(f => f.aiStatus === 2 && f.aiScore != null);
+    if (graded.length === 0) return null;
+    return Math.round(graded.reduce((s, f) => s + (f.aiScore ?? 0), 0) / graded.length);
+  }, [files]);
 
   // 处理排序点击
   const handleSort = (field: SortField) => {
@@ -244,11 +471,15 @@ function FilesPageContent() {
   };
 
   const handleSelectAll = (checked: boolean) => {
+    const pageIds = paginatedFiles.map(f => f.id);
+    if (pageIds.length === 0) return;
+
     if (checked) {
-      setSelectedItems(paginatedFiles.map(f => f.id));
-    } else {
-      setSelectedItems([]);
+      setSelectedItems(prev => Array.from(new Set([...prev, ...pageIds])));
+      return;
     }
+
+    setSelectedItems(prev => prev.filter(id => !pageIds.includes(id)));
   };
 
   const handleBatchDelete = () => {
@@ -260,26 +491,106 @@ function FilesPageContent() {
   };
 
   const handleBatchDownload = async () => {
+    if (isBatchDownloading) return;
     const selected = files.filter(f => selectedItems.includes(f.id) && f.fileId);
     if (selected.length === 0) {
       alert('没有可下载的文件');
       return;
     }
-    for (const file of selected) {
-      try {
-        const response = await apiClient.get(`/files/${file.fileId}/download`, { responseType: 'blob' });
-        const blob = new Blob([response.data]);
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = file.origin_name || file.name;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-      } catch (err) {
-        console.error(`下载 ${file.name} 失败`, err);
+
+    setIsBatchDownloading(true);
+
+    const actionId = `archive-${Date.now()}`;
+    const archiveFileName = `批量下载_${new Date().toISOString().slice(0, 10)}.zip`;
+    
+    addDownloadAction({
+      id: actionId,
+      date: new Date().toISOString(),
+      tip: `${archiveFileName} (${selected.length}个文件)`,
+      type: ActionType.Compress,
+      status: DownloadStatus.ARCHIVE,
+    });
+
+    try {
+      const JSZip = (await import('jszip')).default;
+      const fileSaver = await import('file-saver');
+      const saveAs = fileSaver.default || fileSaver.saveAs;
+      const zip = new JSZip();
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const file of selected) {
+        try {
+          const response = await apiClient.get(`/files/${file.fileId}/download`, { responseType: 'arraybuffer' });
+          const fileName = file.origin_name || file.name;
+          zip.file(fileName, response.data);
+          successCount++;
+        } catch (err) {
+          console.error(`下载 ${file.name} 失败`, err);
+          failCount++;
+        }
       }
+
+      if (successCount === 0) {
+        addDownloadAction({
+          id: actionId,
+          date: new Date().toISOString(),
+          tip: archiveFileName,
+          type: ActionType.Compress,
+          status: DownloadStatus.FAIL,
+          error: '所有文件下载失败',
+        });
+        alert('所有文件下载失败');
+        return;
+      }
+
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(content);
+      saveAs(content, archiveFileName);
+
+      addDownloadAction({
+        id: actionId,
+        date: new Date().toISOString(),
+        tip: `${archiveFileName} (成功: ${successCount}, 失败: ${failCount})`,
+        type: ActionType.Compress,
+        status: DownloadStatus.SUCCESS,
+        size: content.size,
+        url,
+      });
+
+      if (failCount > 0) {
+        alert(`归档完成！成功: ${successCount} 个，失败: ${failCount} 个`);
+      }
+    } catch (err) {
+      console.error('归档失败', err);
+      addDownloadAction({
+        id: actionId,
+        date: new Date().toISOString(),
+        tip: archiveFileName,
+        type: ActionType.Compress,
+        status: DownloadStatus.FAIL,
+        error: '归档失败',
+      });
+      alert('归档失败，请重试');
+    } finally {
+      setIsBatchDownloading(false);
+    }
+  };
+
+  const handleBatchRegrade = async () => {
+    const selected = files.filter(f => selectedItems.includes(f.id) && f.fileId);
+    if (selected.length === 0) return;
+    setBatchRegrading(true);
+    try {
+      const { batchRegradeSubmissions } = await import('@/lib/api/tasks');
+      const submissionIds = selected.map(f => String(f.id).replace('submission-', ''));
+      const taskId = selected[0].task_key;
+      await batchRegradeSubmissions(taskId, submissionIds);
+      alert(`已触发 ${selected.length} 条重新评分，请稍后刷新查看结果`);
+    } catch {
+      alert('触发重新评分失败');
+    } finally {
+      setBatchRegrading(false);
     }
   };
 
@@ -314,6 +625,7 @@ function FilesPageContent() {
       setActiveModal('download');
       return;
     }
+    const actionId = `dl-${Date.now()}-${file.id}`;
     try {
       const response = await apiClient.get(`/files/${file.fileId}/download`, { responseType: 'blob' });
       const blob = new Blob([response.data]);
@@ -324,9 +636,25 @@ function FilesPageContent() {
       document.body.appendChild(a);
       a.click();
       a.remove();
-      window.URL.revokeObjectURL(url);
+      addDownloadAction({
+        id: actionId,
+        date: new Date().toISOString(),
+        tip: file.origin_name || file.name,
+        type: ActionType.Download,
+        status: DownloadStatus.SUCCESS,
+        size: file.size,
+        url,
+      });
     } catch (err) {
       console.error('下载失败', err);
+      addDownloadAction({
+        id: actionId,
+        date: new Date().toISOString(),
+        tip: file.origin_name || file.name,
+        type: ActionType.Download,
+        status: DownloadStatus.FAIL,
+        error: '下载失败',
+      });
       alert('下载失败，请重试');
     }
   };
@@ -371,13 +699,19 @@ function FilesPageContent() {
   };
 
   const handleExportCSV = () => {
-    const headers = ['文件名', '原始文件名', '任务', '大小', '提交人', '提交时间'];
-    const rows = filteredFiles.map(f => [
+    if (selectedItems.length === 0) {
+      alert('请先选择要导出的文件');
+      return;
+    }
+    const selectedFiles = filteredFiles.filter(f => selectedItems.includes(f.id));
+    const headers = ['文件名', '原始文件名', '任务', '大小', '提交人', 'IP地址', '提交时间'];
+    const rows = selectedFiles.map(f => [
       f.name,
       f.origin_name || f.name,
       f.task_name,
       f.size === 0 ? '-' : formatSize(f.size),
       f.people || '-',
+      f.submitterIp || '-',
       formatDate(new Date(f.date)),
     ]);
     const csvContent = [headers, ...rows]
@@ -395,97 +729,70 @@ function FilesPageContent() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="page-title">文件管理</h1>
-          <p className="page-description">管理和查看所有收集的文件</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleExportCSV}
-            disabled={files.length === 0}
-            className="btn-secondary"
-          >
-            <Download className="w-4 h-4" />
-            导出
-          </button>
-          <button
-            onClick={loadFiles}
-            disabled={isLoading}
-            className="btn-secondary"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            刷新
-          </button>
-        </div>
+      <div>
+        <h1 className="page-title">文件管理</h1>
+        <p className="page-description">管理和查看所有收集的文件</p>
       </div>
 
-      {/* Stats Cards - Vercel+Apple 风格 */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="card p-5 hover-lift animate-slide-in-up" style={{ animationDelay: '0ms' }}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center transition-transform hover:scale-110">
+            <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
               <FileIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </div>
             <div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">总文件数</div>
-              <div className="text-xl font-semibold text-gray-900 dark:text-white">{files.length}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">总提交数</div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white leading-tight">{files.length}</div>
+              <div className="text-xs text-gray-400 dark:text-gray-500">{totalSize}</div>
             </div>
           </div>
         </div>
         <div className="card p-5 hover-lift animate-slide-in-up" style={{ animationDelay: '50ms' }}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center transition-transform hover:scale-110">
-              <HardDrive className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <User className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">总大小</div>
-              <div className="text-xl font-semibold text-gray-900 dark:text-white">{totalSize}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">提交人数</div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white leading-tight">
+                {new Set(files.map(f => f.people).filter(Boolean)).size}
+              </div>
             </div>
           </div>
         </div>
         <div className="card p-5 hover-lift animate-slide-in-up" style={{ animationDelay: '100ms' }}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center transition-transform hover:scale-110">
+            <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
               <FolderOpen className="w-5 h-5 text-purple-600 dark:text-purple-400" />
             </div>
             <div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">筛选结果</div>
-              <div className="text-xl font-semibold text-gray-900 dark:text-white">{filteredFiles.length}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">筛选结果</div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white leading-tight">{filteredFiles.length}</div>
             </div>
           </div>
         </div>
         <div className="card p-5 hover-lift animate-slide-in-up" style={{ animationDelay: '150ms' }}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center transition-transform hover:scale-110">
-              <Check className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+            <div className="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+              <Brain className="w-5 h-5 text-violet-600 dark:text-violet-400" />
             </div>
             <div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">已选择</div>
-              <div className="text-xl font-semibold text-gray-900 dark:text-white">{selectedItems.length}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">AI均分</div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white leading-tight">
+                {aiAvgScore != null ? `${aiAvgScore}` : '—'}
+              </div>
+              {aiAvgScore != null && <div className="text-xs text-gray-400 dark:text-gray-500">满分100</div>}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Filters - 现代化设计 */}
-      <div className="card p-4">
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Search */}
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              value={searchWord}
-              onChange={(e) => { setSearchWord(e.target.value); setPageCurrent(1); }}
-              placeholder="搜索文件名、任务、提交人..."
-              className="input pl-10"
-            />
-          </div>
-
-          {/* Category Filter */}
+      {/* Filters + Toolbar */}
+      <div className="card p-4 space-y-3">
+        {/* Row 1: Filters */}
+        <div className="flex flex-col lg:flex-row gap-3">
           <select
             value={selectedCategory}
             onChange={(e) => { setSelectedCategory(e.target.value); setSelectedTask('all'); setPageCurrent(1); }}
@@ -496,8 +803,6 @@ function FilesPageContent() {
               <option key={c.k} value={c.k}>{c.name}</option>
             ))}
           </select>
-
-          {/* Task Filter */}
           <select
             value={selectedTask}
             onChange={(e) => { setSelectedTask(e.target.value); setPageCurrent(1); }}
@@ -508,55 +813,175 @@ function FilesPageContent() {
               <option key={t.key} value={t.key}>{t.name}</option>
             ))}
           </select>
+          <input
+            type="text"
+            value={ipFilter}
+            onChange={(e) => { setIpFilter(e.target.value); setPageCurrent(1); }}
+            placeholder="筛选IP地址..."
+            className="input w-full lg:w-48"
+          />
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchWord}
+              onChange={(e) => { setSearchWord(e.target.value); setPageCurrent(1); }}
+              onFocus={() => setShowSearchHistory(true)}
+              onBlur={() => setTimeout(() => setShowSearchHistory(false), 150)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && searchWord.trim()) saveSearchHistory(searchWord.trim()); }}
+              placeholder="搜索文件名、任务、提交人..."
+              className="input pl-10 pr-8"
+            />
+            {searchWord && (
+              <button
+                onClick={() => { setSearchWord(''); setPageCurrent(1); }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {showSearchHistory && searchHistory.length > 0 && !searchWord && (
+              <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg overflow-hidden">
+                <div className="px-3 py-1.5 flex items-center justify-between border-b border-gray-100 dark:border-gray-800">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">搜索历史</span>
+                  <button
+                    onMouseDown={(e) => { e.preventDefault(); setSearchHistory([]); localStorage.removeItem(SEARCH_HISTORY_KEY); }}
+                    className="text-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  >清除</button>
+                </div>
+                {searchHistory.map((h, i) => (
+                  <button
+                    key={i}
+                    onMouseDown={(e) => { e.preventDefault(); setSearchWord(h); setPageCurrent(1); setShowSearchHistory(false); }}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-2 transition-colors"
+                  >
+                    <Search className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                    <span className="truncate">{h}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Batch Actions */}
-        {selectedItems.length > 0 && (
-          <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-200 dark:border-gray-800">
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              已选择 {selectedItems.length} 项
-            </span>
-            <button
-              onClick={() => setSelectedItems([])}
-              className="btn-ghost btn-sm"
-            >
-              取消选择
+        {/* Row 2: Toolbar — actions + toggles */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-gray-200 dark:border-gray-800">
+          <div className="flex items-center gap-2">
+            <button onClick={loadFiles} disabled={isLoading} className="btn-secondary">
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+              刷新
             </button>
-            <button
-              onClick={handleBatchDownload}
-              className="btn-secondary btn-sm"
-            >
-              <Download className="w-3.5 h-3.5" />
-              下载
+            <button onClick={handleExportCSV} disabled={selectedItems.length === 0} className="btn-secondary">
+              <Download className="w-4 h-4" />
+              导出CSV
             </button>
-            <button
-              onClick={handleBatchDelete}
-              className="btn-danger btn-sm"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              删除
-            </button>
+            {selectedItems.length > 0 && (
+              <div className="flex items-center gap-2 animate-slide-in-up">
+                <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                  已选 {selectedItems.length} 项
+                </span>
+                <button onClick={() => setSelectedItems([])} className="btn-ghost btn-sm">
+                  取消选择
+                </button>
+                <button onClick={handleBatchDownload} disabled={isBatchDownloading} className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed">
+                  <Download className="w-4 h-4" />
+                  {isBatchDownloading ? '下载中...' : '批量下载'}
+                </button>
+                <button onClick={handleBatchRegrade} disabled={batchRegrading} className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed">
+                  <Brain className="w-4 h-4" />
+                  {batchRegrading ? '提交中...' : '重新评分'}
+                </button>
+                <button onClick={handleBatchDelete} className="btn-danger">
+                  <Trash2 className="w-4 h-4" />
+                  批量删除
+                </button>
+              </div>
+            )}
           </div>
+          <div className="flex items-center gap-x-5 gap-y-1">
+            <div className="relative sm:hidden">
+              <button
+                onClick={() => setShowTogglesPanel(v => !v)}
+                className={`btn-secondary gap-1.5 ${showTogglesPanel ? 'bg-gray-100 dark:bg-gray-800' : ''}`}
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                列设置
+              </button>
+              {showTogglesPanel && (
+                <div className="absolute right-0 top-full mt-1.5 z-30 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg p-3 flex flex-col gap-2.5 min-w-[130px]">
+                  <ToggleSwitch label="显示图片" checked={showImages} onChange={setShowImages} />
+                  <ToggleSwitch label="原文件名" checked={showOriginalName} onChange={setShowOriginalName} />
+                  <ToggleSwitch label="提交人" checked={showSubmitterName} onChange={setShowSubmitterName} />
+                  <ToggleSwitch label="IP地址" checked={showSubmitterIp} onChange={setShowSubmitterIp} />
+                  <ToggleSwitch label="限制名单" checked={showRestrictionList} onChange={setShowRestrictionList} />
+                  <ToggleSwitch label="下载历史" checked={showDownloadHistory} onChange={setShowDownloadHistory} />
+                </div>
+              )}
+            </div>
+            <div className="hidden sm:flex flex-wrap items-center gap-x-5 gap-y-1">
+              <ToggleSwitch label="显示图片" checked={showImages} onChange={setShowImages} />
+              <ToggleSwitch label="原文件名" checked={showOriginalName} onChange={setShowOriginalName} />
+              <ToggleSwitch label="提交人" checked={showSubmitterName} onChange={setShowSubmitterName} />
+              <ToggleSwitch label="IP地址" checked={showSubmitterIp} onChange={setShowSubmitterIp} />
+              <ToggleSwitch label="限制名单" checked={showRestrictionList} onChange={setShowRestrictionList} />
+              <ToggleSwitch label="下载历史" checked={showDownloadHistory} onChange={setShowDownloadHistory} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Download History Panel — above file table */}
+      {showDownloadHistory && (
+        <DownloadHistoryPanel
+          actions={downloadHistory.slice(
+            (historyPage - 1) * HISTORY_PAGE_SIZE,
+            historyPage * HISTORY_PAGE_SIZE
+          )}
+          compressTasks={downloadHistory.filter(a => a.status === DownloadStatus.ARCHIVE)}
+          pageSize={HISTORY_PAGE_SIZE}
+          pageCount={Math.ceil(downloadHistory.length / HISTORY_PAGE_SIZE)}
+          pageCurrent={historyPage}
+          pageTotal={downloadHistory.length}
+          onPageChange={setHistoryPage}
+          onDownload={(url) => {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+          }}
+          onCopyLink={(url) => { copyRes(url); alert('链接已复制'); }}
+          onShowQrCode={() => {}}
+        />
+      )}
+
+      {/* Stats Summary */}
+      <div className="text-center text-sm text-gray-500 dark:text-gray-400 py-1">
+        共 <span className="font-medium text-gray-700 dark:text-gray-300">{files.length}</span> 个文件，
+        全部大小：<span className="font-medium text-gray-700 dark:text-gray-300">{totalSize}</span>，
+        当前筛选大小：<span className="font-medium text-gray-700 dark:text-gray-300">{currentTaskSize}</span>
+        {selectedItems.length > 0 && (
+          <span>，已选择 <span className="font-medium text-blue-600 dark:text-blue-400">{selectedItems.length}</span> 项</span>
         )}
       </div>
 
       {/* File Table */}
       <div className="card overflow-hidden">
         {isLoading ? (
-          <div className="p-4 space-y-4">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              <SkeletonLoader variant="stats" count={4} />
-            </div>
+          <div className="p-4">
             <div className="overflow-x-auto">
               <table className="table">
                 <thead>
                   <tr>
                     <th className="w-10"></th>
-                    <th>文件名</th>
-                    <th>任务</th>
-                    <th>大小</th>
-                    <th>提交人</th>
                     <th>提交时间</th>
+                    <th>任务</th>
+                    <th>文件名</th>
+                    <th>大小</th>
+                    <th>缩略图</th>
+                    <th>提交人</th>
+                    <th>AI</th>
                     <th className="w-28">操作</th>
                   </tr>
                 </thead>
@@ -576,25 +1001,28 @@ function FilesPageContent() {
           <div className="overflow-x-auto">
             <table className="table">
               <thead>
-                <tr>
+                <tr className="bg-gray-50/80 dark:bg-gray-800/50">
                   <th className="w-10">
-                    <input
-                      type="checkbox"
-                      checked={selectedItems.length === paginatedFiles.length && paginatedFiles.length > 0}
-                      onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="w-4 h-4 rounded border-gray-300 dark:border-gray-600"
-                    />
+                    <div className="flex items-center justify-center">
+                      <input
+                        ref={selectAllCheckboxRef}
+                        type="checkbox"
+                        checked={isAllSelectedOnPage}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300 dark:border-gray-600"
+                      />
+                    </div>
                   </th>
-                  <th>
+                  <th className="hidden sm:table-cell">
                     <button
-                      onClick={() => handleSort('name')}
+                      onClick={() => handleSort('date')}
                       className="flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-white transition-colors"
                     >
-                      文件名
-                      {renderSortIcon('name')}
+                      提交时间
+                      {renderSortIcon('date')}
                     </button>
                   </th>
-                  <th>
+                  <th className="hidden sm:table-cell">
                     <button
                       onClick={() => handleSort('task_name')}
                       className="flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-white transition-colors"
@@ -605,6 +1033,17 @@ function FilesPageContent() {
                   </th>
                   <th>
                     <button
+                      onClick={() => handleSort('name')}
+                      className="flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-white transition-colors"
+                    >
+                      文件名
+                      {renderSortIcon('name')}
+                    </button>
+                  </th>
+                  {showOriginalName && <th>原文件名</th>}
+                  {showRestrictionList && <th>限制名单</th>}
+                  <th className="hidden sm:table-cell">
+                    <button
                       onClick={() => handleSort('size')}
                       className="flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-white transition-colors"
                     >
@@ -612,124 +1051,213 @@ function FilesPageContent() {
                       {renderSortIcon('size')}
                     </button>
                   </th>
-                  <th>
-                    <button
-                      onClick={() => handleSort('people')}
-                      className="flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-white transition-colors"
-                    >
-                      提交人
-                      {renderSortIcon('people')}
-                    </button>
-                  </th>
-                  <th>
-                    <button
-                      onClick={() => handleSort('date')}
-                      className="flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-white transition-colors"
-                    >
-                      提交时间
-                      {renderSortIcon('date')}
-                    </button>
+                  {showImages && <th className="hidden sm:table-cell">缩略图</th>}
+                  {showSubmitterName && (
+                    <th>
+                      <button
+                        onClick={() => handleSort('people')}
+                        className="flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-white transition-colors"
+                      >
+                        提交人
+                        {renderSortIcon('people')}
+                      </button>
+                    </th>
+                  )}
+                  {showSubmitterIp && <th>IP地址</th>}
+                  <th className="hidden sm:table-cell">
+                    <div className="flex items-center gap-1.5">
+                      <Brain className="w-3.5 h-3.5" />
+                      AI
+                    </div>
                   </th>
                   <th className="w-28">操作</th>
                 </tr>
               </thead>
               <tbody>
                 {paginatedFiles.map((file, index) => (
-                  <tr key={file.id} className="group hover-glow" style={{ animationDelay: `${index * 30}ms` }}>
+                  <tr
+                    key={file.id}
+                    className={`group transition-colors ${selectedItems.includes(file.id) ? 'bg-blue-50/60 dark:bg-blue-900/10' : 'hover:bg-gray-50/70 dark:hover:bg-gray-800/40'}`}
+                    style={{ animationDelay: `${index * 30}ms` }}
+                  >
                     <td>
-                      <input
-                        type="checkbox"
-                        checked={selectedItems.includes(file.id)}
-                        onChange={(e) => handleSelectItem(file.id, e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-300 dark:border-gray-600"
-                      />
+                      <div className="flex items-center justify-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedItems.includes(file.id)}
+                          onChange={(e) => handleSelectItem(file.id, e.target.checked)}
+                          className="w-4 h-4 rounded border-gray-300 dark:border-gray-600"
+                        />
+                      </div>
+                    </td>
+                    <td className="hidden sm:table-cell text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      <span title={new Date(file.date).toLocaleString('zh-CN')}>
+                        {formatRelativeTime(file.date)}
+                      </span>
+                    </td>
+                    <td className="hidden sm:table-cell">
+                      <span className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-lg border ${getTaskBadgeStyle(file.task_key)}`}>
+                        {file.task_name}
+                      </span>
                     </td>
                     <td>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
+                          {getFileTypeIcon(file.mimeType, 'w-3.5 h-3.5')}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="truncate max-w-[220px] font-medium text-gray-900 dark:text-white inline-flex items-center gap-1.5" title={file.name}>
+                            {file.name}
+                            {file.aiStatus === 2 && (
+                              <span className={`shrink-0 w-1.5 h-1.5 rounded-full ${
+                                (file.aiScore ?? 0) >= 80 ? 'bg-emerald-500' :
+                                (file.aiScore ?? 0) >= 60 ? 'bg-amber-500' : 'bg-red-500'
+                              }`} title={`AI评分: ${file.aiScore}分`} />
+                            )}
+                            {file.aiStatus === 1 && (
+                              <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" title="AI评估中" />
+                            )}
+                          </span>
+                          {showOriginalName && file.origin_name && file.origin_name !== file.name && (
+                            <span className="truncate max-w-[220px] text-xs text-gray-400 dark:text-gray-500 lg:hidden" title={file.origin_name}>
+                              {file.origin_name}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    {showOriginalName && (
+                      <td className="text-gray-500 dark:text-gray-400">
+                        {file.origin_name ? (
+                          <span className="truncate max-w-[150px] block" title={file.origin_name}>
+                            {file.origin_name}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 dark:text-gray-500">-</span>
+                        )}
+                      </td>
+                    )}
+                    {showRestrictionList && (
+                      <td className="text-gray-500 dark:text-gray-400">
+                        {file.restriction_list && file.restriction_list.length > 0 ? (
+                          <span className="truncate max-w-[120px] block" title={file.restriction_list.join(', ')}>
+                            {file.restriction_list.join(', ')}
+                          </span>
+                        ) : (
+                          '-'
+                        )}
+                      </td>
+                    )}
+                    <td className="hidden sm:table-cell text-gray-500 dark:text-gray-400">
+                      {file.size === 0 ? '-' : formatSize(file.size)}
+                    </td>
+                    {showImages && (
+                    <td className="hidden sm:table-cell">
                         {file.cover ? (
                           <div className="relative w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 ring-1 ring-gray-200 dark:ring-gray-700">
-                            <Image src={file.cover} alt="" fill className="object-cover" />
+                            <Image src={file.cover} alt="" fill className="object-cover" loading="lazy" />
                           </div>
                         ) : (
                           <div className="w-9 h-9 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center flex-shrink-0">
                             <FileIcon className="w-4 h-4 text-gray-400" />
                           </div>
                         )}
-                        <div className="flex flex-col">
-                          <span className="truncate max-w-[200px] font-medium" title={file.name}>
-                            {file.name}
-                          </span>
-                          {file.origin_name && file.origin_name !== file.name && (
-                            <span className="truncate max-w-[200px] text-xs text-gray-400 dark:text-gray-500" title={file.origin_name}>
-                              原始: {file.origin_name}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      {/* 飞书风格的圆角标签 */}
-                      <span className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-lg border ${getTaskBadgeStyle(file.task_key)}`}>
-                        {file.task_name}
-                      </span>
-                    </td>
-                    <td className="text-gray-500 dark:text-gray-400">
-                      {file.size === 0 ? '-' : formatSize(file.size)}
-                    </td>
+                      </td>
+                    )}
+                    {showSubmitterName && (
                       <td>
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-400">
-                          {file.people?.[0]?.toUpperCase() || '-'}
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-400">
+                            {file.people && file.people !== '-' ? file.people[0].toUpperCase() : '匿'}
+                          </div>
+                          <span className="text-gray-700 dark:text-gray-300">
+                            {file.people && file.people !== '-' ? file.people : '匿名用户'}
+                          </span>
                         </div>
-                        <span className="text-gray-700 dark:text-gray-300">{file.people || '-'}</span>
-                      </div>
+                      </td>
+                    )}
+                    {showSubmitterIp && (
+                      <td className="text-gray-500 dark:text-gray-400 font-mono text-sm">
+                        {file.submitterIp || '-'}
+                      </td>
+                    )}
+                     <td className="hidden sm:table-cell">
+                     <div className="flex items-center gap-1.5">
+                         {file.aiStatus === 2 ? (
+                           <button
+                             onClick={() => setAiDrawerFile(file)}
+                             className="flex items-center gap-1.5 group/ai"
+                             title={`AI评分: ${file.aiScore}分，点击查看详情`}
+                           >
+                             <span className={`text-xs font-semibold tabular-nums ${
+                               (file.aiScore ?? 0) >= 80 ? 'text-emerald-700 dark:text-emerald-400' :
+                               (file.aiScore ?? 0) >= 60 ? 'text-amber-700 dark:text-amber-400' :
+                               'text-red-700 dark:text-red-400'
+                             }`}>
+                               {file.aiScore ?? '-'}
+                             </span>
+                             <div className="w-12 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                               <div
+                                 className={`h-full rounded-full transition-all ${
+                                   (file.aiScore ?? 0) >= 80 ? 'bg-emerald-500' :
+                                   (file.aiScore ?? 0) >= 60 ? 'bg-amber-500' : 'bg-red-500'
+                                 }`}
+                                 style={{ width: `${Math.min(file.aiScore ?? 0, 100)}%` }}
+                               />
+                             </div>
+                           </button>
+                        ) : file.aiStatus === 1 ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 animate-pulse">评估中</span>
+                        ) : file.aiStatus === -1 ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">失败</span>
+                        ) : (
+                          <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
+                        )}
+                        {file.isPlagiarized && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-medium">抄</span>
+                        )}
+                       </div>
                     </td>
-                    <td className="text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5" />
-                        {formatDate(new Date(file.date))}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => handleViewInfo(file)}
-                          className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                          title="查看信息"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleShare(file)}
-                          disabled={!file.fileId}
-                          className="p-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                          title="分享"
-                        >
-                          <Share2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleRename(file)}
-                          className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                          title="重命名"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDownload(file)}
-                          className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                          title="下载"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteOne(file)}
-                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                          title="删除"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
+                     <td>
+                       <div className="flex items-center gap-0.5">
+                         <button
+                           onClick={() => handleViewInfo(file)}
+                           className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all duration-150"
+                           title="查看信息"
+                         >
+                           <Eye className="w-3.5 h-3.5" />
+                         </button>
+                         <button
+                           onClick={() => handleShare(file)}
+                           disabled={!file.fileId}
+                           className="p-1.5 text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150"
+                           title="分享"
+                         >
+                           <Share2 className="w-3.5 h-3.5" />
+                         </button>
+                         <button
+                           onClick={() => handleRename(file)}
+                           className="p-1.5 text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-all duration-150"
+                           title="重命名"
+                         >
+                           <Edit3 className="w-3.5 h-3.5" />
+                         </button>
+                         <button
+                           onClick={() => handleDownload(file)}
+                           className="p-1.5 text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-all duration-150"
+                           title="下载"
+                         >
+                           <Download className="w-3.5 h-3.5" />
+                         </button>
+                         <button
+                           onClick={() => handleDeleteOne(file)}
+                           className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-150"
+                           title="删除"
+                         >
+                           <Trash2 className="w-3.5 h-3.5" />
+                         </button>
+                       </div>
+                     </td>
                   </tr>
                 ))}
               </tbody>
@@ -738,9 +1266,9 @@ function FilesPageContent() {
         )}
 
         {/* Pagination */}
-        {pageCount > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-800">
-            <div className="flex items-center gap-2">
+        {pageCount > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-3 border-t border-gray-200 dark:border-gray-800">
+            <div className="flex items-center gap-3">
               <span className="text-sm text-gray-500 dark:text-gray-400">
                 共 {filteredFiles.length} 条
               </span>
@@ -749,6 +1277,7 @@ function FilesPageContent() {
                 onChange={(e) => { setPageSize(Number(e.target.value)); setPageCurrent(1); }}
                 className="input py-1 px-2 w-auto text-sm"
               >
+                <option value={6}>6条/页</option>
                 <option value={10}>10条/页</option>
                 <option value={20}>20条/页</option>
                 <option value={50}>50条/页</option>
@@ -758,304 +1287,108 @@ function FilesPageContent() {
               <button
                 onClick={() => setPageCurrent(p => Math.max(1, p - 1))}
                 disabled={pageCurrent <= 1}
-                className="btn-ghost btn-sm"
+                className="w-8 h-8 flex items-center justify-center rounded text-sm text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="px-3 text-sm text-gray-600 dark:text-gray-400">
-                {pageCurrent} / {pageCount}
-              </span>
+              {(() => {
+                const pages: (number | 'ellipsis')[] = [];
+                if (pageCount <= 7) {
+                  for (let i = 1; i <= pageCount; i++) pages.push(i);
+                } else {
+                  pages.push(1);
+                  if (pageCurrent > 4) pages.push('ellipsis');
+                  const start = Math.max(2, pageCurrent - 2);
+                  const end = Math.min(pageCount - 1, pageCurrent + 2);
+                  for (let i = start; i <= end; i++) pages.push(i);
+                  if (pageCurrent < pageCount - 3) pages.push('ellipsis');
+                  pages.push(pageCount);
+                }
+                return pages.map((p, idx) =>
+                  p === 'ellipsis' ? (
+                    <span key={`e-${idx}`} className="w-8 h-8 flex items-center justify-center text-sm text-gray-400">···</span>
+                  ) : (
+                    <button
+                      key={p}
+                      onClick={() => setPageCurrent(p)}
+                      className={`w-8 h-8 flex items-center justify-center rounded text-sm transition-colors ${
+                        p === pageCurrent
+                          ? 'bg-blue-500 text-white font-medium'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  )
+                );
+              })()}
               <button
                 onClick={() => setPageCurrent(p => Math.min(pageCount, p + 1))}
                 disabled={pageCurrent >= pageCount}
-                className="btn-ghost btn-sm"
+                className="w-8 h-8 flex items-center justify-center rounded text-sm text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <span>前往</span>
+              <input
+                type="text"
+                value={gotoPage}
+                onChange={(e) => setGotoPage(e.target.value.replace(/\D/g, ''))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const target = parseInt(gotoPage);
+                    if (target >= 1 && target <= pageCount) {
+                      setPageCurrent(target);
+                      setGotoPage('');
+                    }
+                  }
+                }}
+                className="input w-14 py-1 px-2 text-center text-sm"
+                placeholder="1"
+              />
+              <span>页</span>
             </div>
           </div>
         )}
       </div>
 
-      {/* Info Modal */}
-      {activeModal === 'info' && currentFile && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
-          <div className="modal max-w-md" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">文件信息</h3>
-              <button onClick={() => setActiveModal(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-                <X className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
-            <div className="modal-body space-y-4">
-              {currentFile.cover && (
-                <div className="relative w-full h-48 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
-                  <Image src={currentFile.cover} alt="" fill className="object-contain" />
-                </div>
-              )}
-              <div>
-                <label className="form-label">文件名</label>
-                <p className="text-gray-900 dark:text-white">{currentFile.name}</p>
-              </div>
-              {currentFile.origin_name && currentFile.origin_name !== currentFile.name && (
+      <FileModals
+        activeModal={activeModal}
+        setActiveModal={setActiveModal}
+        currentFile={currentFile}
+        renameValue={renameValue}
+        setRenameValue={setRenameValue}
+        handleSaveRename={handleSaveRename}
+        shareFormData={shareFormData}
+        setShareFormData={setShareFormData}
+        shareResult={shareResult}
+        handleCreateShare={handleCreateShare}
+        getTaskBadgeStyle={getTaskBadgeStyle}
+      />
+
+      {aiDrawerFile && (
+        <>
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40" onClick={() => setAiDrawerFile(null)} />
+          <div className="fixed inset-y-0 right-0 w-full max-w-lg z-50 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 shadow-2xl overflow-y-auto">
+            <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4 flex items-center justify-between z-10">
+              <div className="flex items-center gap-3">
+                <Brain className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                 <div>
-                  <label className="form-label">原始文件名</label>
-                  <p className="text-gray-900 dark:text-white">{currentFile.origin_name}</p>
-                </div>
-              )}
-              <div>
-                <label className="form-label">任务</label>
-                <span className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-lg border ${getTaskBadgeStyle(currentFile.task_key)}`}>
-                  {currentFile.task_name}
-                </span>
-              </div>
-              <div>
-                <label className="form-label">大小</label>
-                <p className="text-gray-900 dark:text-white">{formatSize(currentFile.size)}</p>
-              </div>
-              <div>
-                <label className="form-label">提交人</label>
-                <p className="text-gray-900 dark:text-white">{currentFile.people || '-'}</p>
-              </div>
-              {currentFile.mimeType && (
-                <div>
-                  <label className="form-label">文件类型</label>
-                  <p className="text-gray-900 dark:text-white">{currentFile.mimeType}</p>
-                </div>
-              )}
-              <div>
-                <label className="form-label">提交时间</label>
-                <p className="text-gray-900 dark:text-white">{formatDate(new Date(currentFile.date))}</p>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button onClick={() => setActiveModal(null)} className="btn-secondary">
-                关闭
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Rename Modal */}
-      {activeModal === 'rename' && currentFile && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
-          <div className="modal max-w-md" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">重命名文件</h3>
-              <button onClick={() => setActiveModal(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-                <X className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label className="form-label">新文件名</label>
-                <div className="flex">
-                  <input
-                    type="text"
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    className="input rounded-r-none"
-                    placeholder="输入新文件名"
-                  />
-                  <span className="px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-l-0 border-gray-200 dark:border-gray-700 rounded-r-lg text-sm text-gray-500">
-                    {getFileSuffix(currentFile.name)}
-                  </span>
+                  <h3 className="font-semibold text-gray-900 dark:text-white">AI 评估详情</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{aiDrawerFile.people || '匿名用户'} · {aiDrawerFile.name}</p>
                 </div>
               </div>
-            </div>
-            <div className="modal-footer">
-              <button onClick={() => setActiveModal(null)} className="btn-secondary">
-                取消
-              </button>
-              <button onClick={handleSaveRename} className="btn-primary">
-                保存
+              <button onClick={() => setAiDrawerFile(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
+            <AiDrawerContent file={aiDrawerFile} />
           </div>
-        </div>
+        </>
       )}
 
-      {/* Download Modal */}
-      {activeModal === 'download' && currentFile && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
-          <div className="modal max-w-md" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">下载文件</h3>
-              <button onClick={() => setActiveModal(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-                <X className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
-            <div className="modal-body">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                文件: {currentFile.name}
-              </p>
-              {currentFile.fileId ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  点击下方按钮直接下载文件
-                </p>
-              ) : (
-                <p className="text-sm text-amber-600 dark:text-amber-400">
-                  该提交记录没有关联文件，无法下载
-                </p>
-              )}
-            </div>
-            <div className="modal-footer">
-              <button onClick={() => setActiveModal(null)} className="btn-secondary">
-                关闭
-              </button>
-              {currentFile.fileId && (
-                <button
-                  onClick={async () => {
-                    try {
-                      const response = await apiClient.get(`/files/${currentFile.fileId}/download`, { responseType: 'blob' });
-                      const blob = new Blob([response.data]);
-                      const url = window.URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = currentFile.origin_name || currentFile.name;
-                      document.body.appendChild(a);
-                      a.click();
-                      a.remove();
-                      window.URL.revokeObjectURL(url);
-                      setActiveModal(null);
-                    } catch (err) {
-                      console.error('下载失败', err);
-                      alert('下载失败，请重试');
-                    }
-                  }}
-                  className="btn-primary"
-                >
-                  <Download className="w-4 h-4" />
-                  下载
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Share Modal */}
-      {activeModal === 'share' && currentFile && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
-          <div className="modal max-w-md" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">创建分享</h3>
-              <button onClick={() => setActiveModal(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-                <X className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
-            <div className="modal-body space-y-4">
-              {!shareResult ? (
-                <>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                      文件: {currentFile.name}
-                    </p>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">分享密码（可选）</label>
-                    <input
-                      type="text"
-                      value={shareFormData.password}
-                      onChange={(e) => setShareFormData({ ...shareFormData, password: e.target.value })}
-                      className="input"
-                      placeholder="留空则无需密码"
-                      maxLength={20}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">过期时间（可选）</label>
-                    <input
-                      type="datetime-local"
-                      value={shareFormData.expireAt}
-                      onChange={(e) => setShareFormData({ ...shareFormData, expireAt: e.target.value })}
-                      className="input"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">下载次数限制（可选）</label>
-                    <input
-                      type="number"
-                      value={shareFormData.downloadLimit}
-                      onChange={(e) => setShareFormData({ ...shareFormData, downloadLimit: e.target.value })}
-                      className="input"
-                      placeholder="留空则不限制"
-                      min="1"
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
-                    <div className="flex items-center gap-2 text-green-700 dark:text-green-400 mb-2">
-                      <Check className="w-5 h-5" />
-                      <span className="font-medium">分享创建成功</span>
-                    </div>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">分享链接</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={shareResult.url}
-                        readOnly
-                        className="input flex-1"
-                      />
-                      <button
-                        onClick={() => {
-                          copyRes(shareResult.url);
-                          alert('链接已复制');
-                        }}
-                        className="btn-secondary"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">分享码</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={shareResult.shareCode}
-                        readOnly
-                        className="input flex-1"
-                      />
-                      <button
-                        onClick={() => {
-                          copyRes(shareResult.shareCode);
-                          alert('分享码已复制');
-                        }}
-                        className="btn-secondary"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-            <div className="modal-footer">
-              {!shareResult ? (
-                <>
-                  <button onClick={() => setActiveModal(null)} className="btn-secondary">
-                    取消
-                  </button>
-                  <button onClick={handleCreateShare} className="btn-primary">
-                    <Share2 className="w-4 h-4" />
-                    创建分享
-                  </button>
-                </>
-              ) : (
-                <button onClick={() => setActiveModal(null)} className="btn-primary w-full">
-                  完成
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

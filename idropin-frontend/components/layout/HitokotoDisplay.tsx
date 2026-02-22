@@ -20,7 +20,11 @@ export function HitokotoDisplay() {
   const [loading, setLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  const fetchHitokoto = useCallback(async () => {
+  const fetchHitokoto = useCallback(async (force = false) => {
+    if (!force) {
+      const cached = sessionStorage.getItem('hitokoto');
+      if (cached) { setHitokoto(JSON.parse(cached)); return; }
+    }
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -35,22 +39,18 @@ export function HitokotoDisplay() {
 
       const data = await response.json();
       if (!controller.signal.aborted) {
-        setHitokoto({
-          content: data.hitokoto.length > 30
-            ? data.hitokoto.substring(0, 30) + '...'
-            : data.hitokoto,
+        const h: HitokotoData = {
+          content: data.hitokoto.length > 30 ? data.hitokoto.substring(0, 30) + '...' : data.hitokoto,
           name: data.from_who || '佚名',
           origin: data.from || '未知',
-        });
+        };
+        sessionStorage.setItem('hitokoto', JSON.stringify(h));
+        setHitokoto(h);
       }
     } catch {
-      if (!controller.signal.aborted) {
-        setHitokoto(FALLBACK);
-      }
+      if (!controller.signal.aborted) setHitokoto(FALLBACK);
     } finally {
-      if (!controller.signal.aborted) {
-        setLoading(false);
-      }
+      if (!controller.signal.aborted) setLoading(false);
     }
   }, []);
 
@@ -62,9 +62,9 @@ export function HitokotoDisplay() {
   if (!hitokoto) return null;
 
   return (
-    <div className="hidden md:flex items-center gap-2 md:max-w-[200px] lg:max-w-none lg:w-auto mr-2 group">
+    <div className="hidden md:flex items-center gap-2 max-w-[160px] lg:max-w-[210px] xl:max-w-[250px] mr-2 group">
       <button
-        onClick={fetchHitokoto}
+        onClick={() => fetchHitokoto(true)}
         disabled={loading}
         className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50 opacity-0 group-hover:opacity-100 flex-shrink-0"
         title="换一句"

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { FC } from 'react';
 import { Task } from '@/lib/stores/task';
 import { formatDate } from '@/lib/utils/string';
-import { Edit3, Share2, Trash2, MoreHorizontal, FileText, Clock, ExternalLink, FolderOpen, FileCheck, ClipboardList, RotateCcw } from 'lucide-react';
+import { Edit3, Share2, Trash2, MoreHorizontal, FileText, Clock, ExternalLink, FolderOpen, FileCheck, ClipboardList, RotateCcw, ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { getTaskStatistics, getTaskInfoSubmissions } from '@/lib/api/tasks';
 
@@ -82,166 +82,177 @@ export const TaskInfoCard: FC<TaskInfoCardProps> = ({
     loadStats();
   }, [task.key, task.collectionType]);
 
+  const isFile = task.collectionType === 'FILE';
+
   return (
-    <div className="card p-5 hover:border-gray-300 dark:hover:border-gray-700 transition-colors group flex flex-col h-full gap-5">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1 min-w-0 pr-4">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <h3 className="font-medium text-gray-900 dark:text-white truncate" title={task.name}>
+    <div className="group relative flex flex-col h-full bg-white dark:bg-gray-950 border border-gray-200/80 dark:border-gray-800 rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden">
+      {/* Top accent line */}      <div className={`h-0.5 w-full ${isFile ? 'bg-gradient-to-r from-blue-400 to-blue-500' : 'bg-gradient-to-r from-emerald-400 to-emerald-500'}`} />
+
+      <div className="flex flex-col flex-1 p-5 gap-4">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            {/* Type badge */}
+            <div className="flex items-center gap-2 mb-1.5">
+              {isFile ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 text-[11px] font-medium rounded-full border border-blue-100 dark:border-blue-900 flex-shrink-0">
+                  <FolderOpen className="w-3 h-3" />
+                  文件
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 text-[11px] font-medium rounded-full border border-emerald-100 dark:border-emerald-900 flex-shrink-0">
+                  <FileCheck className="w-3 h-3" />
+                  信息
+                </span>
+              )}
+            </div>
+            <h3
+              className="font-semibold text-[15px] text-gray-900 dark:text-white truncate leading-snug"
+              title={task.name}
+            >
               {task.name}
             </h3>
-            {/* Collection Type Badge */}
-            {task.collectionType === 'FILE' && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50/60 dark:bg-blue-900/10 text-blue-600/80 dark:text-blue-300/80 text-xs font-medium rounded border border-blue-100/50 dark:border-blue-800/30 flex-shrink-0">
-                <FolderOpen className="w-3 h-3" />
-                收集文件
-              </span>
-            )}
-            {task.collectionType === 'INFO' && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50/60 dark:bg-emerald-900/10 text-emerald-600/80 dark:text-emerald-300/80 text-xs font-medium rounded border border-emerald-100/50 dark:border-emerald-800/30 flex-shrink-0">
-                <FileCheck className="w-3 h-3" />
-                收集信息
-              </span>
+            {task.description && (
+              <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1 line-clamp-2 leading-relaxed">
+                {task.description}
+              </p>
             )}
           </div>
-          {task.description && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-              {task.description}
-            </p>
-          )}
-        </div>
-        
-        {/* Right Side: Stats + Actions */}
-        <div className="flex flex-col items-end gap-2">
-          {/* Collection Progress */}
+
+          {/* Submission count */}
           {submissionCount !== undefined && (
-            <div className="px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                已收集 <span className="font-semibold text-gray-900 dark:text-white">{submissionCount}</span>
-                {peopleLimit && peopleLimit > 0 && (
-                  <span>
-                    <span className="mx-0.5">/</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">{peopleLimit}</span>
-                  </span>
-                )}
+            <div className="flex-shrink-0 text-right">
+              <div className={`text-2xl font-bold tabular-nums leading-none ${submissionCount > 0 ? 'text-gray-900 dark:text-white' : 'text-gray-300 dark:text-gray-700'}`}>
+                {submissionCount}
+              </div>
+              <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                {peopleLimit && peopleLimit > 0 ? `/ ${peopleLimit} 份` : '份'}
               </div>
             </div>
           )}
-          
-          {/* Actions */}
-          <div className="flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+        </div>
+
+        {/* Progress bar (only when there's a limit) */}
+        {submissionCount !== undefined && peopleLimit && peopleLimit > 0 && (
+          <div className="h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden -mt-2">
+            <div
+              className={`h-full rounded-full transition-all ${isFile ? 'bg-blue-400' : 'bg-emerald-400'}`}
+              style={{ width: `${Math.min(100, (submissionCount / peopleLimit) * 100)}%` }}
+            />
+          </div>
+        )}
+
+        {/* Recent submissions */}
+        <div className="flex-1 min-h-[80px]">
+          {loading ? (
+            <div className="animate-pulse space-y-2.5 pt-1">
+              <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded-full w-3/4" />
+              <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded-full w-1/2" />
+              <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded-full w-2/3" />
+            </div>
+          ) : recentSubmissions.length > 0 ? (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+                  最近提交
+                </span>
+                <Link
+                  href={`/dashboard/tasks/${task.key}/submissions`}
+                  className="text-[11px] text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-0.5 transition-colors"
+                >
+                  全部
+                  <ArrowUpRight className="w-3 h-3" />
+                </Link>
+              </div>
+              <ul className="space-y-1.5">
+                {recentSubmissions.map((submission, idx) => (
+                  <li
+                    key={submission.id || idx}
+                    className={`flex items-center gap-2 pl-3 border-l-2 ${isFile ? 'border-blue-200 dark:border-blue-900/60' : 'border-emerald-200 dark:border-emerald-900/60'}`}
+                  >
+                    <span className="text-[11px] text-gray-400 dark:text-gray-500 font-mono flex-shrink-0">
+                      {formatDate(new Date(submission.submittedAt), 'MM-dd hh:mm')}
+                    </span>
+                    <span className="text-[12px] text-gray-600 dark:text-gray-400 truncate">
+                      {isFile && submission.fileName ? submission.fileName : submission.submitterName || '匿名'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center py-4 gap-2">
+              <div className="w-10 h-10 rounded-full bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center">
+                <FileText className="w-5 h-5 text-violet-300 dark:text-violet-600" />
+              </div>
+              <span className="text-[12px] text-gray-400 dark:text-gray-500">暂无提交记录</span>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="pt-3 border-t border-gray-100 dark:border-gray-800/80 flex items-center justify-between">
+          <span className="text-[11px] text-gray-400 dark:text-gray-500">
+            {formatDate(new Date(task.createdAt || Date.now()), 'yyyy-MM-dd')}
+          </span>
+
+          <div className="flex items-center gap-0.5">
+            <Link
+              href={`/dashboard/tasks/${task.key}/submissions`}
+              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <ClipboardList className="w-3 h-3" />
+              提交
+            </Link>
+            <Link
+              href={`/task/${task.key}`}
+              target="_blank"
+              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              链接
+              <ExternalLink className="w-3 h-3" />
+            </Link>
+
+            <div className="w-px h-3.5 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+
             <button
               onClick={() => onMore(task)}
-              className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+              className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
               title="更多设置"
             >
-              <MoreHorizontal className="w-4 h-4" />
+              <MoreHorizontal className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => onEdit(task)}
-              className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+              className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
               title="编辑"
             >
-              <Edit3 className="w-4 h-4" />
+              <Edit3 className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={onShare}
-              className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+              className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
               title="分享"
             >
-              <Share2 className="w-4 h-4" />
+              <Share2 className="w-3.5 h-3.5" />
             </button>
             {isTrash && onRestore && (
               <button
                 onClick={() => onRestore(task.key)}
-                className="p-1.5 text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 rounded transition-colors"
+                className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 rounded-lg transition-colors"
                 title="恢复"
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="w-3.5 h-3.5" />
               </button>
             )}
             <button
               onClick={() => onDelete(task.key, isTrash)}
-              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg transition-colors"
               title="删除"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="min-h-[96px] flex-1">
-        {loading ? (
-          <div className="h-full flex flex-col items-center justify-center py-6">
-            <div className="animate-pulse space-y-2 w-full">
-              <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4"></div>
-              <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/2"></div>
-              <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-2/3"></div>
-            </div>
-          </div>
-        ) : recentSubmissions.length > 0 ? (
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                最近 {recentSubmissions.length} 条提交
-              </span>
-              <Link 
-                href={`/dashboard/tasks/${task.key}/submissions`}
-                className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 transition-colors"
-              >
-                查看全部
-                <ExternalLink className="w-3 h-3" />
-              </Link>
-            </div>
-            <ul className="space-y-2">
-              {recentSubmissions.map((submission, idx) => (
-                <li key={submission.id || idx} className="flex items-center text-sm">
-                  <Clock className="w-3 h-3 mr-2 text-gray-400" />
-                  <span className="text-gray-400 dark:text-gray-500 text-xs mr-3 font-mono">
-                    {formatDate(new Date(submission.submittedAt), 'MM-dd hh:mm')}
-                  </span>
-                  <span className="text-gray-600 dark:text-gray-400 truncate flex-1">
-                    {task.collectionType === 'FILE' && submission.fileName 
-                      ? submission.fileName 
-                      : submission.submitterName || '匿名'}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : (
-          <div className="h-full flex flex-col items-center justify-center py-6">
-            <FileText className="w-8 h-8 text-gray-300 dark:text-gray-600 mb-2" />
-            <span className="text-sm text-gray-400 dark:text-gray-500">暂无提交记录</span>
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="mt-auto pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
-        <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center">
-          创建于 {formatDate(new Date(task.createdAt || Date.now()), 'yyyy-MM-dd')}
-        </span>
-        <div className="flex items-center gap-3">
-          {/* 所有任务都显示查看提交记录按钮 */}
-          <Link
-            href={`/dashboard/tasks/${task.key}/submissions`}
-            className="text-xs text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 flex items-center gap-1 transition-colors"
-          >
-            <ClipboardList className="w-3 h-3" />
-            查看提交
-          </Link>
-          <Link
-            href={`/task/${task.key}`}
-            target="_blank"
-            className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 transition-colors"
-          >
-            收集链接
-            <ExternalLink className="w-3 h-3" />
-          </Link>
         </div>
       </div>
     </div>

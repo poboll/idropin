@@ -26,7 +26,7 @@ export default function StatisticsDashboard() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
       </div>
     );
   }
@@ -102,20 +102,20 @@ export default function StatisticsDashboard() {
       </div>
 
       {/* 文件类型分布 */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">文件类型分布</h3>
+      <div className="card p-6">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">文件类型分布</h3>
         <div className="space-y-3">
           {statistics.fileTypeDistribution.map((item) => (
             <div key={item.type}>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-600">{item.typeName}</span>
-                <span className="text-gray-900 font-medium">
+              <div className="flex justify-between text-sm mb-1.5">
+                <span className="text-gray-600 dark:text-gray-400">{item.typeName}</span>
+                <span className="text-gray-900 dark:text-white font-medium">
                   {item.count} ({item.percentage.toFixed(1)}%)
                 </span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5">
                 <div
-                  className="bg-blue-600 h-2 rounded-full transition-all"
+                  className="bg-gray-900 dark:bg-white h-1.5 rounded-full transition-all"
                   style={{ width: `${item.percentage}%` }}
                 ></div>
               </div>
@@ -125,26 +125,24 @@ export default function StatisticsDashboard() {
       </div>
 
       {/* 上传趋势 */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">上传趋势（最近7天）</h3>
-        <div className="h-64 flex items-end justify-between gap-2">
+      <div className="card p-6">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">上传趋势（最近7天）</h3>
+        <div className="h-48 flex items-end justify-between gap-2">
           {statistics.uploadTrend.map((item, index) => {
             const maxCount = Math.max(...statistics.uploadTrend.map((t) => t.count));
             const height = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
             return (
               <div key={index} className="flex-1 flex flex-col items-center">
-                <div className="w-full bg-blue-600 rounded-t hover:bg-blue-700 transition-colors relative group">
+                <div className="w-full relative group">
                   <div
-                    className="w-full"
-                    style={{ height: `${Math.max(height, 5)}%` }}
+                    className="w-full bg-gray-900 dark:bg-white rounded-t hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors"
+                    style={{ height: `${Math.max(height, 4)}px`, minHeight: '4px' }}
                   ></div>
-                  <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                    {item.count} 个文件
-                    <br />
-                    {formatFileSize(item.size)}
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs rounded-lg py-1.5 px-2.5 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-lg">
+                    {item.count} 个文件<br />{formatFileSize(item.size)}
                   </div>
                 </div>
-                <span className="text-xs text-gray-500 mt-2">
+                <span className="text-xs text-gray-400 dark:text-gray-500 mt-2">
                   {new Date(item.date).getDate()}日
                 </span>
               </div>
@@ -154,30 +152,30 @@ export default function StatisticsDashboard() {
       </div>
 
       {/* 存储空间使用 */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">存储空间使用</h3>
-        <div className="space-y-4">
+      <div className="card p-6">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">存储空间使用</h3>
+        <div className="space-y-3">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">已使用</span>
-            <span className="text-gray-900 font-medium">
+            <span className="text-gray-500 dark:text-gray-400">已使用</span>
+            <span className="text-gray-900 dark:text-white font-medium">
               {formatFileSize(statistics.storageUsage.used)}
             </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-4">
+          <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2">
             <div
-              className={`h-4 rounded-full transition-all ${
+              className={`h-2 rounded-full transition-all ${
                 statistics.storageUsage.percentage > 80
-                  ? 'bg-red-600'
+                  ? 'bg-red-500'
                   : statistics.storageUsage.percentage > 60
-                  ? 'bg-yellow-600'
-                  : 'bg-green-600'
+                  ? 'bg-yellow-500'
+                  : 'bg-gray-900 dark:bg-white'
               }`}
               style={{ width: `${statistics.storageUsage.percentage}%` }}
             ></div>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">总容量</span>
-            <span className="text-gray-900 font-medium">
+            <span className="text-gray-500 dark:text-gray-400">总容量</span>
+            <span className="text-gray-900 dark:text-white font-medium">
               {formatFileSize(statistics.storageUsage.total)}
             </span>
           </div>

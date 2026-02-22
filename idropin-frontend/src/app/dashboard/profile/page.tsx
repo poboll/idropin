@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import Image from 'next/image';
 import { useAuthStore } from '@/lib/stores';
 import { apiClient, extractApiError } from '@/lib/api/client';
 import { sendVerificationCode, bindPhone, bindEmail } from '@/lib/api/auth';
+
 import { User, Mail, Calendar, Key, Camera, Lock, ChevronDown, Upload as UploadIcon, Phone } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
@@ -17,9 +19,11 @@ export default function ProfilePage() {
   const [verifyCode, setVerifyCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarTs, setAvatarTs] = useState(() => Date.now());
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarError, setAvatarError] = useState(false);
   const [showPhoneForm, setShowPhoneForm] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [newPhone, setNewPhone] = useState('');
@@ -90,25 +94,14 @@ export default function ProfilePage() {
     setError(null);
 
     try {
-      // 上传文件
       const formData = new FormData();
       formData.append('file', file);
-
-      const uploadResponse = await apiClient.post('/files/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      await apiClient.post('/user/avatar/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-
-      const fileUrl = uploadResponse.data.data.url;
-
-      // 更新头像
-      await apiClient.put('/user/avatar', null, {
-        params: { avatarUrl: fileUrl },
-      });
-
-      // 刷新用户信息
       await fetchCurrentUser();
+      setAvatarTs(Date.now());
+      setAvatarError(false);
       
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -247,11 +240,16 @@ export default function ProfilePage() {
               disabled={uploadingAvatar}
               className="relative group cursor-pointer"
             >
-              {user?.avatarUrl ? (
-                <img
-                  src={user.avatarUrl}
+              {user?.avatarUrl && !avatarError ? (
+                <Image
+                  key={avatarTs}
+                  src={`${user.avatarUrl}?t=${avatarTs}`}
                   alt="Avatar"
-                  className="w-20 h-20 rounded-full object-cover"
+                  width={80}
+                  height={80}
+                  className="rounded-full object-cover"
+                  unoptimized
+                  onError={() => setAvatarError(true)}
                 />
               ) : (
                 <div className="w-20 h-20 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-700 dark:text-gray-300 text-2xl font-semibold">

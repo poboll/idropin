@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  output: 'standalone',
+  reactStrictMode: false,
   swcMinify: true,
   compress: true,
   poweredByHeader: false,
@@ -15,30 +16,43 @@ const nextConfig = {
         pathname: '/**',
       },
       {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8081',
+        pathname: '/**',
+      },
+      {
         protocol: 'https',
         hostname: 'img.cdn.sugarat.top',
       },
       {
         protocol: 'https',
         hostname: 'pic.imgdb.cn',
-      }
+      },
+      {
+        protocol: 'https',
+        hostname: 's3.cstcloud.cn',
+        pathname: '/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 's3.cstcloud.cn',
+        pathname: '/**',
+      },
     ],
     formats: ['image/avif', 'image/webp'],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    deviceSizes: [640, 1080, 1920],
+    imageSizes: [16, 64, 128, 384],
   },
   experimental: {
     serverActions: {
       bodySizeLimit: '100mb',
     },
     optimizePackageImports: [
-      '@radix-ui/react-dialog',
-      '@radix-ui/react-dropdown-menu',
-      '@radix-ui/react-popover',
-      '@radix-ui/react-select',
-      '@radix-ui/react-tabs',
       'lucide-react',
       'recharts',
+      '@radix-ui/react-slot',
+      'class-variance-authority',
     ],
   },
   headers: async () => {

@@ -14,6 +14,7 @@ import com.idropin.domain.vo.UserVO;
 import com.idropin.infrastructure.email.EmailService;
 import com.idropin.infrastructure.persistence.mapper.PasswordResetTokenMapper;
 import com.idropin.infrastructure.persistence.mapper.UserMapper;
+import com.idropin.infrastructure.cache.TokenCacheService;
 import com.idropin.infrastructure.security.JwtTokenUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,11 +40,12 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordResetTokenMapper resetTokenMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenUtil jwtTokenUtil;
+    private final TokenCacheService tokenCacheService;
     private final EmailService emailService;
     private final OperationLogService operationLogService;
 
-    @Value("${jwt.expiration}")
-    private Long jwtExpiration;
+    @Value("${app.backend-url:http://localhost:8081/api}")
+    private String backendUrl;
 
     @Override
     @Transactional
@@ -102,36 +104,31 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(403, "账户已被禁用");
         }
 
-        // 生成Token
-        String token = jwtTokenUtil.generateToken(user.getUsername());
+        String accessToken = jwtTokenUtil.generateAccessToken(user.getUsername());
+        String refreshToken = UUID.randomUUID().toString();
+        tokenCacheService.storeRefreshToken(user.getId(), refreshToken);
 
-        // 构建响应
         UserVO userVO = UserVO.builder()
                 .id(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
-                .avatarUrl(user.getAvatarUrl())
+                .avatarUrl(user.getAvatarUrl() != null && !user.getAvatarUrl().isBlank()
+                        ? backendUrl + "/user/avatar/" + user.getId()
+                        : null)
                 .status(user.getStatus())
                 .role(user.getRole())
                 .createdAt(user.getCreatedAt())
                 .build();
 
         log.info("用户登录成功: {}", user.getUsername());
-
-        // 记录操作日志
-        operationLogService.log(
-            user.getId(),
-            "USER_LOGIN",
-            "USER",
-            user.getId(),
-            "用户登录: " + user.getUsername(),
-            ipAddress
-        );
+        operationLogService.log(user.getId(), "USER_LOGIN", "USER",
+                user.getId(), "用户登录: " + user.getUsername(), ipAddress);
 
         return LoginResponse.builder()
-                .token(token)
+                .token(accessToken)
+                .refreshToken(refreshToken)
                 .tokenType("Bearer")
-                .expiresIn(jwtExpiration / 1000)
+                .expiresIn(JwtTokenUtil.ACCESS_TOKEN_EXPIRATION / 1000)
                 .user(userVO)
                 .build();
     }
@@ -217,5 +214,36 @@ public class AuthServiceImpl implements AuthService {
         resetTokenMapper.updateById(resetToken);
 
         log.info("用户 {} 密码重置成功", user.getUsername());
+    }
+
+    @Override
+    public LoginResponse refreshToken(String refreshToken) {
+        String userId = tokenCacheService.getUserIdByToken(refreshToken);
+        if (userId == null) {
+            throw new BusinessException(401, "刷新令牌无效或已过期");
+        }
+        User user = userMapper.selectById(userId);
+        if (user == null || !"ACTIVE".equals(user.getStatus())) {
+            tokenCacheService.invalidateUserTokens(userId);
+            throw new BusinessException(401, "用户不存在或已被禁用");
+        }
+        String newAccessToken = jwtTokenUtil.generateAccessToken(user.getUsername());
+        String newRefreshToken = UUID.randomUUID().toString();
+        tokenCacheService.storeRefreshToken(userId, newRefreshToken);
+
+        return LoginResponse.builder()
+                .token(newAccessToken)
+                .refreshToken(newRefreshToken)
+                .tokenType("Bearer")
+                .expiresIn(JwtTokenUtil.ACCESS_TOKEN_EXPIRATION / 1000)
+                .build();
+    }
+
+    @Override
+    public void logout(String refreshToken) {
+        String userId = tokenCacheService.getUserIdByToken(refreshToken);
+        if (userId != null) {
+            tokenCacheService.invalidateUserTokens(userId);
+        }
     }
 }

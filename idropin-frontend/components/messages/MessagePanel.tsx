@@ -5,7 +5,7 @@ import { X, CheckCheck, Trash2, Mail, MailOpen, ArrowLeft, Plus, Send, Clock, Me
 import { useMessageStore } from '@/lib/stores/messages';
 import { Message } from '@/lib/api/messages';
 import {
-  submitFeedback, getMyFeedback, getFeedbackDetail, replyFeedback,
+  submitFeedback, getMyFeedback, getFeedbackDetail, replyFeedback, deleteFeedback,
   getStatusText, getStatusClass, Feedback, FeedbackDetail
 } from '@/lib/api/feedback';
 
@@ -43,12 +43,15 @@ export function MessagePanel({ isOpen, onClose }: MessagePanelProps) {
   const [feedbackContent, setFeedbackContent] = useState('');
   const [feedbackContact, setFeedbackContact] = useState('');
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [deletingFeedbackId, setDeletingFeedbackId] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       fetchMessages(true);
       setActiveTab('messages');
       setFeedbackView('list');
+      setDeletingFeedbackId(null);
     }
   }, [isOpen, fetchMessages]);
 
@@ -111,6 +114,23 @@ export function MessagePanel({ isOpen, onClose }: MessagePanelProps) {
       alert(msg);
     } finally {
       setSubmitLoading(false);
+    }
+  };
+
+  const handleDeleteFeedback = async (id: string) => {
+    setDeleteLoading(true);
+    try {
+      await deleteFeedback(id);
+      setDeletingFeedbackId(null);
+      if (selectedFeedback?.id === id) {
+        setFeedbackView('list');
+        setSelectedFeedback(null);
+      }
+      fetchFeedbacks();
+    } catch (error: any) {
+      alert(error.message || '删除失败');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -188,6 +208,7 @@ export function MessagePanel({ isOpen, onClose }: MessagePanelProps) {
   if (!isOpen) return null;
 
   return (
+    <>
     <div 
       ref={panelRef}
       className="fixed right-4 top-16 w-96 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 rounded-xl shadow-2xl z-50 flex flex-col max-h-[80vh] border border-gray-200 dark:border-gray-800">
@@ -267,11 +288,20 @@ export function MessagePanel({ isOpen, onClose }: MessagePanelProps) {
               ) : selectedFeedback ? (
                 <>
                   <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusClass(selectedFeedback.status)}`}>
-                        {getStatusText(selectedFeedback.status)}
-                      </span>
-                      <span className="text-xs text-gray-400">{formatTime(selectedFeedback.createdAt)}</span>
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusClass(selectedFeedback.status)}`}>
+                          {getStatusText(selectedFeedback.status)}
+                        </span>
+                        <span className="text-xs text-gray-400">{formatTime(selectedFeedback.createdAt)}</span>
+                      </div>
+                      <button
+                        onClick={() => setDeletingFeedbackId(selectedFeedback.id)}
+                        className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 rounded transition-colors shrink-0"
+                        title="删除反馈"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{selectedFeedback.title}</h3>
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 whitespace-pre-wrap">{selectedFeedback.content}</p>
@@ -392,9 +422,18 @@ export function MessagePanel({ isOpen, onClose }: MessagePanelProps) {
                     >
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">{fb.title}</h3>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${getStatusClass(fb.status)}`}>
-                          {getStatusText(fb.status)}
-                        </span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${getStatusClass(fb.status)}`}>
+                            {getStatusText(fb.status)}
+                          </span>
+                          <button
+                            onClick={e => { e.stopPropagation(); setDeletingFeedbackId(fb.id); }}
+                            className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 rounded transition-colors"
+                            title="删除"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{fb.content}</p>
                       <div className="flex items-center gap-3 mt-1.5">
@@ -423,7 +462,7 @@ export function MessagePanel({ isOpen, onClose }: MessagePanelProps) {
             {messages.length === 0 && !loading ? (
               <div className="empty-state py-12">
                 <Mail className="empty-state-icon" />
-                <p className="empty-state-description">暂无更多消息</p>
+                <p className="empty-state-description">暂无更多消息 ღ( ´･ᴗ･` )比心</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -448,6 +487,31 @@ export function MessagePanel({ isOpen, onClose }: MessagePanelProps) {
         </div>
         )}
       </div>
+
+      {deletingFeedbackId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]" onClick={() => setDeletingFeedbackId(null)}>
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-72 mx-4 p-5" onClick={e => e.stopPropagation()}>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">确认删除</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">删除后将无法恢复，包括所有回复记录。</p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setDeletingFeedbackId(null)}
+                className="px-3 py-1.5 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={() => handleDeleteFeedback(deletingFeedbackId)}
+                disabled={deleteLoading}
+                className="px-3 py-1.5 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                {deleteLoading ? '删除中...' : '删除'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
+import ConsoleBanner from '@/components/ConsoleBanner';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -18,10 +19,6 @@ export const metadata: Metadata = {
     shortcut: 'https://task.caiths.com/favicon.ico',
     apple: '/icons/icon-192x192.png',
   },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-  },
 };
 
 export default function RootLayout({
@@ -34,13 +31,11 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="https://task.caiths.com/favicon.ico" />
         <link rel="shortcut icon" href="https://task.caiths.com/favicon.ico" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="云集" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body className={inter.className}>
         <ThemeProvider>
+          <ConsoleBanner />
           {children}
         </ThemeProvider>
       </body>

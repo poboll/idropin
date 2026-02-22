@@ -64,7 +64,9 @@ export default function UsersManagePage() {
 
   const handleStatusChange = async (user: AdminUser, newStatus: string) => {
     try {
-      await updateUserStatus(user.id, newStatus);
+      // 将前端的小写状态值转换为后端期望的大写格式
+      const backendStatus = newStatus.toUpperCase();
+      await updateUserStatus(user.id, backendStatus);
       fetchUsers();
     } catch (error) {
       console.error('Failed to update status:', error);
@@ -499,7 +501,17 @@ export default function UsersManagePage() {
                 </h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">存储上限 (MB)</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">存储上限 (MB)</label>
+                      <div className="flex gap-1">
+                        {[512, 1024, 2048, 5120].map(v => (
+                          <button key={v} onClick={() => setStorageLimit(String(v))}
+                            className={`px-2 py-0.5 text-xs rounded border transition-colors ${storageLimit === String(v) ? 'border-gray-900 dark:border-white bg-gray-900 dark:bg-white text-white dark:text-gray-900' : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-400'}`}>
+                            {v >= 1024 ? `${v/1024}G` : `${v}M`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     <input
                       type="number"
                       value={storageLimit}
@@ -510,7 +522,17 @@ export default function UsersManagePage() {
                     <p className="text-xs text-gray-500 mt-1">当前已用: {formatFileSize(selectedUser?.storageUsed || 0)}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">任务上限</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">任务上限</label>
+                      <div className="flex gap-1">
+                        {[5, 10, 20, 50].map(v => (
+                          <button key={v} onClick={() => setTaskLimit(String(v))}
+                            className={`px-2 py-0.5 text-xs rounded border transition-colors ${taskLimit === String(v) ? 'border-gray-900 dark:border-white bg-gray-900 dark:bg-white text-white dark:text-gray-900' : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-400'}`}>
+                            {v}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     <input
                       type="number"
                       value={taskLimit}

@@ -1,5 +1,6 @@
 package com.idropin.interfaces.rest;
 
+import com.idropin.application.service.AiGradingService;
 import com.idropin.application.service.CollectionTaskService;
 import com.idropin.application.service.FileService;
 import com.idropin.common.exception.BusinessException;
@@ -19,6 +20,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -49,6 +51,11 @@ public class CollectionTaskController {
   private final com.idropin.infrastructure.persistence.mapper.TaskSubmissionMapper taskSubmissionMapper;
   private final com.idropin.infrastructure.persistence.mapper.FileSubmissionMapper fileSubmissionMapper;
   private final com.idropin.infrastructure.persistence.mapper.FileMapper fileMapper;
+  private final AiGradingService aiGradingService;
+  private final com.idropin.infrastructure.persistence.mapper.CollectionTaskMapper collectionTaskMapper;
+
+  @Value("${app.backend-url:http://localhost:8081/api}")
+  private String backendUrl;
 
   @PostMapping
   @Operation(summary = "创建收集任务")
@@ -170,59 +177,38 @@ public class CollectionTaskController {
     // 获取任务更多信息
     TaskMoreInfo moreInfo = taskMoreInfoMapper.selectByTaskId(taskId);
     
-    // 计算新文件名（如果需要重命名）
     String newFilename = file.getOriginalFilename();
-    
-    if (moreInfo != null && (Boolean.TRUE.equals(moreInfo.getRewrite()) || Boolean.TRUE.equals(moreInfo.getAutoRename()))) {
-      String originalFilename = file.getOriginalFilename();
+    String originalFilename = file.getOriginalFilename();
+    String infoString = "";
 
-      // 解析必填信息，用于构建新文件名
-      String infoString = "";
-      if (infoData != null && !infoData.isEmpty()) {
-        try {
-          // 解析JSON格式的infoData（使用LinkedHashMap保持字段顺序）
-          com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
-          java.util.LinkedHashMap<String, String> infoMap = objectMapper.readValue(infoData,
-              new com.fasterxml.jackson.core.type.TypeReference<java.util.LinkedHashMap<String, String>>() {});
-
-          // 按顺序拼接必填信息的值（如：学号_姓名）
-          java.util.List<String> infoValues = new java.util.ArrayList<>();
-          for (String value : infoMap.values()) {
-            if (value != null && !value.trim().isEmpty()) {
-              // 替换文件名中的非法字符
-              String cleanValue = value.trim().replaceAll("[\\\\/:*?\"<>|]", "_");
-              infoValues.add(cleanValue);
-            }
+    if (infoData != null && !infoData.isEmpty()) {
+      try {
+        com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        java.util.LinkedHashMap<String, String> infoMap = objectMapper.readValue(infoData,
+            new com.fasterxml.jackson.core.type.TypeReference<java.util.LinkedHashMap<String, String>>() {});
+        java.util.List<String> infoValues = new java.util.ArrayList<>();
+        for (String value : infoMap.values()) {
+          if (value != null && !value.trim().isEmpty()) {
+            infoValues.add(value.trim().replaceAll("[\\\\/:*?\"<>|]", "_"));
           }
-          infoString = String.join("_", infoValues);
-        } catch (Exception e) {
-          log.warn("Failed to parse infoData: {}", e.getMessage());
-          infoString = submitterName != null ? submitterName.replaceAll("[\\\\/:*?\"<>|]", "_") : "";
         }
-      } else if (submitterName != null && !submitterName.isEmpty()) {
-        infoString = submitterName.replaceAll("[\\\\/:*?\"<>|]", "_");
+        infoString = String.join("_", infoValues);
+      } catch (Exception e) {
+        log.warn("Failed to parse infoData: {}", e.getMessage());
+        infoString = submitterName != null ? submitterName.replaceAll("[\\\\/:*?\"<>|]", "_") : "";
       }
-
-      // 提取文件扩展名
-      String fileExtension = "";
-      int lastDotIndex = originalFilename.lastIndexOf('.');
-      if (lastDotIndex > 0) {
-        fileExtension = originalFilename.substring(lastDotIndex);
-      }
-
-      // 构建新文件名：必填信息.扩展名（如：202206120174_成志良.zip）
-      if (!infoString.isEmpty()) {
-        newFilename = infoString + fileExtension;
-      } else {
-        // 如果没有必填信息，保留原文件名
-        newFilename = originalFilename;
-      }
-
-      log.info("File will be renamed from '{}' to '{}'", originalFilename, newFilename);
+    } else if (submitterName != null && !submitterName.isEmpty()) {
+      infoString = submitterName.replaceAll("[\\\\/:*?\"<>|]", "_");
     }
 
-    // 上传文件到存储（传递新文件名）
-    com.idropin.domain.entity.File uploadedFile = fileService.uploadFileWithCustomName(file, userId, newFilename);
+    if (!infoString.isEmpty()) {
+      String ext = (originalFilename != null && originalFilename.contains("."))
+          ? originalFilename.substring(originalFilename.lastIndexOf('.')) : "";
+      newFilename = infoString + ext;
+      log.info("File renamed from '{}' to '{}'", originalFilename, newFilename);
+    }
+
+    com.idropin.domain.entity.File uploadedFile = fileService.uploadFileForTask(file, userId, taskId, newFilename);
     log.info("File uploaded successfully with ID: {} and name: {}", uploadedFile.getId(), uploadedFile.getOriginalName());
 
     // 创建提交记录
@@ -412,11 +398,11 @@ public class CollectionTaskController {
       com.idropin.domain.entity.User creator = userMapper.selectById(task.getCreatedBy());
       if (creator != null) {
         creatorName = creator.getUsername();
-        creatorAvatarUrl = creator.getAvatarUrl();
-        System.out.println("DEBUG: Creator found - username: " + creatorName + ", avatarUrl: " + creatorAvatarUrl);
+        creatorAvatarUrl = (creator.getAvatarUrl() != null && !creator.getAvatarUrl().isBlank())
+            ? backendUrl + "/user/avatar/" + creator.getId()
+            : null;
         log.info("Creator found: username={}, avatarUrl={}", creatorName, creatorAvatarUrl);
       } else {
-        System.out.println("DEBUG: Creator not found for task: " + taskId);
         log.warn("Creator not found for task: {}, createdBy={}", taskId, task.getCreatedBy());
       }
     }
@@ -430,10 +416,10 @@ public class CollectionTaskController {
     result.put("createdBy", task.getCreatedBy());
     result.put("creatorName", creatorName);
     result.put("creatorAvatarUrl", creatorAvatarUrl);
-    result.put("collectionType", task.getCollectionType()); // 添加收集类型
+    result.put("collectionType", task.getCollectionType());
+    result.put("requireLogin", task.getRequireLogin() != null && task.getRequireLogin());
     
-    System.out.println("DEBUG: Returning creatorAvatarUrl: " + creatorAvatarUrl);
-    log.info("Returning public task info: creatorAvatarUrl={}", creatorAvatarUrl);
+    log.info("Returning public task info: taskId={}, creatorAvatarUrl={}", taskId, creatorAvatarUrl);
     
     return Result.success(result);
   }
@@ -656,6 +642,12 @@ public class CollectionTaskController {
             item.put("fileSize", file.getFileSize());
           }
         }
+
+        // AI 批阅字段
+        item.put("aiStatus", sub.getAiStatus());
+        item.put("aiEvaluation", sub.getAiEvaluation());
+        item.put("isPlagiarized", sub.getIsPlagiarized());
+        item.put("similarToId", sub.getSimilarToId());
         
         submissionList.add(item);
       }
@@ -949,6 +941,98 @@ public class CollectionTaskController {
       log.info("Admin edited submission: {}", submissionId);
     }
 
+    return Result.success(null);
+  }
+
+  @PutMapping("/{taskId}/submissions/{submissionId}/ai-score")
+  @Operation(summary = "教师微调AI评分")
+  public Result<Void> overrideAiScore(
+      @PathVariable String taskId,
+      @PathVariable String submissionId,
+      @RequestBody Map<String, Object> body,
+      @AuthenticationPrincipal UserDetails userDetails) {
+
+    String userId = getUserId(userDetails);
+    CollectionTask task = taskService.getTask(taskId, userId);
+    if (task == null) {
+      throw new BusinessException("无权操作");
+    }
+
+    FileSubmission submission = fileSubmissionMapper.selectByIdString(submissionId);
+    if (submission == null || submission.getAiEvaluation() == null) {
+      throw new BusinessException("提交记录或AI评估不存在");
+    }
+
+    Integer overrideScore = (Integer) body.get("score");
+    if (overrideScore == null || overrideScore < 0 || overrideScore > 100) {
+      throw new BusinessException("分数需在 0-100 之间");
+    }
+
+    com.idropin.domain.vo.AiEvaluationResult eval = submission.getAiEvaluation();
+    eval.setScore(overrideScore);
+
+    submission.setAiEvaluation(eval);
+    fileSubmissionMapper.updateById(submission);
+
+    log.info("Teacher {} overrode AI score for submission {} to {}", userId, submissionId, overrideScore);
+    return Result.success(null);
+  }
+
+  @PostMapping("/{taskId}/submissions/{submissionId}/regrade")
+  @Operation(summary = "重新AI评分（单条）")
+  public Result<Void> regradeSubmission(
+      @PathVariable String taskId,
+      @PathVariable String submissionId,
+      @RequestBody(required = false) Map<String, String> body,
+      @AuthenticationPrincipal UserDetails userDetails) {
+    String userId = getUserId(userDetails);
+    taskService.getTask(taskId, userId);
+    String customPrompt = body != null ? body.get("prompt") : null;
+    aiGradingService.regradeSubmission(submissionId, customPrompt);
+    return Result.success(null);
+  }
+
+  @PostMapping("/{taskId}/submissions/batch-regrade")
+  @Operation(summary = "批量重新AI评分")
+  public Result<Void> batchRegradeSubmissions(
+      @PathVariable String taskId,
+      @RequestBody Map<String, Object> body,
+      @AuthenticationPrincipal UserDetails userDetails) {
+    String userId = getUserId(userDetails);
+    taskService.getTask(taskId, userId);
+    @SuppressWarnings("unchecked")
+    List<String> submissionIds = (List<String>) body.get("submissionIds");
+    String customPrompt = (String) body.get("prompt");
+    if (submissionIds != null) {
+      for (String id : submissionIds) {
+        aiGradingService.regradeSubmission(id, customPrompt);
+      }
+    }
+    return Result.success(null);
+  }
+
+  @GetMapping("/{taskId}/ai-prompt")
+  @Operation(summary = "获取任务自定义AI提示词")
+  public Result<Map<String, String>> getAiPrompt(
+      @PathVariable String taskId,
+      @AuthenticationPrincipal UserDetails userDetails) {
+    String userId = getUserId(userDetails);
+    CollectionTask task = taskService.getTask(taskId, userId);
+    return Result.success(Map.of("prompt", task.getAiPrompt() != null ? task.getAiPrompt() : ""));
+  }
+
+  @PutMapping("/{taskId}/ai-prompt")
+  @Operation(summary = "保存任务自定义AI提示词")
+  public Result<Void> saveAiPrompt(
+      @PathVariable String taskId,
+      @RequestBody Map<String, String> body,
+      @AuthenticationPrincipal UserDetails userDetails) {
+    String userId = getUserId(userDetails);
+    taskService.getTask(taskId, userId);
+    com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<CollectionTask> wrapper =
+        new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<>();
+    wrapper.eq(CollectionTask::getId, taskId).set(CollectionTask::getAiPrompt, body.get("prompt"));
+    collectionTaskMapper.update(null, wrapper);
     return Result.success(null);
   }
 

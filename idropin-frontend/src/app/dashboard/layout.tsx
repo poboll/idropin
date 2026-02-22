@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { 
   Upload, 
@@ -18,12 +19,13 @@ import {
   Bell,
   Shield,
   ChevronDown,
-  MessageCircle
+  MessageCircle,
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth';
 import { MessageButton } from '@/components/layout/MessageButton';
 import { HitokotoDisplay } from '@/components/layout/HitokotoDisplay';
 import AuthGuard from '@/components/auth/AuthGuard';
+import AnnouncementBanner from '@/components/AnnouncementBanner';
 
 const navItems = [
   { href: '/dashboard/files', label: '文件', icon: FolderOpen },
@@ -47,13 +49,9 @@ export default function DashboardLayout({
   const { user, logout, isSuperAdmin, system } = useAuthStore();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [navAvatarError, setNavAvatarError] = useState(false);
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || isSuperAdmin || system;
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const handleLogout = () => {
     logout();
@@ -77,15 +75,13 @@ export default function DashboardLayout({
     return pathname.startsWith(href);
   };
 
-  if (!mounted) {
-    return null;
-  }
-
   return (
     <AuthGuard>
     <div className="min-h-screen bg-gray-50 dark:bg-black">
+      <AnnouncementBanner />
+      
       {/* Top Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 h-14 bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800">
+      <nav className="sticky top-0 z-50 h-14 bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800">
         <div className="h-full max-w-screen-2xl mx-auto px-4 flex items-center justify-between">
           {/* Left: Logo & Nav */}
           <div className="flex items-center gap-6">
@@ -146,11 +142,15 @@ export default function DashboardLayout({
                 }}
                 className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
-                {user?.avatarUrl ? (
-                  <img
+                {user?.avatarUrl && !navAvatarError ? (
+                  <Image
                     src={user.avatarUrl}
                     alt="Avatar"
-                    className="w-7 h-7 rounded-full object-cover"
+                    width={28}
+                    height={28}
+                    className="rounded-full object-cover"
+                    unoptimized
+                    onError={() => setNavAvatarError(true)}
                   />
                 ) : (
                   <div className="w-7 h-7 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -214,7 +214,13 @@ export default function DashboardLayout({
 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <div className="md:hidden absolute top-14 left-0 right-0 bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800 py-2 px-4 animate-in fade-in-0">
+          <>
+            {/* Backdrop */}
+            <div
+              className="md:hidden fixed inset-0 top-14 bg-black/20 dark:bg-black/50 z-40"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
+            <div className="md:hidden absolute top-14 left-0 right-0 z-50 bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800 py-2 px-4 animate-in slide-in-from-top-2 fade-in-0 duration-150">
             {navItems.map((item) => (
               <Link
                 key={item.href}
@@ -246,11 +252,12 @@ export default function DashboardLayout({
               </Link>
             ))}
           </div>
+          </>
         )}
       </nav>
 
       {/* Main Content */}
-      <main className="pt-14 min-h-screen">
+      <main className="min-h-screen">
         <div className="max-w-screen-2xl mx-auto px-4 py-6">
           {children}
         </div>

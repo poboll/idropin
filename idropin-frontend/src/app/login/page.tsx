@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, ChangeEvent, FormEvent, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Upload, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth';
@@ -9,8 +9,10 @@ import { ErrorToast, SuccessToast } from '@/components/ui/ErrorDisplay';
 
 type LoginMode = 'account' | 'sms';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect');
   const { login, isAuthenticated, isLoading, error, clearError } = useAuthStore();
   
   const [loginMode, setLoginMode] = useState<LoginMode>('account');
@@ -29,9 +31,11 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/dashboard');
+      // 安全校验：只允许跳转到相对路径，防止开放重定向攻击
+      const target = redirectTo && redirectTo.startsWith('/') ? redirectTo : '/dashboard';
+      router.push(target);
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, redirectTo]);
 
   useEffect(() => {
     const savedUserInfo = localStorage.getItem('userinfo');
@@ -42,7 +46,6 @@ export default function LoginPage() {
         setRememberMe(remember);
       } catch (error) {
         console.error('解析保存的用户信息失败:', error);
-        // 清除损坏的数据
         localStorage.removeItem('userinfo');
       }
     }
@@ -59,7 +62,6 @@ export default function LoginPage() {
     }
   }, [countdown]);
 
-  // 自动关闭Toast
   useEffect(() => {
     if (errorToast) {
       const timer = setTimeout(() => setErrorToast(null), 5000);
@@ -76,7 +78,6 @@ export default function LoginPage() {
 
   const validatePhone = (phone: string) => /^1[3-9]\d{9}$/.test(phone);
   const validateCode = (code: string) => /^\d{4,6}$/.test(code);
-  // Keep client validation broad enough for seeded/test accounts.
   const validatePassword = (pwd: string) => pwd.length >= 6 && pwd.length <= 64;
 
   const handleSendCode = async () => {
@@ -105,6 +106,8 @@ export default function LoginPage() {
     e.preventDefault();
     setLocalError('');
 
+    const target = redirectTo && redirectTo.startsWith('/') ? redirectTo : '/dashboard';
+
     if (loginMode === 'account') {
       if (!formData.username.trim()) {
         setErrorToast('请输入用户名/手机号');
@@ -128,7 +131,7 @@ export default function LoginPage() {
           localStorage.removeItem('userinfo');
         }
         
-        router.push('/dashboard');
+        router.push(target);
       } catch (error: any) {
         console.error('登录失败:', error);
         const errorMessage = error.message || error.response?.data?.message || '登录失败，请检查用户名和密码';
@@ -147,7 +150,7 @@ export default function LoginPage() {
       try {
         await new Promise(resolve => setTimeout(resolve, 1000));
         setSuccessToast('短信验证码登录成功');
-        setTimeout(() => router.push('/dashboard'), 1000);
+        setTimeout(() => router.push(target), 1000);
       } catch (error: any) {
         console.error('验证码登录失败:', error);
         const errorMessage = error.message || '验证码不正确或已过期';
@@ -169,9 +172,9 @@ export default function LoginPage() {
   const displayError = localError || error;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-black relative">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4">
+      <header className="absolute top-0 left-0 right-0 flex items-center justify-between px-6 py-4">
         <Link href="/" className="flex items-center gap-2">
           <div className="w-8 h-8 bg-gray-900 dark:bg-white rounded-lg flex items-center justify-center">
             <Upload className="w-4 h-4 text-white dark:text-gray-900" />
@@ -187,8 +190,8 @@ export default function LoginPage() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-sm">
+      <main className="min-h-screen flex items-center justify-center px-4">
+        <div className="w-full max-w-sm -mt-3">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
               登录到云集
@@ -379,7 +382,7 @@ export default function LoginPage() {
       </main>
 
       {/* Footer */}
-      <footer className="py-6 text-center">
+      <footer className="absolute bottom-0 left-0 right-0 py-6 text-center">
         <p className="text-xs text-gray-400 dark:text-gray-500">
           © 2024 在虎
         </p>
@@ -401,5 +404,13 @@ export default function LoginPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   );
 }

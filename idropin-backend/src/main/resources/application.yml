@@ -1,5 +1,6 @@
 server:
   port: 8081
+  address: 0.0.0.0
   servlet:
     context-path: /api
     multipart:
@@ -8,38 +9,33 @@ server:
   compression:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/xml,text/plain
+    min-response-size: 1024
+
+app:
+  backend-url: ${APP_BACKEND_URL:http://localhost:8081/api}
 
 spring:
   application:
     name: idropin-backend
 
+  threads:
+    virtual:
+      enabled: true
+
   # 数据源配置
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/idropin
+    url: jdbc:postgresql://localhost:5432/idropin?stringtype=unspecified
     username: root
     password: root
     hikari:
-      maximum-pool-size: 10
+      maximum-pool-size: 20
       minimum-idle: 5
       connection-timeout: 20000
       idle-timeout: 300000
       max-lifetime: 1800000
-
-  # JPA配置
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-        use_sql_comments: true
-        jdbc:
-          batch_size: 50
-        order_inserts: true
-        order_updates: true
+      connection-test-query: SELECT 1
+      pool-name: IdropinHikariPool
 
   # Redis配置
   data:
@@ -51,23 +47,10 @@ spring:
       timeout: 5000ms
       lettuce:
         pool:
-          max-active: 8
-          max-wait: -1ms
-          max-idle: 8
-          min-idle: 0
-
-  # Elasticsearch配置
-  elasticsearch:
-    uris: http://localhost:9200
-    connection-timeout: 10s
-    socket-timeout: 30s
-
-  # RabbitMQ配置
-  rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
+          max-active: 20
+          max-wait: 2000ms
+          max-idle: 10
+          min-idle: 2
 
   # 邮件配置 (Microsoft Outlook SMTP)
   mail:
@@ -100,7 +83,8 @@ mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
     cache-enabled: false
-    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+    default-fetch-size: 200
+    default-statement-timeout: 30
   global-config:
     db-config:
       id-type: assign_id
@@ -112,30 +96,34 @@ mybatis-plus:
 minio:
   endpoint: http://localhost:9000
   access-key: minioadmin
-  secret-key: minioadmin
+  secret-key: minioadmin123
   bucket: idropin-files
 
-# 存储配置 - 可选: local(默认), minio, aliyun, qiniu
+# 存储配置 - 可选: local(默认), minio, qiniu
 storage:
-  type: local  # 改为 minio 使用MinIO/S3兼容存储
+  type: minio
+  root-prefix: idropin
   local:
     path: ./uploads
     base-url: http://localhost:8081/api/files/download
 
-# JWT配置
-jwt:
-  secret: idropin-secret-key-2024-very-long-secret-key-for-jwt-token-generation
-  expiration: 604800000 # 7天
+# 七牛云配置 (storage.type=qiniu 时启用，凭证从数据库读取)
+qiniu:
+  access-key: ${QINIU_ACCESS_KEY:}
+  secret-key: ${QINIU_SECRET_KEY:}
+  bucket: idropin-files
+  domain: qixint.caiths.com
+  region: as0
 
 # 日志配置
 logging:
   level:
-    com.idropin: debug
+    com.idropin: info
     org.springframework.web: info
-    org.springframework.security: debug
+    org.springframework.security: info
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+      console: "%clr(%d{HH:mm:ss}){faint} %clr(%5p){blue} %clr(%logger{25}){cyan} %clr(-){faint} %msg%n"
+      file: "%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n"
   file:
     name: logs/idropin.log
 
@@ -144,7 +132,7 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
-  production: false
+  production: true
 
 # 文件存储配置
 file:
@@ -170,3 +158,12 @@ file:
       - application/zip
       - application/x-rar-compressed
       - text/plain
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized

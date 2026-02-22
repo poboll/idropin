@@ -10,96 +10,111 @@ export default function SettingsPage() {
   const [autoSave, setAutoSave] = useState(true);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold text-slate-800 dark:text-white">系统设置</h1>
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div className="page-header">
+        <h1 className="page-title">系统设置</h1>
+        <p className="page-description">管理你的偏好与账户配置</p>
+      </div>
 
-      <div className="glass-panel p-6">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-slate-700 dark:text-slate-200">
-          <Monitor className="w-5 h-5" />
-          外观设置
-        </h2>
-        <div className="grid grid-cols-3 gap-4">
+      <div className="card p-6">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+            <Monitor className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">外观设置</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">选择你喜欢的界面主题</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { value: 'light', label: '浅色模式', icon: Sun },
+            { value: 'dark', label: '深色模式', icon: Moon },
+            { value: 'system', label: '跟随系统', icon: Monitor },
+          ].map(({ value, label, icon: Icon }) => (
+            <button
+              key={value}
+              onClick={() => setTheme(value)}
+              className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2.5 transition-all ${
+                theme === value
+                  ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
+                  : 'border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'
+              }`}
+            >
+              <Icon className={`w-5 h-5 ${theme === value ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500'}`} />
+              <span className={`text-xs font-medium ${theme === value ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+                {label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 通知设置 */}
+      <div className="card p-6">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+            <Bell className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">通知设置</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">管理系统通知与提醒</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-between py-3 border-t border-gray-100 dark:border-gray-800">
+          <div>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">启用邮件通知</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">当有新文件提交时发送邮件提醒</p>
+          </div>
           <button
-            onClick={() => setTheme('light')}
-            className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
-              theme === 'light' 
-                ? 'border-gray-900 bg-gray-50/50 text-gray-900 dark:border-white dark:bg-white/10 dark:text-white' 
-                : 'border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
+            type="button"
+            role="switch"
+            aria-checked={notifications}
+            onClick={() => setNotifications(v => !v)}
+            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+              notifications ? 'bg-gray-900 dark:bg-white' : 'bg-gray-200 dark:bg-gray-700'
             }`}
           >
-            <Sun className="w-6 h-6" />
-            <span className="text-sm font-medium">浅色模式</span>
-          </button>
-          <button
-            onClick={() => setTheme('dark')}
-            className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
-              theme === 'dark' 
-                ? 'border-gray-900 bg-gray-50/50 text-gray-900 dark:border-white dark:bg-white/10 dark:text-white' 
-                : 'border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
-            }`}
-          >
-            <Moon className="w-6 h-6" />
-            <span className="text-sm font-medium">深色模式</span>
-          </button>
-          <button
-            onClick={() => setTheme('system')}
-            className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
-              theme === 'system' 
-                ? 'border-gray-900 bg-gray-50/50 text-gray-900 dark:border-white dark:bg-white/10 dark:text-white' 
-                : 'border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
-            }`}
-          >
-            <Monitor className="w-6 h-6" />
-            <span className="text-sm font-medium">跟随系统</span>
+            <span className={`inline-block h-3.5 w-3.5 rounded-full transition-transform ${
+              notifications
+                ? 'translate-x-[18px] bg-white dark:bg-gray-900'
+                : 'translate-x-[3px] bg-white dark:bg-gray-400'
+            }`} />
           </button>
         </div>
       </div>
 
-      <div className="glass-panel p-6">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-slate-700 dark:text-slate-200">
-          <Bell className="w-5 h-5" />
-          通知设置
-        </h2>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-slate-700 dark:text-slate-200">启用邮件通知</p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">当有新文件提交时发送邮件提醒</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input 
-                type="checkbox" 
-                className="sr-only peer"
-                checked={notifications}
-                onChange={(e) => setNotifications(e.target.checked)}
-              />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 dark:peer-focus:ring-gray-700 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-gray-900 dark:peer-checked:bg-white"></div>
-            </label>
+      {/* 通用设置 */}
+      <div className="card p-6">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+            <Shield className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">通用设置</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">其他系统行为配置</p>
           </div>
         </div>
-      </div>
-
-      <div className="glass-panel p-6">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-slate-700 dark:text-slate-200">
-          <Shield className="w-5 h-5" />
-          通用设置
-        </h2>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-slate-700 dark:text-slate-200">自动保存表单</p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">在编辑任务时自动保存草稿</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input 
-                type="checkbox" 
-                className="sr-only peer"
-                checked={autoSave}
-                onChange={(e) => setAutoSave(e.target.checked)}
-              />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 dark:peer-focus:ring-gray-700 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-gray-900 dark:peer-checked:bg-white"></div>
-            </label>
+        <div className="flex items-center justify-between py-3 border-t border-gray-100 dark:border-gray-800">
+          <div>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">自动保存表单</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">在编辑任务时自动保存草稿</p>
           </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={autoSave}
+            onClick={() => setAutoSave(v => !v)}
+            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+              autoSave ? 'bg-gray-900 dark:bg-white' : 'bg-gray-200 dark:bg-gray-700'
+            }`}
+          >
+            <span className={`inline-block h-3.5 w-3.5 rounded-full transition-transform ${
+              autoSave
+                ? 'translate-x-[18px] bg-white dark:bg-gray-900'
+                : 'translate-x-[3px] bg-white dark:bg-gray-400'
+            }`} />
+          </button>
         </div>
       </div>
     </div>

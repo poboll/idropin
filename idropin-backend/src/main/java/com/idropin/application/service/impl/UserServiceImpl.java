@@ -6,8 +6,10 @@ import com.idropin.domain.dto.ChangePasswordRequest;
 import com.idropin.domain.entity.User;
 import com.idropin.domain.vo.UserVO;
 import com.idropin.infrastructure.persistence.mapper.UserMapper;
+import com.idropin.infrastructure.storage.StorageServiceManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +28,15 @@ public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final StorageServiceManager storageServiceManager;
+
+    @Value("${app.backend-url:http://localhost:8081/api}")
+    private String backendUrl;
+
+    private String resolveAvatarUrl(String avatarPath, String userId) {
+        if (avatarPath == null || avatarPath.isBlank() || userId == null) return null;
+        return backendUrl + "/user/avatar/" + userId;
+    }
 
     @Override
     public User getUserById(String id) {
@@ -64,7 +75,7 @@ public class UserServiceImpl implements UserService {
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .phone(user.getPhone())
-                .avatarUrl(user.getAvatarUrl())
+                .avatarUrl(resolveAvatarUrl(user.getAvatarUrl(), user.getId()))
                 .status(user.getStatus())
                 .role(user.getRole())
                 .createdAt(user.getCreatedAt())
@@ -128,7 +139,7 @@ public class UserServiceImpl implements UserService {
                 .id(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
-                .avatarUrl(avatarUrl)
+                .avatarUrl(resolveAvatarUrl(avatarUrl, userId))
                 .status(user.getStatus())
                 .role(user.getRole())
                 .createdAt(user.getCreatedAt())
@@ -157,7 +168,7 @@ public class UserServiceImpl implements UserService {
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .phone(phone)
-                .avatarUrl(user.getAvatarUrl())
+                .avatarUrl(resolveAvatarUrl(user.getAvatarUrl(), user.getId()))
                 .status(user.getStatus())
                 .role(user.getRole())
                 .createdAt(user.getCreatedAt())
@@ -186,7 +197,7 @@ public class UserServiceImpl implements UserService {
                 .username(user.getUsername())
                 .email(email)
                 .phone(user.getPhone())
-                .avatarUrl(user.getAvatarUrl())
+                .avatarUrl(resolveAvatarUrl(user.getAvatarUrl(), user.getId()))
                 .status(user.getStatus())
                 .role(user.getRole())
                 .createdAt(user.getCreatedAt())
