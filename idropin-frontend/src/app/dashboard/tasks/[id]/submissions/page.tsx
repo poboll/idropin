@@ -1080,10 +1080,17 @@ export default function TaskSubmissionsPage() {
                   </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">综合评分</p>
                   {aiDrawerSubmission.isPlagiarized && (
-                    <span className="inline-flex items-center gap-1 mt-3 px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full text-xs font-medium">
-                      <AlertCircle className="w-3 h-3" />
-                      涉嫌与其他提交高度相似
-                    </span>
+                    <div className="mt-3 flex flex-col items-center gap-1">
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full text-xs font-medium">
+                        <AlertCircle className="w-3 h-3" />
+                        涉嫌与其他提交高度相似
+                      </span>
+                      {aiDrawerSubmission.similarToId && (
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                          原始提交：<span className="font-mono">#{aiDrawerSubmission.similarToId.slice(0, 8).toUpperCase()}</span>
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
 

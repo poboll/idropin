@@ -2,12 +2,11 @@ package com.idropin.infrastructure.persistence.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.idropin.domain.entity.FileSubmission;
-import org.apache.ibatis.annotations.Delete;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.*;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Mapper
 public interface FileSubmissionMapper extends BaseMapper<FileSubmission> {
@@ -33,4 +32,7 @@ public interface FileSubmissionMapper extends BaseMapper<FileSubmission> {
 
     @Select("SELECT ai_status, COUNT(*) as cnt FROM file_submission GROUP BY ai_status")
     List<Map<String, Object>> countGroupByAiStatus();
+
+    @Update("UPDATE file_submission SET report_vector = #{vector}::vector WHERE id::text = #{id}::text")
+    void updateReportVector(@Param("id") String id, @Param("vector") String vector);
 }

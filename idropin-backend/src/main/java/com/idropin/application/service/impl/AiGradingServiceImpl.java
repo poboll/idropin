@@ -87,6 +87,7 @@ public class AiGradingServiceImpl implements AiGradingService {
             }
 
             float[] embedding = aiClientService.generateEmbedding(text);
+            saveEmbedding(submissionId, embedding);
 
             boolean plagiarized = checkPlagiarism(submission, embedding);
 
@@ -172,6 +173,21 @@ public class AiGradingServiceImpl implements AiGradingService {
         update.eq(FileSubmission::getId, submissionId)
                 .set(FileSubmission::getAiStatus, status);
         submissionMapper.update(null, update);
+    }
+
+    private void saveEmbedding(String submissionId, float[] embedding) {
+        if (embedding == null || embedding.length == 0) return;
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < embedding.length; i++) {
+            if (i > 0) sb.append(',');
+            sb.append(embedding[i]);
+        }
+        sb.append(']');
+        try {
+            submissionMapper.updateReportVector(submissionId, sb.toString());
+        } catch (Exception e) {
+            log.warn("Failed to save embedding for submission {}: {}", submissionId, e.getMessage());
+        }
     }
 
     @Override
