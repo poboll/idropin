@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useAuthStore } from '@/lib/stores';
 import { apiClient, extractApiError } from '@/lib/api/client';
 import { sendVerificationCode, bindPhone, bindEmail } from '@/lib/api/auth';
+import { normalizeBackendUrl } from '@/lib/api/baseUrl';
 
 import { User, Mail, Calendar, Key, Camera, Lock, ChevronDown, Upload as UploadIcon, Phone } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
@@ -243,7 +244,7 @@ export default function ProfilePage() {
               {user?.avatarUrl && !avatarError ? (
                 <Image
                   key={avatarTs}
-                  src={`${user.avatarUrl}?t=${avatarTs}`}
+                  src={`${normalizeBackendUrl(user.avatarUrl)}?t=${avatarTs}`}
                   alt="Avatar"
                   width={80}
                   height={80}

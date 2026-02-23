@@ -24,4 +24,6 @@ public class StorageInfoVO {
     private String s3Region;
     private String s3AccessKey;
     private boolean s3SecretKeyConfigured;
+    private String nasPath;
+    private String nasBaseUrl;
 }

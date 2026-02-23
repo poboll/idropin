@@ -69,11 +69,25 @@ public class StorageServiceManager implements StorageService {
 
     private StorageService createService(String type) {
         return switch (type) {
+            case "nas" -> createNas();
             case "minio" -> createMinio();
             case "s3" -> createS3();
             case "qiniu" -> createQiniu();
             default -> createLocal();
         };
+    }
+
+    private StorageService createNas() {
+        String envPath = System.getenv("STORAGE_NAS_PATH");
+        String path = (envPath != null && !envPath.isBlank())
+                ? envPath
+                : cfg("storage.nas.path", "/vol1/shares/idropin");
+        String baseUrl = cfg("storage.nas.base-url",
+                cfg("storage.local.base-url", "http://localhost:8081/api/files/download"));
+        LocalStorageService svc = new LocalStorageService(path, baseUrl);
+        svc.init();
+        log.info("NAS storage initialized at: {}", path);
+        return svc;
     }
 
     private StorageService createLocal() {

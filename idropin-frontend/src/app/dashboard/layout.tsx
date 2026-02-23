@@ -22,6 +22,7 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth';
+import { normalizeBackendUrl } from '@/lib/api/baseUrl';
 import { MessageButton } from '@/components/layout/MessageButton';
 import { HitokotoDisplay } from '@/components/layout/HitokotoDisplay';
 import AuthGuard from '@/components/auth/AuthGuard';
@@ -144,7 +145,7 @@ export default function DashboardLayout({
               >
                 {user?.avatarUrl && !navAvatarError ? (
                   <Image
-                    src={user.avatarUrl}
+                    src={normalizeBackendUrl(user.avatarUrl)}
                     alt="Avatar"
                     width={28}
                     height={28}

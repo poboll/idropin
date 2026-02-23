@@ -129,6 +129,8 @@ public class ConfigController {
         info.setS3AccessKey(cfgVal("storage.s3.accessKey", ""));
         String s3sk = cfgVal("storage.s3.secretKey", "");
         info.setS3SecretKeyConfigured(!s3sk.isBlank());
+        info.setNasPath(cfgVal("storage.nas.path", "/vol1/shares/idropin"));
+        info.setNasBaseUrl(cfgVal("storage.nas.base-url", ""));
         return Result.success(info);
     }
 
