@@ -1444,7 +1444,7 @@ export default function TaskSubmissionsPage() {
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
                         <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
                         <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                        <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid rgba(0,0,0,0.06)', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.07)', padding: '8px 12px', fontSize: '12px' }} formatter={(v: number) => [`${v} 分`, '评分']} />
+                        <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid rgba(0,0,0,0.06)', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.07)', padding: '8px 12px', fontSize: '12px' }} formatter={(v: number | undefined) => [`${v ?? 0} 分`, '评分']} />
                         <Area type="monotone" dataKey="score" stroke="#374151" strokeWidth={2} fill="url(#histGrad)" dot={{ r: 3, fill: '#374151', strokeWidth: 0 }} activeDot={{ r: 5, fill: '#111827', strokeWidth: 0 }} />
                       </AreaChart>
                     </ResponsiveContainer>
