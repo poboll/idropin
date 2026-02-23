@@ -427,3 +427,33 @@ export async function exportInfoSubmissions(
     throw extractApiError(error);
   }
 }
+
+export interface AiHistoryItem {
+  id: string;
+  submissionId: string;
+  score: number;
+  dimensions: Record<string, number>;
+  feedback: string;
+  summary: string;
+  evaluatedAt: string;
+  createdAt: string;
+}
+
+export interface CustomDimension {
+  name: string;
+  weight: number;
+}
+
+export async function getSubmissionAiHistory(taskId: string, submissionId: string): Promise<AiHistoryItem[]> {
+  const response = await apiClient.get<ApiResponse<AiHistoryItem[]>>(`/tasks/${taskId}/submissions/${submissionId}/ai-history`);
+  return response.data.data;
+}
+
+export async function getTaskCustomDimensions(taskId: string): Promise<CustomDimension[]> {
+  const response = await apiClient.get<ApiResponse<CustomDimension[]>>(`/tasks/${taskId}/custom-dimensions`);
+  return response.data.data ?? [];
+}
+
+export async function saveTaskCustomDimensions(taskId: string, dimensions: CustomDimension[]): Promise<void> {
+  await apiClient.put(`/tasks/${taskId}/custom-dimensions`, dimensions);
+}

@@ -106,20 +106,14 @@ public class AiClientService {
         }
     }
 
-    public AiEvaluationResult evaluate(String text, String taskTitle, String customPrompt) {
+    public AiEvaluationResult evaluate(String text, String taskTitle, String customPrompt,
+                                        java.util.List<java.util.Map<String, Object>> customDimensions) {
         String baseUrl = configService.getSystemConfigValue("ai.base_url");
         String apiKey = configService.getSystemConfigValue("ai.api_key");
         String model = configService.getSystemConfigValue("ai.chat_model");
-
         HttpHeaders headers = buildHeaders(apiKey);
-
-
-        String systemPrompt = (customPrompt != null && !customPrompt.isBlank())
-                ? customPrompt + JSON_SCHEMA_CONSTRAINT
-                : DEFAULT_SYSTEM_PROMPT;
-
+        String systemPrompt = buildSystemPrompt(customPrompt, customDimensions);
         String userPrompt = String.format("任务标题：%s\n\n提交内容：\n%s", taskTitle, text);
-
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", model);
         body.put("messages", List.of(
@@ -128,7 +122,6 @@ public class AiClientService {
         ));
         body.put("response_format", Map.of("type", "json_object"));
         body.put("temperature", 0.5);
-
         try {
             ResponseEntity<JsonNode> resp = restTemplate.exchange(
                     baseUrl + "/chat/completions",
@@ -136,12 +129,10 @@ public class AiClientService {
                     new HttpEntity<>(body, headers),
                     JsonNode.class
             );
-
             String content = resp.getBody()
                     .get("choices").get(0)
                     .get("message").get("content")
                     .asText();
-
             AiEvaluationResult result = objectMapper.readValue(content, AiEvaluationResult.class);
             result.setEvaluatedAt(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
             return result;
@@ -149,6 +140,49 @@ public class AiClientService {
             log.error("Chat completions API call failed: {}", e.getMessage());
             throw new AiServiceException("AI evaluation failed", e);
         }
+    }
+
+    private String buildSystemPrompt(String customPrompt, java.util.List<java.util.Map<String, Object>> customDimensions) {
+        if (customDimensions != null && !customDimensions.isEmpty()) {
+            return buildDimensionPrompt(customDimensions);
+        }
+        if (customPrompt != null && !customPrompt.isBlank()) {
+            return customPrompt + JSON_SCHEMA_CONSTRAINT;
+        }
+        return DEFAULT_SYSTEM_PROMPT;
+    }
+
+    private String buildDimensionPrompt(java.util.List<java.util.Map<String, Object>> dims) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("你是一位严格且经验丰富的专业作业批阅助手。请根据以下自定义评分维度对提交内容进行客观评估。\n\n");
+        sb.append("■ 评分校准要求（极其重要）：\n");
+        sb.append("- 你必须使用完整的 0-100 分数区间，严禁集中在 70-90 分段\n");
+        sb.append("- 优秀提交：90-100分 | 良好：75-89分 | 一般：60-74分 | 较差：40-59分 | 极差：0-39分\n\n");
+        sb.append("■ 评分维度：\n");
+        StringBuilder dimJson = new StringBuilder();
+        for (var dim : dims) {
+            String name = String.valueOf(dim.get("name"));
+            Object weightObj = dim.get("weight");
+            int weight = weightObj instanceof Number ? ((Number) weightObj).intValue() : 25;
+            sb.append(String.format("【%s】权重: %d%%\n", name, weight));
+            if (!dimJson.isEmpty()) dimJson.append(",\n    ");
+            dimJson.append(String.format("\"%s\": <0-100整数>", name));
+        }
+        sb.append("\n■ 总分计算：总分 = 各维度加权平均（四舍五入取整）\n");
+        sb.append("各维度分数必须独立评估，可以出现较大差异。\n\n");
+        sb.append("■ 反馈要求：\n");
+        sb.append("- feedback 必须指出具体的优点和不足\n");
+        sb.append("- summary 需一句话概括整体质量等级\n\n");
+        sb.append("无论采用何种评价标准，必须严格按照以下JSON格式返回，不要包含其他文字：\n");
+        sb.append("{\n");
+        sb.append("  \"score\": <0-100的整数总分>,\n");
+        sb.append("  \"dimensions\": {\n    ");
+        sb.append(dimJson);
+        sb.append("\n  },\n");
+        sb.append("  \"feedback\": \"<200字以内的详细评语字符串>\",\n");
+        sb.append("  \"summary\": \"<50字以内的一句话总结字符串>\"\n");
+        sb.append("}\n");
+        return sb.toString();
     }
 
     private HttpHeaders buildHeaders(String apiKey) {

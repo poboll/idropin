@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Download, FileText, Clock, User, MapPin, Loader2, AlertCircle, ExternalLink, Trash2, Edit3, X, Check, Search, Filter, FolderOpen, Archive, Brain, ShieldCheck, ShieldAlert, Eye } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Clock, User, MapPin, Loader2, AlertCircle, ExternalLink, Trash2, Edit3, X, Check, Search, Filter, FolderOpen, Archive, Brain, ShieldCheck, ShieldAlert, Eye, SlidersHorizontal, FileDown, TrendingUp, Plus, Minus } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 
@@ -10,11 +10,13 @@ const AiEvaluationPanel = dynamic(() => import('@/components/ai/AiEvaluationPane
   loading: () => <div className="h-[260px] flex items-center justify-center text-gray-400 text-sm">加载中...</div>,
   ssr: false,
 });
-import { getTaskInfoSubmissions, exportInfoSubmissions, getTaskAiPrompt, saveTaskAiPrompt, regradeSubmission, batchRegradeSubmissions } from '@/lib/api/tasks';
+import { getTaskInfoSubmissions, exportInfoSubmissions, getTaskAiPrompt, saveTaskAiPrompt, regradeSubmission, batchRegradeSubmissions, getSubmissionAiHistory, getTaskCustomDimensions, saveTaskCustomDimensions } from '@/lib/api/tasks';
 import { apiClient } from '@/lib/api/client';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
 import { useAuthStore } from '@/lib/stores/auth';
 import { getToken } from '@/lib/api/client';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import type { AiHistoryItem, CustomDimension } from '@/lib/api/tasks';
 
 interface AiEvaluation {
   score: number;
@@ -73,6 +75,14 @@ export default function TaskSubmissionsPage() {
   const [previewSubmission, setPreviewSubmission] = useState<InfoSubmission | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [customDimensions, setCustomDimensions] = useState<CustomDimension[]>([]);
+  const [dimLoading, setDimLoading] = useState(false);
+  const [dimSaving, setDimSaving] = useState(false);
+  const [showDimEditor, setShowDimEditor] = useState(false);
+  const [aiHistoryData, setAiHistoryData] = useState<AiHistoryItem[]>([]);
+  const [aiHistoryLoading, setAiHistoryLoading] = useState(false);
+  const [pdfExporting, setPdfExporting] = useState(false);
+  const aiDrawerContentRef = useRef<HTMLDivElement>(null);
   
   // 防止重复请求的标志
   const isLoadingRef = useRef(false);
@@ -535,6 +545,57 @@ export default function TaskSubmissionsPage() {
     setPreviewSubmission(null);
   };
 
+  const loadCustomDimensions = useCallback(async () => {
+    setDimLoading(true);
+    try {
+      const dims = await getTaskCustomDimensions(taskId);
+      setCustomDimensions(dims);
+    } catch { /* ignore */ }
+    finally { setDimLoading(false); }
+  }, [taskId]);
+
+  useEffect(() => {
+    if (collectionType === 'FILE') loadCustomDimensions();
+  }, [collectionType, loadCustomDimensions]);
+
+  useEffect(() => {
+    if (!aiDrawerSubmission) { setAiHistoryData([]); return; }
+    setAiHistoryLoading(true);
+    getSubmissionAiHistory(taskId, aiDrawerSubmission.id)
+      .then(setAiHistoryData)
+      .catch(() => setAiHistoryData([]))
+      .finally(() => setAiHistoryLoading(false));
+  }, [taskId, aiDrawerSubmission]);
+
+  const handleSaveDimensions = async () => {
+    setDimSaving(true);
+    try {
+      await saveTaskCustomDimensions(taskId, customDimensions);
+      setShowDimEditor(false);
+    } catch { alert('保存失败'); }
+    finally { setDimSaving(false); }
+  };
+
+  const handleExportPdf = async () => {
+    const el = aiDrawerContentRef.current;
+    if (!el) return;
+    setPdfExporting(true);
+    try {
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ]);
+      const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+      const imgData = canvas.toDataURL('image/jpeg', 1.0);
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfW = pdf.internal.pageSize.getWidth();
+      const pdfH = (canvas.height * pdfW) / canvas.width;
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfH);
+      pdf.save(`${aiDrawerSubmission?.submitterName || 'AI评估'}_报告.pdf`);
+    } catch { alert('导出PDF失败'); }
+    finally { setPdfExporting(false); }
+  };
+
   const [sortMode, setSortMode] = useState<'time' | 'score'>('time');
 
   const filteredSubmissions = submissions.filter(s => {
@@ -707,6 +768,13 @@ export default function TaskSubmissionsPage() {
             {collectionType === 'FILE' && (
               <>
                 <button
+                  onClick={() => setShowDimEditor(v => !v)}
+                  className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                  评估维度
+                </button>
+                <button
                   onClick={() => setShowPromptEditor(v => !v)}
                   className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 >
@@ -773,6 +841,68 @@ export default function TaskSubmissionsPage() {
               <button onClick={handleSaveAiPrompt} disabled={aiPromptSaving} className="px-3 py-1.5 text-sm bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 disabled:opacity-50 transition-colors">
                 {aiPromptSaving ? '保存中...' : '保存'}
               </button>
+            </div>
+          </div>
+        )}
+        {showDimEditor && collectionType === 'FILE' && (
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">自定义评估维度</h4>
+              <button
+                onClick={() => setCustomDimensions(d => [...d, { name: '', weight: 20 }])}
+                className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                添加维度
+              </button>
+            </div>
+            {dimLoading ? (
+              <div className="flex items-center justify-center py-6 text-gray-400 text-sm">加载中...</div>
+            ) : (
+              <div className="space-y-2">
+                {customDimensions.map((dim, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={dim.name}
+                      onChange={e => { const next = [...customDimensions]; next[i] = { ...next[i], name: e.target.value }; setCustomDimensions(next); }}
+                      placeholder="维度名称"
+                      className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    />
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={dim.weight}
+                        onChange={e => { const next = [...customDimensions]; next[i] = { ...next[i], weight: Number(e.target.value) }; setCustomDimensions(next); }}
+                        className="w-16 px-2 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-gray-400"
+                      />
+                      <span className="text-xs text-gray-400">%</span>
+                    </div>
+                    <button
+                      onClick={() => setCustomDimensions(d => d.filter((_, j) => j !== i))}
+                      className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+                {customDimensions.length === 0 && (
+                  <p className="text-xs text-gray-400 py-3 text-center">暂未设置自定义维度，将使用默认4维度评估</p>
+                )}
+              </div>
+            )}
+            <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+              <p className="text-xs text-gray-400">
+                {customDimensions.length > 0 ? `${customDimensions.length}个维度，权重合计 ${customDimensions.reduce((s, d) => s + d.weight, 0)}%` : '使用默认维度'}
+              </p>
+              <div className="flex gap-2">
+                <button onClick={() => setShowDimEditor(false)} className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">取消</button>
+                <button onClick={handleSaveDimensions} disabled={dimSaving} className="px-3 py-1.5 text-sm bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 disabled:opacity-50 transition-colors">
+                  {dimSaving ? '保存中...' : '保存'}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1249,6 +1379,14 @@ export default function TaskSubmissionsPage() {
                 </div>
               </div>
               <button
+                onClick={handleExportPdf}
+                disabled={pdfExporting}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50"
+                title="导出PDF报告"
+              >
+                {pdfExporting ? <Loader2 className="w-4 h-4 animate-spin text-gray-400" /> : <FileDown className="w-4 h-4 text-gray-500" />}
+              </button>
+              <button
                 onClick={() => setAiDrawerSubmission(null)}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
               >
@@ -1258,12 +1396,37 @@ export default function TaskSubmissionsPage() {
 
             {aiDrawerSubmission.aiEvaluation ? (
               <>
+                <div ref={aiDrawerContentRef}>
                 <AiEvaluationPanel
                   evaluation={aiDrawerSubmission.aiEvaluation}
                   isPlagiarized={aiDrawerSubmission.isPlagiarized}
                   similarToId={aiDrawerSubmission.similarToId}
                   submitterName={aiDrawerSubmission.submitterName}
                 />
+                {aiHistoryData.length > 1 && (
+                  <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center gap-2 mb-3">
+                      <TrendingUp className="w-4 h-4 text-gray-400" />
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">评分历史趋势</h4>
+                    </div>
+                    <ResponsiveContainer width="100%" height={140}>
+                      <AreaChart data={aiHistoryData.map((h, i) => ({ index: i + 1, score: h.score, date: new Date(h.evaluatedAt).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }) }))} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="histGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#374151" stopOpacity={0.15} />
+                            <stop offset="95%" stopColor="#374151" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
+                        <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                        <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                        <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid rgba(0,0,0,0.06)', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.07)', padding: '8px 12px', fontSize: '12px' }} formatter={(v: number) => [`${v} 分`, '评分']} />
+                        <Area type="monotone" dataKey="score" stroke="#374151" strokeWidth={2} fill="url(#histGrad)" dot={{ r: 3, fill: '#374151', strokeWidth: 0 }} activeDot={{ r: 5, fill: '#111827', strokeWidth: 0 }} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+                </div>
 
                 <div className="px-6 pb-6 space-y-4">
                 <div className="pt-4 border-t border-gray-100 dark:border-gray-800">

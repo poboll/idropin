@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useStatistics } from '@/lib/hooks/useStatistics';
-import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { formatBytes } from '@/lib/utils';
 import { useApi } from '@/lib/hooks/useApi';
 import { RefreshCw, AlertCircle, FileText, HardDrive, Upload, Calendar, Database, Cpu, Brain, Layers, CheckCircle2, XCircle, Clock, Zap, Server, Activity, ChevronDown, ChevronUp } from 'lucide-react';
@@ -72,6 +72,32 @@ export default function StatisticsPage() {
       setRetrying(false);
     }
   }
+
+  const scoredSubs = useMemo(() => allSubmissions.filter((s: any) => s.aiEvaluation?.score != null), [allSubmissions]);
+  const scoreHistogram = useMemo(() => {
+    const buckets = [{ range: '0-59', min: 0, max: 59, count: 0 }, { range: '60-69', min: 60, max: 69, count: 0 }, { range: '70-79', min: 70, max: 79, count: 0 }, { range: '80-89', min: 80, max: 89, count: 0 }, { range: '90-100', min: 90, max: 100, count: 0 }];
+    scoredSubs.forEach((s: any) => { const sc = s.aiEvaluation.score; buckets.forEach(b => { if (sc >= b.min && sc <= b.max) b.count++; }); });
+    return buckets;
+  }, [scoredSubs]);
+  const gradeDistribution = useMemo(() => {
+    const grades = [{ name: 'S', min: 90, max: 100, count: 0 }, { name: 'A', min: 80, max: 89, count: 0 }, { name: 'B', min: 70, max: 79, count: 0 }, { name: 'C', min: 60, max: 69, count: 0 }, { name: 'D', min: 0, max: 59, count: 0 }];
+    scoredSubs.forEach((s: any) => { const sc = s.aiEvaluation.score; grades.forEach(g => { if (sc >= g.min && sc <= g.max) g.count++; }); });
+    return grades.filter(g => g.count > 0);
+  }, [scoredSubs]);
+  const avgDimensions = useMemo(() => {
+    const dimMap: Record<string, { total: number; count: number }> = {};
+    scoredSubs.forEach((s: any) => {
+      const dims = s.aiEvaluation?.dimensions;
+      if (dims && typeof dims === 'object') {
+        Object.entries(dims).forEach(([k, v]) => {
+          if (!dimMap[k]) dimMap[k] = { total: 0, count: 0 };
+          dimMap[k].total += v as number;
+          dimMap[k].count++;
+        });
+      }
+    });
+    return Object.entries(dimMap).map(([name, { total, count }]) => ({ dimension: name, score: Math.round(total / count), fullMark: 100 }));
+  }, [scoredSubs]);
 
   if (loading && !statistics) {
     return (
@@ -296,6 +322,88 @@ export default function StatisticsPage() {
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{item.sub}</p>
             </div>
           ))}
+        </div>
+      )}
+
+      {scoredSubs.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="card p-6">
+            <div className="mb-5">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">AI 评分分布</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">按分数段统计</p>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={scoreHistogram} margin={{ top: 4, right: 4, left: -20, bottom: 0 }} barSize={32}>
+                <defs>
+                  <linearGradient id="aiScoreGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#1f2937" />
+                    <stop offset="100%" stopColor="#4b5563" stopOpacity={0.7} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
+                <XAxis dataKey="range" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip contentStyle={TS} formatter={(v: number) => [v, '人数']} />
+                <Bar dataKey="count" fill="url(#aiScoreGrad)" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="card p-6">
+            <div className="mb-5">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">等级分布</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">S/A/B/C/D 等级占比</p>
+            </div>
+            {gradeDistribution.length === 0 ? (
+              <div className="flex items-center justify-center h-[160px] text-gray-400 dark:text-gray-600">
+                <p className="text-sm">暂无等级数据</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-[180px] h-[180px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={gradeDistribution} cx="50%" cy="50%" innerRadius={48} outerRadius={76} dataKey="count" strokeWidth={2} stroke="transparent">
+                        {gradeDistribution.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip contentStyle={TS} formatter={(v: number, _: string, p: { payload?: { name?: string } }) => [`${v} 人`, `${p.payload?.name ?? ''} 级`]} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="w-full space-y-1.5">
+                  {gradeDistribution.map((g, i) => (
+                    <div key={g.name} className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                      <span className="text-xs text-gray-600 dark:text-gray-400 flex-1">{g.name} 级 ({g.min}-{g.max}分)</span>
+                      <span className="text-xs font-semibold text-gray-900 dark:text-white">{g.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="card p-6">
+            <div className="mb-5">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">维度平均分</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">各评估维度平均得分</p>
+            </div>
+            {avgDimensions.length === 0 ? (
+              <div className="flex items-center justify-center h-[160px] text-gray-400 dark:text-gray-600">
+                <p className="text-sm">暂无维度数据</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <RadarChart data={avgDimensions} cx="50%" cy="50%" outerRadius="70%">
+                  <PolarGrid stroke="rgba(0,0,0,0.08)" />
+                  <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 11, fill: '#6b7280' }} />
+                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                  <Radar dataKey="score" stroke="#374151" fill="#111827" fillOpacity={0.15} strokeWidth={2} />
+                  <Tooltip contentStyle={TS} formatter={(v: number) => [`${v} 分`, '平均分']} />
+                </RadarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
         </div>
       )}
 
