@@ -32,7 +32,7 @@ export default function ConfigManagePage() {
   const [editValue, setEditValue] = useState('');
   const [activeTab, setActiveTab] = useState<'routes' | 'system' | 'quota' | 'storage' | 'ai'>('routes');
   const [fetchError, setFetchError] = useState<{ code: number; message: string } | null>(null);
-  const [storageType, setStorageType] = useState<'local' | 'oss' | 'minio' | 's3'>('local');
+  const [storageType, setStorageType] = useState<'local' | 'oss' | 'minio' | 's3' | 'nas'>('local');
   const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
   const [ossVendor, setOssVendor] = useState<'tencent' | 'aliyun' | 'qiniu' | 'huawei' | 'aws' | 'google' | 'azure' | 'custom'>('aliyun');
   const [ossConfig, setOssConfig] = useState({
@@ -60,6 +60,10 @@ export default function ConfigManagePage() {
   const [localConfig, setLocalConfig] = useState({
     path: './uploads',
     baseUrl: 'http://localhost:8081/api/files/download'
+  });
+  const [nasConfig, setNasConfig] = useState({
+    path: '/vol1/shares/idropin',
+    baseUrl: ''
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set(['auth', 'upload', 'share', 'task', 'email', 'website', 'ratelimit', 'sys', 'database', 'url', 'other']));
@@ -320,6 +324,12 @@ export default function ConfigManagePage() {
               accessKeySecret: '',
               domain: storageData.qiniuDomain || '',
             });
+          } else if (t === 'nas') {
+            setStorageType('nas');
+            setNasConfig({
+              path: storageData.nasPath || '/vol1/shares/idropin',
+              baseUrl: storageData.nasBaseUrl || '',
+            });
           } else {
             setStorageType(t as 'local' | 'oss' | 'minio' | 's3');
             if (t === 's3') {
@@ -452,7 +462,7 @@ export default function ConfigManagePage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-enter">
       {fetchError && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
           <div className="flex gap-3">
@@ -475,10 +485,10 @@ export default function ConfigManagePage() {
         </div>
       )}
       
-      <div className="flex items-center justify-between">
+      <div className="page-header animate-slide-in-down flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">配置管理</h1>
-          <p className="text-sm text-gray-500 mt-1">管理系统路由和功能配置</p>
+          <h1 className="page-title">配置管理</h1>
+          <p className="page-description">管理系统路由和功能配置</p>
         </div>
         <div className="flex items-center gap-2">
           {activeTab === 'system' && (
@@ -1041,6 +1051,8 @@ export default function ConfigManagePage() {
           setS3Config={setS3Config}
           localConfig={localConfig}
           setLocalConfig={setLocalConfig}
+          nasConfig={nasConfig}
+          setNasConfig={setNasConfig}
         />
       )}
 

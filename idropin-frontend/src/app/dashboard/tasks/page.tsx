@@ -141,7 +141,7 @@ export default function TasksPage() {
     <AuthGuard>
       <div className="space-y-6 page-enter">
         {/* Page Header */}
-        <div className="flex items-center justify-between">
+        <div className="page-header animate-slide-in-down flex items-center justify-between">
           <div>
             <h1 className="page-title">任务管理</h1>
             <p className="page-description">创建和管理文件收集任务</p>

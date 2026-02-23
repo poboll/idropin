@@ -214,16 +214,16 @@ export default function UsersManagePage() {
   const totalPages = Math.ceil(total / pageSize);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-enter">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
+      <div className="page-header animate-slide-in-down flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">用户管理</h1>
-          <p className="text-sm text-gray-500 mt-1">管理平台用户账号</p>
+          <h1 className="page-title">用户管理</h1>
+          <p className="page-description">管理平台用户账号</p>
         </div>
         <button
           onClick={() => openDialog('broadcast')}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 transition-colors"
+          className="btn-primary"
         >
           <Send className="w-4 h-4" />
           推送全局消息

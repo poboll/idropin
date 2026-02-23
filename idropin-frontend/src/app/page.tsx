@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Upload, Search, BarChart3, Shield, Zap, Globe, LayoutDashboard, ChevronDown, FileText, Layers, Smartphone } from 'lucide-react';
+import { AppLogo } from '@/components/ui/AppLogo';
 import { getToken } from '@/lib/api/client';
 
 function useInView(threshold = 0.15) {
@@ -48,9 +49,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 bg-gray-900 dark:bg-white rounded-lg flex items-center justify-center">
-                <Upload className="w-4 h-4 text-white dark:text-gray-900" />
-              </div>
+              <AppLogo size={32} />
               <span className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">云集</span>
             </div>
             <div className="hidden md:flex items-center gap-8">
@@ -278,9 +277,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-gray-900 dark:bg-white rounded flex items-center justify-center">
-                <Upload className="w-3 h-3 text-white dark:text-gray-900" />
-              </div>
+              <AppLogo size={24} />
               <span className="text-sm font-medium text-gray-900 dark:text-white">云集</span>
             </div>
             <div className="flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400">

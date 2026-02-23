@@ -2,12 +2,12 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Download, FileText, Clock, User, MapPin, Loader2, AlertCircle, ExternalLink, Trash2, Edit3, X, Check, Search, Filter, FolderOpen, Archive, Brain } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Clock, User, MapPin, Loader2, AlertCircle, ExternalLink, Trash2, Edit3, X, Check, Search, Filter, FolderOpen, Archive, Brain, ShieldCheck, ShieldAlert } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 
-const AiRadarChart = dynamic(() => import('@/components/ai/AiRadarChart'), {
-  loading: () => <div className="h-[260px] flex items-center justify-center text-gray-400 text-sm">加载图表...</div>,
+const AiEvaluationPanel = dynamic(() => import('@/components/ai/AiEvaluationPanel'), {
+  loading: () => <div className="h-[260px] flex items-center justify-center text-gray-400 text-sm">加载中...</div>,
   ssr: false,
 });
 import { getTaskInfoSubmissions, exportInfoSubmissions, getTaskAiPrompt, saveTaskAiPrompt, regradeSubmission, batchRegradeSubmissions } from '@/lib/api/tasks';
@@ -198,6 +198,11 @@ export default function TaskSubmissionsPage() {
             infoData: parseInfoData(sub.infoData),
             fileName: sub.fileName,
             fileSize: sub.fileSize,
+            aiScore: sub.aiEvaluation?.score ?? null,
+            aiDimensions: sub.aiEvaluation?.dimensions ?? null,
+            aiSummary: sub.aiEvaluation?.summary ?? null,
+            aiFeedback: sub.aiEvaluation?.feedback ?? null,
+            isPlagiarized: sub.isPlagiarized ?? false,
           }))
         };
         
@@ -240,6 +245,18 @@ export default function TaskSubmissionsPage() {
             txtContent += `\n文件信息:\n`;
             txtContent += `  文件名: ${sub.fileName}\n`;
             txtContent += `  文件大小: ${formatFileSize(sub.fileSize)}\n`;
+          }
+
+          if (sub.aiEvaluation) {
+            txtContent += `\nAI评估:\n`;
+            txtContent += `  评分: ${sub.aiEvaluation.score}/100\n`;
+            if (sub.aiEvaluation.dimensions) {
+              const dims = Object.entries(sub.aiEvaluation.dimensions).map(([k, v]) => `${k}: ${v}`).join(' | ');
+              txtContent += `  维度: ${dims}\n`;
+            }
+            if (sub.aiEvaluation.summary) txtContent += `  摘要: ${sub.aiEvaluation.summary}\n`;
+            if (sub.aiEvaluation.feedback) txtContent += `  反馈: ${sub.aiEvaluation.feedback}\n`;
+            txtContent += `  抄袭状态: ${sub.isPlagiarized ? '涉嫌抄袭' : '正常'}\n`;
           }
           
           txtContent += `\n${'-'.repeat(80)}\n\n`;
@@ -598,15 +615,7 @@ export default function TaskSubmissionsPage() {
                   >
                     导出 TXT
                   </button>
-                  <button
-                    onClick={() => {
-                      handleExport('excel');
-                      setShowExportMenu(false);
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    导出 Excel
-                  </button>
+
                 </div>
               )}
             </div>
@@ -731,7 +740,7 @@ export default function TaskSubmissionsPage() {
           </div>
         </div>
 
-        {collectionType === 'FILE' && gradedSubs.length > 0 && (
+        {collectionType === 'FILE' && (
           <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 mb-6">
             <div className="flex items-center gap-2 mb-5">
               <Brain className="w-4 h-4 text-gray-500 dark:text-gray-400" />
@@ -779,10 +788,11 @@ export default function TaskSubmissionsPage() {
         )}
 
         {/* 查重汇总 */}
-        {collectionType === 'FILE' && submissions.some(s => s.isPlagiarized) && (
+        {collectionType === 'FILE' && (
+          submissions.some(s => s.isPlagiarized) ? (
           <div className="bg-white dark:bg-gray-900 rounded-xl border border-red-200 dark:border-red-800/50 p-6 mb-6">
             <div className="flex items-center gap-2 mb-4">
-              <AlertCircle className="w-4 h-4 text-red-500 dark:text-red-400" />
+              <ShieldAlert className="w-4 h-4 text-red-500 dark:text-red-400" />
               <h3 className="text-sm font-medium text-gray-900 dark:text-white">查重检测</h3>
               <span className="ml-auto text-xs text-red-500 dark:text-red-400 font-medium">
                 {submissions.filter(s => s.isPlagiarized).length} 份涉嫌相似
@@ -805,6 +815,15 @@ export default function TaskSubmissionsPage() {
               ))}
             </div>
           </div>
+          ) : (
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-emerald-200 dark:border-emerald-800/50 p-6 mb-6">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+              <h3 className="text-sm font-medium text-gray-900 dark:text-white">查重检测</h3>
+              <span className="ml-auto text-xs text-emerald-600 dark:text-emerald-400 font-medium">✓ 全部通过，未发现相似提交</span>
+            </div>
+          </div>
+          )
         )}
 
         {/* Filter Bar */}
@@ -1108,56 +1127,15 @@ export default function TaskSubmissionsPage() {
             </div>
 
             {aiDrawerSubmission.aiEvaluation ? (
-              <div className="p-6 space-y-6">
-                <div className="text-center py-4">
-                  <div className="text-5xl font-bold text-gray-900 dark:text-white">
-                    {aiDrawerSubmission.aiEvaluation.score}
-                  </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">综合评分</p>
-                  {aiDrawerSubmission.isPlagiarized && (
-                    <div className="mt-3 flex flex-col items-center gap-1">
-                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full text-xs font-medium">
-                        <AlertCircle className="w-3 h-3" />
-                        涉嫌与其他提交高度相似
-                      </span>
-                      {aiDrawerSubmission.similarToId && (
-                        <span className="text-xs text-gray-400 dark:text-gray-500">
-                          原始提交：<span className="font-mono">#{aiDrawerSubmission.similarToId.slice(0, 8).toUpperCase()}</span>
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
+              <>
+                <AiEvaluationPanel
+                  evaluation={aiDrawerSubmission.aiEvaluation}
+                  isPlagiarized={aiDrawerSubmission.isPlagiarized}
+                  similarToId={aiDrawerSubmission.similarToId}
+                  submitterName={aiDrawerSubmission.submitterName}
+                />
 
-                {Object.keys(aiDrawerSubmission.aiEvaluation.dimensions).length > 0 && (
-                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
-                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">维度分析</h4>
-                    <AiRadarChart dimensions={aiDrawerSubmission.aiEvaluation.dimensions} />
-                  </div>
-                )}
-
-                {aiDrawerSubmission.aiEvaluation.summary && (
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">评价摘要</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                      {aiDrawerSubmission.aiEvaluation.summary}
-                    </p>
-                  </div>
-                )}
-
-                {aiDrawerSubmission.aiEvaluation.feedback && (
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">详细反馈</h4>
-                    <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
-                      {aiDrawerSubmission.aiEvaluation.feedback}
-                    </div>
-                  </div>
-                )}
-
-                <div className="text-xs text-gray-400 dark:text-gray-500 pt-2 border-t border-gray-100 dark:border-gray-800">
-                  评估时间：{new Date(aiDrawerSubmission.aiEvaluation.evaluatedAt).toLocaleString('zh-CN')}
-                </div>
-
+                <div className="px-6 pb-6 space-y-4">
                 <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
                   <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">人工微调得分</h4>
                   <div className="flex items-center gap-2">
@@ -1197,7 +1175,8 @@ export default function TaskSubmissionsPage() {
                     重新评分
                   </button>
                 </div>
-              </div>
+                </div>
+              </>
             ) : (
               <div className="p-12 text-center">
                 <AlertCircle className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />

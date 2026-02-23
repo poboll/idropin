@@ -89,16 +89,16 @@ export default function ManageOverviewPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-enter">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
+      <div className="page-header animate-slide-in-down flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">应用管理</h1>
-          <p className="text-sm text-gray-500 mt-1">平台概况与数据统计</p>
+          <h1 className="page-title">应用管理</h1>
+          <p className="page-description">平台概况与数据统计</p>
         </div>
         <button
           onClick={() => fetchData()}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white dark:bg-white dark:text-gray-900 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+          className="btn-primary"
         >
           <RefreshCw className="w-4 h-4" />
           刷新

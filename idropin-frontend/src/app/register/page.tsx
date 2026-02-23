@@ -3,7 +3,8 @@
 import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Upload, Loader2, Check } from 'lucide-react';
+import { Loader2, Check } from 'lucide-react';
+import { AppLogo } from '@/components/ui/AppLogo';
 import { useAuthStore } from '@/lib/stores/auth';
 import { RouteGuard } from '@/components/RouteGuard';
 import { ErrorToast, SuccessToast } from '@/components/ui/ErrorDisplay';
@@ -161,9 +162,7 @@ function RegisterForm() {
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4">
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gray-900 dark:bg-white rounded-lg flex items-center justify-center">
-            <Upload className="w-4 h-4 text-white dark:text-gray-900" />
-          </div>
+          <AppLogo size={32} />
           <span className="text-lg font-semibold text-gray-900 dark:text-white">云集</span>
         </Link>
         <Link

@@ -209,8 +209,8 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="page-header">
+    <div className="max-w-2xl mx-auto space-y-6 page-enter">
+      <div className="page-header animate-slide-in-down">
         <h1 className="page-title">个人资料</h1>
         <p className="page-description">管理你的账户信息</p>
       </div>

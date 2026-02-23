@@ -218,22 +218,31 @@ COMMENT ON TABLE people_list IS '提交人员名单表';
 -- ========================================
 -- 9. file_submission - 文件提交表
 -- ========================================
+CREATE EXTENSION IF NOT EXISTS vector;
+
 CREATE TABLE file_submission (
     id VARCHAR(36) PRIMARY KEY,
     task_id VARCHAR(36) NOT NULL,
     file_id VARCHAR(36) NOT NULL,
+    submitter_id VARCHAR(36),
     submitter_name VARCHAR(100),
-    submitter_id VARCHAR(100),
-    submitter_ip VARCHAR(50),
-    device_fingerprint VARCHAR(255),
-    metadata JSONB DEFAULT '{}',
-    status VARCHAR(20) DEFAULT 'SUBMITTED',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    submitter_email VARCHAR(100),
+    submitter_ip VARCHAR(45),
+    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted BOOLEAN NOT NULL DEFAULT false,
+    ai_status SMALLINT NOT NULL DEFAULT 0,
+    report_vector vector(1024),
+    ai_evaluation JSONB,
+    similar_to_id VARCHAR(36),
+    is_plagiarized BOOLEAN NOT NULL DEFAULT false
 );
 
 CREATE INDEX idx_file_submission_task ON file_submission(task_id);
 CREATE INDEX idx_file_submission_file ON file_submission(file_id);
 CREATE INDEX idx_file_submission_submitter ON file_submission(submitter_id);
+CREATE INDEX idx_file_submission_deleted ON file_submission(deleted);
+CREATE INDEX idx_file_submission_vector ON file_submission USING hnsw (report_vector vector_cosine_ops) WITH (m = 16, ef_construction = 64);
 
 COMMENT ON TABLE file_submission IS '文件提交表';
 

@@ -1,4 +1,7 @@
 # Idrop.in · 云集
+<p align="center">
+  <img src="docs/images/logo.svg" alt="Idrop.in Logo" width="80" />
+</p>
 
 > 面向教育场景的智能文件收集与管理平台
 
@@ -17,7 +20,7 @@ Idrop.in 云集是一个前后端分离的教育文件管理平台，提供文�
 
 ## 界面预览
 
-<details>
+<details open>
 <summary><b>公开页面</b></summary>
 <br>
 
@@ -30,7 +33,7 @@ Idrop.in 云集是一个前后端分离的教育文件管理平台，提供文�
 
 </details>
 
-<details>
+<details open>
 <summary><b>核心功能</b></summary>
 <br>
 
@@ -46,7 +49,7 @@ Idrop.in 云集是一个前后端分离的教育文件管理平台，提供文�
 
 </details>
 
-<details>
+<details open>
 <summary><b>个人中心</b></summary>
 <br>
 
@@ -56,7 +59,7 @@ Idrop.in 云集是一个前后端分离的教育文件管理平台，提供文�
 
 </details>
 
-<details>
+<details open>
 <summary><b>管理后台</b></summary>
 <br>
 
