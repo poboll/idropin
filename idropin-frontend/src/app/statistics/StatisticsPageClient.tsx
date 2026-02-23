@@ -90,7 +90,8 @@ export default function StatisticsPage() {
   };
 
   // 格式化日期
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: any): string => {
+    if (typeof dateString !== 'string') return String(dateString ?? '');
     const date = new Date(dateString);
     return `${date.getMonth() + 1}/${date.getDate()}`;
   };
