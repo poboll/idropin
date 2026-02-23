@@ -536,7 +536,7 @@ export default function TaskSubmissionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-black dark:via-gray-950 dark:to-black">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50">
         <div className="max-w-2xl mx-auto px-5 h-16 flex items-center justify-between">
@@ -563,16 +563,16 @@ export default function TaskSubmissionPage() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-5 py-8">
+      <main className="max-w-2xl mx-auto px-5 pt-6 pb-16">
         {/* Task Title Card */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-7 mb-5">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-7 mb-5 shadow-sm hover:shadow-md transition-shadow duration-200">
           {/* Title row */}
           <div className="flex items-start gap-3 mb-1 flex-wrap">
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white leading-snug">
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white leading-snug">
               {taskInfo.name}
             </h1>
             {taskInfo.collectionType && (
-              <span className={`mt-1 px-2.5 py-0.5 text-[11px] font-medium rounded-md ${
+              <span className={`mt-1 px-3 py-1 text-xs font-medium rounded-full ${
                 taskInfo.collectionType === 'FILE'
                   ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
                   : 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400'
@@ -641,7 +641,7 @@ export default function TaskSubmissionPage() {
 
         {/* Storage Full Warning */}
         {disabledUpload && (
-          <div className="flex items-start gap-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl p-4 mb-5">
+          <div className="flex items-start gap-3 bg-red-50 dark:bg-red-950/30 border-l-2 border-red-400 border border-red-200 dark:border-red-900/50 rounded-xl p-4 mb-5">
             <AlertCircle className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-red-700 dark:text-red-300">存储空间已满</p>
@@ -676,7 +676,7 @@ export default function TaskSubmissionPage() {
 
         {/* Tips Section */}
         {(tipData.text || tipData.imgs.length > 0) && (!ddlStr || !isOver) && (
-          <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/30 rounded-xl p-4 mb-5">
+          <div className="bg-amber-50 dark:bg-amber-950/20 border-l-2 border-amber-400 dark:border-amber-500 border border-amber-200/60 dark:border-amber-900/30 rounded-xl p-4 mb-5">
             <div className="flex items-center gap-2 mb-3">
               <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
               <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider">注意事项</span>
