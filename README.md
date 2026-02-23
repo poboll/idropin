@@ -1,6 +1,6 @@
 # Idrop.in · 云集
 <p align="center">
-  <img src="docs/images/logo.svg" alt="Idrop.in Logo" width="80" />
+  <img src="https://raw.githubusercontent.com/poboll/idropin/main/docs/images/logo.svg" alt="Idrop.in Logo" width="80" />
 </p>
 
 > 面向教育场景的智能文件收集与管理平台
@@ -20,60 +20,64 @@ Idrop.in 云集是一个前后端分离的教育文件管理平台，提供文�
 
 ## 界面预览
 
-<details open>
-<summary><b>公开页面</b></summary>
-<br>
+### 公开页面
 
-| 产品首页 | 技术架构 |
-|:---:|:---:|
-| ![产品首页](docs/images/landing.jpeg) | ![技术架构](docs/images/landing-tech-stack.jpeg) |
-| 登录 | 关于 |
-|:---:|:---:|
-| ![登录](docs/images/login.jpeg) | ![关于](docs/images/about.jpeg) |
+**产品首页**
+![产品首页](docs/images/landing.jpeg)
 
-</details>
+**技术架构**
+![技术架构](docs/images/landing-tech-stack.jpeg)
 
-<details open>
-<summary><b>核心功能</b></summary>
-<br>
+**登录**
+![登录](docs/images/login.jpeg)
 
-| 文件管理 | 任务管理 |
-|:---:|:---:|
-| ![文件管理](docs/images/file-management.jpeg) | ![任务管理](docs/images/task-management.jpeg) |
-| 文件分享 | 文件搜索 |
-|:---:|:---:|
-| ![文件分享](docs/images/file-sharing.jpeg) | ![文件搜索](docs/images/file-search.jpeg) |
-| 数据统计 | 反馈中心 |
-|:---:|:---:|
-| ![数据统计](docs/images/statistics.jpeg) | ![反馈中心](docs/images/feedback.jpeg) |
+**关于**
+![关于](docs/images/about.jpeg)
 
-</details>
+### 核心功能
 
-<details open>
-<summary><b>个人中心</b></summary>
-<br>
+**文件管理**
+![文件管理](docs/images/file-management.jpeg)
 
-| 个人中心 |
-|:---:|
-| ![个人中心](docs/images/user-profile.jpeg) |
+**任务管理**
+![任务管理](docs/images/task-management.jpeg)
 
-</details>
+**文件分享**
+![文件分享](docs/images/file-sharing.jpeg)
 
-<details open>
-<summary><b>管理后台</b></summary>
-<br>
+**文件搜索**
+![文件搜索](docs/images/file-search.jpeg)
 
-| 管理概况 | 用户管理 |
-|:---:|:---:|
-| ![管理概况](docs/images/admin-overview.jpeg) | ![用户管理](docs/images/admin-users.jpeg) |
-| 系统配置 | 消息通知 |
-|:---:|:---:|
-| ![系统配置](docs/images/admin-config-system.jpeg) | ![消息通知](docs/images/admin-config-system-notifications.jpeg) |
-| 路由配置 | AI 配置 |
-|:---:|:---:|
-| ![路由配置](docs/images/admin-config-routes.jpeg) | ![AI 配置](docs/images/admin-config-ai.jpeg) |
+**数据统计**
+![数据统计](docs/images/statistics.jpeg)
 
-</details>
+**反馈中心**
+![反馈中心](docs/images/feedback.jpeg)
+
+### 个人中心
+
+**个人中心**
+![个人中心](docs/images/user-profile.jpeg)
+
+### 管理后台
+
+**管理概况**
+![管理概况](docs/images/admin-overview.jpeg)
+
+**用户管理**
+![用户管理](docs/images/admin-users.jpeg)
+
+**系统配置**
+![系统配置](docs/images/admin-config-system.jpeg)
+
+**消息通知**
+![消息通知](docs/images/admin-config-system-notifications.jpeg)
+
+**路由配置**
+![路由配置](docs/images/admin-config-routes.jpeg)
+
+**AI 配置**
+![AI 配置](docs/images/admin-config-ai.jpeg)
 
 ## 功能
 
