@@ -14,6 +14,64 @@
 
 Idrop.in 云集是一个前后端分离的教育文件管理平台，提供文件收集任务、大文件分片上传、AI 智能批阅、多存储后端切换、实时统计看板等核心能力。
 
+
+## 界面预览
+
+<details>
+<summary><b>公开页面</b></summary>
+<br>
+
+| 产品首页 | 技术架构 |
+|:---:|:---:|
+| ![产品首页](docs/images/landing.jpeg) | ![技术架构](docs/images/landing-tech-stack.jpeg) |
+| 登录 | 关于 |
+|:---:|:---:|
+| ![登录](docs/images/login.jpeg) | ![关于](docs/images/about.jpeg) |
+
+</details>
+
+<details>
+<summary><b>核心功能</b></summary>
+<br>
+
+| 文件管理 | 任务管理 |
+|:---:|:---:|
+| ![文件管理](docs/images/file-management.jpeg) | ![任务管理](docs/images/task-management.jpeg) |
+| 文件分享 | 文件搜索 |
+|:---:|:---:|
+| ![文件分享](docs/images/file-sharing.jpeg) | ![文件搜索](docs/images/file-search.jpeg) |
+| 数据统计 | 反馈中心 |
+|:---:|:---:|
+| ![数据统计](docs/images/statistics.jpeg) | ![反馈中心](docs/images/feedback.jpeg) |
+
+</details>
+
+<details>
+<summary><b>个人中心</b></summary>
+<br>
+
+| 个人中心 |
+|:---:|
+| ![个人中心](docs/images/user-profile.jpeg) |
+
+</details>
+
+<details>
+<summary><b>管理后台</b></summary>
+<br>
+
+| 管理概况 | 用户管理 |
+|:---:|:---:|
+| ![管理概况](docs/images/admin-overview.jpeg) | ![用户管理](docs/images/admin-users.jpeg) |
+| 系统配置 | 消息通知 |
+|:---:|:---:|
+| ![系统配置](docs/images/admin-config-system.jpeg) | ![消息通知](docs/images/admin-config-system-notifications.jpeg) |
+| 路由配置 | AI 配置 |
+|:---:|:---:|
+| ![路由配置](docs/images/admin-config-routes.jpeg) | ![AI 配置](docs/images/admin-config-ai.jpeg) |
+
+</details>
+
 ## 功能
 
 | 模块 | 能力 |

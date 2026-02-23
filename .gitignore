@@ -172,6 +172,7 @@ idropin-server-legacy/
 
 # Documentation (keep only essential docs)
 docs/
+!docs/images/
 idropin-frontend/public/docs/
 idropin-frontend/src/app/docs/
 毕业设计文档.md
