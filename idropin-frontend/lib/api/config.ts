@@ -79,6 +79,8 @@ export interface StorageInfo {
   s3Region: string;
   s3AccessKey: string;
   s3SecretKeyConfigured: boolean;
+  nasPath: string;
+  nasBaseUrl: string;
 }
 
 export async function getStorageInfo(): Promise<StorageInfo> {

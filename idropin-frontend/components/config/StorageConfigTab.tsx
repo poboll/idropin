@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AlertCircle, Cloud, HardDrive, Database, Save, Wifi } from 'lucide-react';
+import { AlertCircle, Cloud, HardDrive, Database, Save, Wifi, Server } from 'lucide-react';
 import { StorageInfo, saveStorageConfig, testStorageConnection } from '@/lib/api/config';
 import { StorageStatistics } from '@/lib/api/admin';
 import { formatBytes } from '@/lib/utils';
@@ -12,8 +12,8 @@ type OssVendor = 'tencent' | 'aliyun' | 'qiniu' | 'huawei' | 'aws' | 'google' | 
 interface StorageConfigTabProps {
   storageInfo: StorageInfo | null;
   storageStats: StorageStatistics | null;
-  storageType: 'local' | 'oss' | 'minio' | 's3';
-  setStorageType: (v: 'local' | 'oss' | 'minio' | 's3') => void;
+  storageType: 'local' | 'oss' | 'minio' | 's3' | 'nas';
+  setStorageType: (v: 'local' | 'oss' | 'minio' | 's3' | 'nas') => void;
   ossVendor: OssVendor;
   setOssVendor: (v: OssVendor) => void;
   ossConfig: { endpoint: string; bucket: string; region: string; accessKeyId: string; accessKeySecret: string; domain: string };
@@ -24,6 +24,8 @@ interface StorageConfigTabProps {
   setLocalConfig: (v: any) => void;
   s3Config?: { endpoint: string; bucket: string; region: string; accessKey: string; secretKey: string };
   setS3Config?: (v: any) => void;
+  nasConfig?: { path: string; baseUrl: string };
+  setNasConfig?: (v: any) => void;
 }
 
 const VENDOR_NAMES: Record<OssVendor, string> = {
@@ -58,7 +60,7 @@ export default function StorageConfigTab(props: StorageConfigTabProps) {
     storageInfo, storageStats, storageType, setStorageType,
     ossVendor, setOssVendor, ossConfig, setOssConfig,
     minioConfig, setMinioConfig, localConfig, setLocalConfig,
-    s3Config, setS3Config,
+    s3Config, setS3Config, nasConfig, setNasConfig,
   } = props;
 
   const [saving, setSaving] = useState(false);
@@ -118,6 +120,13 @@ export default function StorageConfigTab(props: StorageConfigTabProps) {
           'storage.s3.bucket': cfg.bucket,
           'storage.s3.region': cfg.region,
           'storage.s3.pathStyle': 'true',
+        };
+      } else if (storageType === 'nas') {
+        const nas = nasConfig ?? { path: '/vol1/shares/idropin', baseUrl: '' };
+        configMap = {
+          'storage.type': 'nas',
+          'storage.nas.path': nas.path,
+          'storage.nas.base-url': nas.baseUrl,
         };
       } else {
         setSaveMsg({ ok: false, text: '当前仅支持本地存储、MinIO 和七牛云，其他 OSS 暂不支持直接保存' });
@@ -289,6 +298,26 @@ export default function StorageConfigTab(props: StorageConfigTabProps) {
               </div>
             </div>
           )}
+          {storageInfo?.storageType === 'nas' && (
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 rounded-lg text-sm font-medium">
+                <Server className="w-4 h-4" />
+                当前正在使用 NAS 本地存储
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto">
+                <div className="p-4 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">NAS 存储路径</p>
+                  <code className="text-sm font-mono text-gray-900 dark:text-white break-all">{storageInfo.nasPath || '/vol1/shares/idropin'}</code>
+                </div>
+                {storageInfo.nasBaseUrl && (
+                  <div className="p-4 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">访问地址</p>
+                    <code className="text-sm font-mono text-gray-900 dark:text-white break-all">{storageInfo.nasBaseUrl}</code>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
@@ -310,6 +339,10 @@ export default function StorageConfigTab(props: StorageConfigTabProps) {
               <button onClick={() => setStorageType('s3')} className={typeBtnCls(storageType === 's3')}>
                 <Cloud className="w-4 h-4 inline mr-1.5" />S3 兼容
                 {storageInfo?.storageType === 's3' && <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-green-500 align-middle" />}
+              </button>
+              <button onClick={() => setStorageType('nas')} className={typeBtnCls(storageType === 'nas')}>
+                <Server className="w-4 h-4 inline mr-1.5" />NAS 存储
+                {storageInfo?.storageType === 'nas' && <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-green-500 align-middle" />}
               </button>
             </div>
           </div>
@@ -437,6 +470,35 @@ export default function StorageConfigTab(props: StorageConfigTabProps) {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Secret Access Key *</label>
                   <input type="password" value={s3Config?.secretKey ?? ''} onChange={e => setS3Config?.({ ...s3Config, secretKey: e.target.value })} placeholder="••••••••" className={inputCls} />
                 </div>
+              </div>
+            </div>
+          )}
+
+          {storageType === 'nas' && (
+            <div className="space-y-4">
+              <h3 className="font-medium text-gray-900 dark:text-white mb-1">NAS 存储配置</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">适用于飞牛（FnOS）等 NAS 设备的本地文件系统存储，支持通过环境变量指定路径</p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">NAS 存储路径 *</label>
+                <input
+                  type="text"
+                  value={nasConfig?.path ?? '/vol1/shares/idropin'}
+                  onChange={e => setNasConfig?.({ ...nasConfig, path: e.target.value })}
+                  placeholder="/vol1/shares/idropin"
+                  className={inputCls}
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">飞牛 NAS 默认共享路径，也可通过环境变量 <code className="font-mono">STORAGE_NAS_PATH</code> 覆盖</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">访问地址 *</label>
+                <input
+                  type="text"
+                  value={nasConfig?.baseUrl ?? ''}
+                  onChange={e => setNasConfig?.({ ...nasConfig, baseUrl: e.target.value })}
+                  placeholder="http://your-nas-ip:8081/api/files/download"
+                  className={inputCls}
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">文件下载的 HTTP 访问地址，应指向 NAS 的内网地址</p>
               </div>
             </div>
           )}

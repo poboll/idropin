@@ -81,7 +81,17 @@ public class FileController {
             HttpServletResponse response) throws IOException {
         String userId = getUserId(userDetails);
         File file = fileService.getFile(id, userId);
-        
+
+        String storageType = storageService.getActiveStorageType();
+        boolean isRemoteStorage = storageType != null
+                && !storageType.equals("local")
+                && !storageType.equals("nas");
+        if (isRemoteStorage) {
+            String presignedUrl = storageService.getPresignedUrl(file.getStoragePath(), 3600);
+            response.sendRedirect(presignedUrl);
+            return;
+        }
+
         String originalName = file.getOriginalName();
         if (originalName == null || originalName.isEmpty()) {
             originalName = "download";
@@ -89,7 +99,7 @@ public class FileController {
         String encodedFilename = URLEncoder.encode(originalName, "UTF-8")
                 .replace("+", "%20");
         response.setContentType(file.getMimeType());
-        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, 
+        response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
                 "attachment; filename=\"" + encodedFilename + "\"; filename*=UTF-8''" + encodedFilename);
         response.setContentLengthLong(file.getFileSize());
 

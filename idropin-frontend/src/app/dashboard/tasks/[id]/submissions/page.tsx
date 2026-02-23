@@ -738,7 +738,7 @@ export default function TaskSubmissionsPage() {
               <h3 className="text-sm font-medium text-gray-900 dark:text-white">AI 批改统计</h3>
               <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">{gradedSubs.length} / {submissions.length} 已评</span>
             </div>
-            <div className="grid grid-cols-3 gap-4 mb-5">
+            <div className="grid grid-cols-4 gap-4 mb-5">
               <div className="text-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">平均分</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">{avgScore ?? '-'}</p>
@@ -751,6 +751,12 @@ export default function TaskSubmissionsPage() {
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">待评估</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {submissions.filter(s => !s.aiStatus || s.aiStatus === 0).length}
+                </p>
+              </div>
+              <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                <p className="text-xs text-red-500 dark:text-red-400 mb-1">评估失败</p>
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                  {submissions.filter(s => s.aiStatus === -1).length}
                 </p>
               </div>
             </div>
@@ -766,6 +772,35 @@ export default function TaskSubmissionsPage() {
                     />
                   </div>
                   <span className="w-6 text-xs text-gray-600 dark:text-gray-400 text-right">{band.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 查重汇总 */}
+        {collectionType === 'FILE' && submissions.some(s => s.isPlagiarized) && (
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-red-200 dark:border-red-800/50 p-6 mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <AlertCircle className="w-4 h-4 text-red-500 dark:text-red-400" />
+              <h3 className="text-sm font-medium text-gray-900 dark:text-white">查重检测</h3>
+              <span className="ml-auto text-xs text-red-500 dark:text-red-400 font-medium">
+                {submissions.filter(s => s.isPlagiarized).length} 份涉嫌相似
+              </span>
+            </div>
+            <div className="space-y-2">
+              {submissions.filter(s => s.isPlagiarized).map(s => (
+                <div key={s.id} className="flex items-center gap-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-full text-xs font-medium">涉嫌抄袭</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300 truncate flex-1">{s.submitterName || s.submitterEmail || '-'}</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">#{s.id.slice(0, 8).toUpperCase()}</span>
+                  {s.similarToId && (
+                    <span className="text-xs text-gray-400 dark:text-gray-500">与 #{s.similarToId.slice(0, 8).toUpperCase()} 相似</span>
+                  )}
+                  <button
+                    onClick={() => setAiDrawerSubmission(s as any)}
+                    className="text-xs text-red-600 dark:text-red-400 hover:underline"
+                  >查看</button>
                 </div>
               ))}
             </div>
