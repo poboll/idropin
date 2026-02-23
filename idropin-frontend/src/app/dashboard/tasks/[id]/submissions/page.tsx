@@ -75,6 +75,7 @@ export default function TaskSubmissionsPage() {
   const [previewSubmission, setPreviewSubmission] = useState<InfoSubmission | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewText, setPreviewText] = useState<string | null>(null);
   const [customDimensions, setCustomDimensions] = useState<CustomDimension[]>([]);
   const [dimLoading, setDimLoading] = useState(false);
   const [dimSaving, setDimSaving] = useState(false);
@@ -346,7 +347,7 @@ export default function TaskSubmissionsPage() {
   const handleDownloadFile = async (submission: InfoSubmission) => {
     if (!submission.fileId) return;
     try {
-      const response = await apiClient.get(`/files/${submission.fileId}/download`, { responseType: 'blob' });
+      const response = await apiClient.get(`/files/${submission.fileId}/preview`, { responseType: 'blob' });
       const blob = new Blob([response.data]);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -385,7 +386,7 @@ export default function TaskSubmissionsPage() {
 
       for (const submission of fileSubmissions) {
         try {
-          const response = await apiClient.get(`/files/${submission.fileId}/download`, { 
+          const response = await apiClient.get(`/files/${submission.fileId}/preview`, { 
             responseType: 'arraybuffer' 
           });
           
@@ -527,9 +528,13 @@ export default function TaskSubmissionsPage() {
     if (!submission.fileId) return;
     setPreviewSubmission(submission);
     setPreviewLoading(true);
+    setPreviewText(null);
     try {
-      const response = await apiClient.get(`/files/${submission.fileId}/download`, { responseType: 'blob' });
+      const response = await apiClient.get(`/files/${submission.fileId}/preview`, { responseType: 'blob' });
       const blob = new Blob([response.data]);
+      if (submission.fileName?.match(/\.(txt|md|csv|log)$/i)) {
+        setPreviewText(await blob.text());
+      }
       setPreviewUrl(URL.createObjectURL(blob));
     } catch {
       alert('预览加载失败');
@@ -542,6 +547,7 @@ export default function TaskSubmissionsPage() {
   const closePreview = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
+    setPreviewText(null);
     setPreviewSubmission(null);
   };
 
@@ -1354,6 +1360,8 @@ export default function TaskSubmissionsPage() {
                   <div className="h-full flex items-center justify-center p-8">
                     <img src={previewUrl} alt={previewSubmission.fileName} className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
                   </div>
+                ) : previewText != null ? (
+                  <pre className="h-full overflow-auto p-8 text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono leading-relaxed bg-gray-50 dark:bg-gray-900">{previewText}</pre>
                 ) : (
                   <div className="h-full flex items-center justify-center text-gray-500">不支持预览此文件类型</div>
                 )
