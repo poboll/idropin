@@ -23,61 +23,61 @@ Idrop.in 云集是一个前后端分离的教育文件管理平台，提供文�
 ### 公开页面
 
 **产品首页**
-![产品首页](docs/images/landing.jpeg)
+![产品首页](https://raw.githubusercontent.com/poboll/idropin/main/docs/images/landing.jpeg)
 
 **技术架构**
-![技术架构](docs/images/landing-tech-stack.jpeg)
+![技术架构](https://raw.githubusercontent.com/poboll/idropin/main/docs/images/landing-tech-stack.jpeg)
 
 **登录**
-![登录](docs/images/login.jpeg)
+![登录](https://raw.githubusercontent.com/poboll/idropin/main/docs/images/login.jpeg)
 
 **关于**
-![关于](docs/images/about.jpeg)
+![关于](https://raw.githubusercontent.com/poboll/idropin/main/docs/images/about.jpeg)
 
 ### 核心功能
 
 **文件管理**
-![文件管理](docs/images/file-management.jpeg)
+![文件管理](https://raw.githubusercontent.com/poboll/idropin/main/docs/images/file-management.jpeg)
 
 **任务管理**
-![任务管理](docs/images/task-management.jpeg)
+![任务管理](https://raw.githubusercontent.com/poboll/idropin/main/docs/images/task-management.jpeg)
 
 **文件分享**
-![文件分享](docs/images/file-sharing.jpeg)
+![文件分享](https://raw.githubusercontent.com/poboll/idropin/main/docs/images/file-sharing.jpeg)
 
 **文件搜索**
-![文件搜索](docs/images/file-search.jpeg)
+![文件搜索](https://raw.githubusercontent.com/poboll/idropin/main/docs/images/file-search.jpeg)
 
 **数据统计**
-![数据统计](docs/images/statistics.jpeg)
+![数据统计](https://raw.githubusercontent.com/poboll/idropin/main/docs/images/statistics.jpeg)
 
 **反馈中心**
-![反馈中心](docs/images/feedback.jpeg)
+![反馈中心](https://raw.githubusercontent.com/poboll/idropin/main/docs/images/feedback.jpeg)
 
 ### 个人中心
 
 **个人中心**
-![个人中心](docs/images/user-profile.jpeg)
+![个人中心](https://raw.githubusercontent.com/poboll/idropin/main/docs/images/user-profile.jpeg)
 
 ### 管理后台
 
 **管理概况**
-![管理概况](docs/images/admin-overview.jpeg)
+![管理概况](https://raw.githubusercontent.com/poboll/idropin/main/docs/images/admin-overview.jpeg)
 
 **用户管理**
-![用户管理](docs/images/admin-users.jpeg)
+![用户管理](https://raw.githubusercontent.com/poboll/idropin/main/docs/images/admin-users.jpeg)
 
 **系统配置**
-![系统配置](docs/images/admin-config-system.jpeg)
+![系统配置](https://raw.githubusercontent.com/poboll/idropin/main/docs/images/admin-config-system.jpeg)
 
 **消息通知**
-![消息通知](docs/images/admin-config-system-notifications.jpeg)
+![消息通知](https://raw.githubusercontent.com/poboll/idropin/main/docs/images/admin-config-system-notifications.jpeg)
 
 **路由配置**
-![路由配置](docs/images/admin-config-routes.jpeg)
+![路由配置](https://raw.githubusercontent.com/poboll/idropin/main/docs/images/admin-config-routes.jpeg)
 
 **AI 配置**
-![AI 配置](docs/images/admin-config-ai.jpeg)
+![AI 配置](https://raw.githubusercontent.com/poboll/idropin/main/docs/images/admin-config-ai.jpeg)
 
 ## 功能
 
