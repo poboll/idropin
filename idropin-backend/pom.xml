@@ -215,9 +215,6 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <jvmArguments>-Xms128m -Xmx512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200</jvmArguments>
-                    <layers>
-                        <includeLayerTools>false</includeLayerTools>
-                    </layers>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
