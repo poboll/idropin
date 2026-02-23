@@ -207,7 +207,7 @@ export default function StatisticsPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
               <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={TS} formatter={(v: number) => [v, '文件数']} />
+              <Tooltip contentStyle={TS} formatter={(v: number | undefined) => [v ?? 0, '文件数']} />
               <Area type="monotone" dataKey="count" stroke="#374151" strokeWidth={2} fill="url(#ag)" dot={false} activeDot={{ r: 4, fill: '#111827', strokeWidth: 0 }} />
             </AreaChart>
           </ResponsiveContainer>
