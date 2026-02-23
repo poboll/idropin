@@ -20,18 +20,19 @@
         <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
         <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
         <result column="ai_prompt" property="aiPrompt" jdbcType="VARCHAR"/>
+        <result column="custom_dimensions" property="customDimensions" jdbcType="OTHER" typeHandler="com.idropin.infrastructure.config.ListMapJsonbTypeHandler"/>
     </resultMap>
 
     <select id="selectByIdString" resultMap="BaseResultMap">
         SELECT id, title, description, deadline, allow_anonymous, require_login,
-               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, deleted_at, created_at, updated_at, ai_prompt
+               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, deleted_at, created_at, updated_at, ai_prompt, custom_dimensions
         FROM collection_task
         WHERE id::text = #{id}
     </select>
 
     <select id="selectByCreatedBy" resultMap="BaseResultMap">
         SELECT id, title, description, deadline, allow_anonymous, require_login,
-               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, deleted_at, created_at, updated_at, ai_prompt
+               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, deleted_at, created_at, updated_at, ai_prompt, custom_dimensions
         FROM collection_task
         WHERE created_by::text = #{createdBy}
           AND (deleted = false OR deleted IS NULL)
@@ -40,7 +41,7 @@
 
     <select id="selectDeletedByCreatedBy" resultMap="BaseResultMap">
         SELECT id, title, description, deadline, allow_anonymous, require_login,
-               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, deleted_at, created_at, updated_at, ai_prompt
+               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, deleted_at, created_at, updated_at, ai_prompt, custom_dimensions
         FROM collection_task
         WHERE created_by::text = #{createdBy}
           AND deleted = true

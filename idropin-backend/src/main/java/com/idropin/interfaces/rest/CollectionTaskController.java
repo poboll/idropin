@@ -1117,10 +1117,16 @@ public class CollectionTaskController {
       @AuthenticationPrincipal UserDetails userDetails) {
     String userId = getUserId(userDetails);
     taskService.getTask(taskId, userId);
-    com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<CollectionTask> wrapper =
-        new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<>();
-    wrapper.eq(CollectionTask::getId, taskId)
-        .set(CollectionTask::getCustomDimensions, dimensions);
+    String json = dimensions == null || dimensions.isEmpty() ? null
+        : new com.fasterxml.jackson.databind.ObjectMapper().valueToTree(dimensions).toString();
+    com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<CollectionTask> wrapper =
+        new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<>();
+    wrapper.eq("id", taskId);
+    if (json == null) {
+      wrapper.set("custom_dimensions", null);
+    } else {
+      wrapper.setSql("custom_dimensions = '" + json.replace("'", "''") + "'::jsonb");
+    }
     collectionTaskMapper.update(null, wrapper);
     return Result.success(null);
   }

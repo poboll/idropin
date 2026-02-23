@@ -1,7 +1,7 @@
 -- AI evaluation history table: stores each grading attempt for trend comparison
 CREATE TABLE IF NOT EXISTS ai_evaluation_history (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    submission_id UUID NOT NULL REFERENCES file_submission(id) ON DELETE CASCADE,
+    id VARCHAR(64) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    submission_id VARCHAR(64) NOT NULL REFERENCES file_submission(id) ON DELETE CASCADE,
     score INTEGER,
     dimensions JSONB,
     feedback TEXT,
