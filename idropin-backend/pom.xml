@@ -118,6 +118,13 @@
             <version>7.19.0</version>
         </dependency>
 
+        <!-- OkHttp3 (required by Qiniu SDK) -->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>4.12.0</version>
+        </dependency>
+
         <!-- JWT -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
