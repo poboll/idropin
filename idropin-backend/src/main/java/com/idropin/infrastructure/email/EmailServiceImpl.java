@@ -123,6 +123,66 @@ public class EmailServiceImpl implements EmailService {
         sendHtmlEmail(to, subject, content);
     }
 
+    @Override
+    public void sendAiGradingNotification(String to, String taskTitle, String submitterName, int score, String grade) {
+        String subject = "Idrop.in - AI 批阅完成通知";
+        String content = buildAiGradingEmailContent(taskTitle, submitterName, score, grade);
+        sendHtmlEmail(to, subject, content);
+    }
+
+    private String buildAiGradingEmailContent(String taskTitle, String submitterName, int score, String grade) {
+        String gradeColor = switch (grade) {
+            case "S" -> "#8B5CF6";
+            case "A" -> "#3B82F6";
+            case "B" -> "#22C55E";
+            case "C" -> "#EAB308";
+            default -> "#EF4444";
+        };
+        return """
+                <!DOCTYPE html>
+                <html lang="zh">
+                <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+                <body style="margin:0;padding:0;background:#fafafa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+                    <table width="100%%" cellpadding="0" cellspacing="0" style="padding:40px 20px;">
+                        <tr><td align="center">
+                            <table width="480" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid #eaeaea;border-radius:8px;overflow:hidden;">
+                                <tr><td style="padding:32px 32px 0;">
+                                    <p style="margin:0;font-size:14px;font-weight:600;color:#111;letter-spacing:-0.2px;">Idrop.in</p>
+                                </td></tr>
+                                <tr><td style="padding:24px 32px 0;">
+                                    <h1 style="margin:0;font-size:22px;font-weight:600;color:#111;letter-spacing:-0.5px;">AI 批阅已完成</h1>
+                                </td></tr>
+                                <tr><td style="padding:16px 32px 0;">
+                                    <p style="margin:0;font-size:14px;line-height:1.6;color:#666;">%s 同学，您在「%s」中的提交已完成 AI 智能批阅。</p>
+                                </td></tr>
+                                <tr><td style="padding:24px 32px;" align="center">
+                                    <table cellpadding="0" cellspacing="0" style="background:#f9fafb;border-radius:12px;padding:20px 32px;">
+                                        <tr>
+                                            <td align="center" style="padding-right:24px;border-right:1px solid #e5e7eb;">
+                                                <p style="margin:0;font-size:36px;font-weight:700;color:#111;">%d</p>
+                                                <p style="margin:4px 0 0;font-size:12px;color:#999;">总分</p>
+                                            </td>
+                                            <td align="center" style="padding-left:24px;">
+                                                <p style="margin:0;font-size:36px;font-weight:700;color:%s;">%s</p>
+                                                <p style="margin:4px 0 0;font-size:12px;color:#999;">等级</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td></tr>
+                                <tr><td style="padding:0 32px 24px;">
+                                    <p style="margin:0;font-size:12px;color:#999;text-align:center;">登录平台可查看完整评估详情（含维度评分、反馈建议）</p>
+                                </td></tr>
+                                <tr><td style="padding:16px 32px;border-top:1px solid #eaeaea;">
+                                    <p style="margin:0;font-size:11px;color:#bbb;text-align:center;">Idrop.in 云集 &mdash; 智能化教育文件管理平台</p>
+                                </td></tr>
+                            </table>
+                        </td></tr>
+                    </table>
+                </body>
+                </html>
+                """.formatted(submitterName, taskTitle, score, gradeColor, grade);
+    }
+
     private String buildPasswordResetEmailContent(String resetUrl) {
         return """
                 <!DOCTYPE html>

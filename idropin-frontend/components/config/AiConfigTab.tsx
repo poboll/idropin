@@ -116,6 +116,25 @@ export default function AiConfigTab() {
             </button>
           </div>
 
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div>
+              <h3 className="font-medium text-gray-900 dark:text-white">评分完成邮件通知</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">AI 评分完成后自动向提交者发送邮件通知</p>
+            </div>
+            <button
+              onClick={() => setAiConfig(prev => ({ ...prev, 'ai.email_notification': prev['ai.email_notification'] === 'true' ? 'false' : 'true' }))}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 ${
+                aiConfig['ai.email_notification'] === 'true' ? 'bg-gray-900 dark:bg-white' : 'bg-gray-300 dark:bg-gray-600'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full ${aiConfig['ai.email_notification'] === 'true' ? 'bg-white dark:bg-gray-900' : 'bg-white'} transition-transform ${
+                  aiConfig['ai.email_notification'] === 'true' ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
               模型提供商

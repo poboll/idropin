@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Download, FileText, Clock, User, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { X, Download, FileText, Clock, User, ChevronDown, ChevronUp, Trash2, Brain } from 'lucide-react';
 import { useState } from 'react';
 import { withdrawSubmission } from '@/lib/api/tasks';
 
@@ -12,6 +12,9 @@ interface SubmissionRecord {
   fileName?: string;
   fileSize?: number;
   status: number;
+  aiStatus?: number;
+  aiEvaluation?: { score: number; dimensions: Record<string, number>; feedback: string; summary: string; evaluatedAt: string } | null;
+  isPlagiarized?: boolean;
 }
 
 interface SubmissionHistoryModalProps {
@@ -318,6 +321,22 @@ export function SubmissionHistoryModal({
                               <Clock className="w-3 h-3" />
                               {formatDateTime(submission.submittedAt)}
                             </div>
+                            {submission.aiEvaluation && (
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <Brain className="w-3 h-3 text-purple-500" />
+                                <span className={`text-xs font-semibold ${
+                                  submission.aiEvaluation.score >= 90 ? 'text-purple-600' :
+                                  submission.aiEvaluation.score >= 80 ? 'text-blue-600' :
+                                  submission.aiEvaluation.score >= 70 ? 'text-green-600' :
+                                  submission.aiEvaluation.score >= 60 ? 'text-yellow-600' : 'text-red-600'
+                                }`}>
+                                  AI {submission.aiEvaluation.score}分
+                                </span>
+                                {submission.isPlagiarized && (
+                                  <span className="text-xs px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded">疑似抷袭</span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -392,6 +411,27 @@ export function SubmissionHistoryModal({
                             </p>
                           )}
                         </div>
+
+                        {/* AI Evaluation Details */}
+                        {submission.aiEvaluation && (
+                          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Brain className="w-4 h-4 text-purple-500" />
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">AI 评估详情</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 mb-2">
+                              {Object.entries(submission.aiEvaluation.dimensions).map(([dim, score]) => (
+                                <div key={dim} className="flex justify-between text-xs">
+                                  <span className="text-gray-500 dark:text-gray-400">{dim}</span>
+                                  <span className="font-medium text-gray-900 dark:text-white">{score}</span>
+                                </div>
+                              ))}
+                            </div>
+                            {submission.aiEvaluation.summary && (
+                              <p className="text-xs text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-900 rounded p-2">{submission.aiEvaluation.summary}</p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

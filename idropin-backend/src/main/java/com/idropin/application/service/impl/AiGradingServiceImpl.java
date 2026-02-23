@@ -9,12 +9,15 @@ import com.idropin.domain.entity.FileSubmission;
 import com.idropin.domain.vo.AiEvaluationResult;
 import com.idropin.infrastructure.ai.AiClientService;
 import com.idropin.infrastructure.ai.DocumentExtractService;
+import com.idropin.infrastructure.email.EmailService;
+import com.idropin.interfaces.rest.AiProgressSseController;
 import com.idropin.infrastructure.persistence.mapper.CollectionTaskMapper;
 import com.idropin.infrastructure.persistence.mapper.FileMapper;
 import com.idropin.infrastructure.persistence.mapper.FileSubmissionMapper;
 import com.idropin.infrastructure.storage.StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +41,9 @@ public class AiGradingServiceImpl implements AiGradingService {
     private final DocumentExtractService documentExtractService;
     private final AiClientService aiClientService;
     private final ConfigService configService;
+
+    @Autowired(required = false)
+    private EmailService emailService;
 
     @Override
     @Transactional
@@ -70,6 +76,7 @@ public class AiGradingServiceImpl implements AiGradingService {
     private void doProcess(FileSubmission submission, String customPrompt) {
         String submissionId = submission.getId();
         updateAiStatus(submissionId, AI_STATUS_PROCESSING);
+        AiProgressSseController.broadcast(submission.getTaskId(), submissionId, AI_STATUS_PROCESSING, null);
 
         try {
             File file = fileMapper.selectById(submission.getFileId());
@@ -110,13 +117,30 @@ public class AiGradingServiceImpl implements AiGradingService {
             submissionMapper.updateById(updateEntity);
 
             log.info("AI grading completed for submission {}: score={}", submissionId, evaluation.getScore());
+            AiProgressSseController.broadcast(submission.getTaskId(), submissionId, AI_STATUS_COMPLETED, evaluation.getScore());
+
+            // Email notification
+            try {
+                boolean emailEnabled = "true".equals(configService.getSystemConfigValue("ai.email_notification"));
+                if (emailEnabled && emailService != null && submission.getSubmitterEmail() != null && !submission.getSubmitterEmail().isBlank()) {
+                    String grade = evaluation.getScore() >= 90 ? "S" : evaluation.getScore() >= 80 ? "A" : evaluation.getScore() >= 70 ? "B" : evaluation.getScore() >= 60 ? "C" : "D";
+                    emailService.sendAiGradingNotification(
+                            submission.getSubmitterEmail(), taskTitle,
+                            submission.getSubmitterName(), evaluation.getScore(), grade);
+                    log.info("AI grading notification sent to {} for submission {}", submission.getSubmitterEmail(), submissionId);
+                }
+            } catch (Exception emailEx) {
+                log.warn("Failed to send AI grading notification for submission {}: {}", submissionId, emailEx.getMessage());
+            }
 
         } catch (AiClientService.AiServiceException e) {
             log.error("AI service error for submission {}: {}", submissionId, e.getMessage());
             updateAiStatus(submissionId, AI_STATUS_FAILED);
+            AiProgressSseController.broadcast(submission.getTaskId(), submissionId, AI_STATUS_FAILED, null);
         } catch (Exception e) {
             log.error("Unexpected error processing submission {}", submissionId, e);
             updateAiStatus(submissionId, AI_STATUS_FAILED);
+            AiProgressSseController.broadcast(submission.getTaskId(), submissionId, AI_STATUS_FAILED, null);
         }
     }
 

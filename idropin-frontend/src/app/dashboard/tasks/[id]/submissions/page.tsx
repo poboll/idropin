@@ -12,6 +12,7 @@ const AiEvaluationPanel = dynamic(() => import('@/components/ai/AiEvaluationPane
 });
 import { getTaskInfoSubmissions, exportInfoSubmissions, getTaskAiPrompt, saveTaskAiPrompt, regradeSubmission, batchRegradeSubmissions } from '@/lib/api/tasks';
 import { apiClient } from '@/lib/api/client';
+import { API_BASE_URL } from '@/lib/api/baseUrl';
 import { useAuthStore } from '@/lib/stores/auth';
 import { getToken } from '@/lib/api/client';
 
@@ -172,6 +173,28 @@ export default function TaskSubmissionsPage() {
       isMounted = false;
     };
   }, [fetchCurrentUser, isAuthenticated, loadSubmissions, router]);
+
+  // SSE: 实时监听 AI 评分进度
+  useEffect(() => {
+    if (collectionType !== 'FILE' || !hasLoadedRef.current) return;
+    const url = `${API_BASE_URL}/tasks/${taskId}/ai-progress`;
+    const es = new EventSource(url);
+    es.addEventListener('ai-progress', (e) => {
+      try {
+        const data = JSON.parse(e.data) as { submissionId: string; status: number; score?: number };
+        setSubmissions(prev => prev.map(s =>
+          s.id === data.submissionId
+            ? { ...s, aiStatus: data.status, ...(data.status === 2 && data.score != null ? { aiEvaluation: s.aiEvaluation ? { ...s.aiEvaluation, score: data.score } : s.aiEvaluation } : {}) }
+            : s
+        ));
+        if (data.status === 2 || data.status === -1) {
+          setTimeout(() => { hasLoadedRef.current = false; loadSubmissions(); }, 1500);
+        }
+      } catch { /* ignore parse errors */ }
+    });
+    es.onerror = () => { es.close(); };
+    return () => es.close();
+  }, [taskId, collectionType, loadSubmissions]);
 
 
   const handleExport = async (format: 'csv' | 'json' | 'txt' | 'excel') => {
