@@ -90,6 +90,9 @@ public class CollectionTask {
    */
   private String aiPrompt;
 
+
+  @TableField(typeHandler = com.idropin.infrastructure.config.ListMapJsonbTypeHandler.class)
+  private java.util.List<java.util.Map<String, Object>> customDimensions;
   /**
    * 软删除标记（回收站）
    */

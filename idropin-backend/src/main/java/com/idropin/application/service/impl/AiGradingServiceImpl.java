@@ -14,6 +14,8 @@ import com.idropin.interfaces.rest.AiProgressSseController;
 import com.idropin.infrastructure.persistence.mapper.CollectionTaskMapper;
 import com.idropin.infrastructure.persistence.mapper.FileMapper;
 import com.idropin.infrastructure.persistence.mapper.FileSubmissionMapper;
+import com.idropin.domain.entity.AiEvaluationHistory;
+import com.idropin.infrastructure.persistence.mapper.AiEvaluationHistoryMapper;
 import com.idropin.infrastructure.storage.StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +43,7 @@ public class AiGradingServiceImpl implements AiGradingService {
     private final DocumentExtractService documentExtractService;
     private final AiClientService aiClientService;
     private final ConfigService configService;
+    private final AiEvaluationHistoryMapper historyMapper;
 
     @Autowired(required = false)
     private EmailService emailService;
@@ -108,13 +111,29 @@ public class AiGradingServiceImpl implements AiGradingService {
 
             String taskTitle = getTaskTitle(submission.getTaskId());
             String prompt = customPrompt != null ? customPrompt : getTaskPrompt(submission.getTaskId());
-            AiEvaluationResult evaluation = aiClientService.evaluate(text, taskTitle, prompt);
+            CollectionTask taskEntity = taskMapper.selectByIdString(submission.getTaskId());
+            java.util.List<java.util.Map<String, Object>> customDims = taskEntity != null ? taskEntity.getCustomDimensions() : null;
+            AiEvaluationResult evaluation = aiClientService.evaluate(text, taskTitle, prompt, customDims);
 
             FileSubmission updateEntity = new FileSubmission();
             updateEntity.setId(submissionId);
             updateEntity.setAiStatus(AI_STATUS_COMPLETED);
             updateEntity.setAiEvaluation(evaluation);
             submissionMapper.updateById(updateEntity);
+
+            // Save evaluation history
+            try {
+                AiEvaluationHistory history = new AiEvaluationHistory();
+                history.setSubmissionId(submissionId);
+                history.setScore(evaluation.getScore());
+                history.setDimensions(evaluation.getDimensions());
+                history.setFeedback(evaluation.getFeedback());
+                history.setSummary(evaluation.getSummary());
+                history.setEvaluatedAt(java.time.LocalDateTime.now());
+                historyMapper.insert(history);
+            } catch (Exception historyEx) {
+                log.warn("Failed to save evaluation history for submission {}: {}", submissionId, historyEx.getMessage());
+            }
 
             log.info("AI grading completed for submission {}: score={}", submissionId, evaluation.getScore());
             AiProgressSseController.broadcast(submission.getTaskId(), submissionId, AI_STATUS_COMPLETED, evaluation.getScore());

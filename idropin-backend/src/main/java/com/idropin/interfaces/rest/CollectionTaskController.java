@@ -53,6 +53,7 @@ public class CollectionTaskController {
   private final com.idropin.infrastructure.persistence.mapper.FileMapper fileMapper;
   private final AiGradingService aiGradingService;
   private final com.idropin.infrastructure.persistence.mapper.CollectionTaskMapper collectionTaskMapper;
+  private final com.idropin.infrastructure.persistence.mapper.AiEvaluationHistoryMapper aiEvaluationHistoryMapper;
 
   @Value("${app.backend-url:http://localhost:8081/api}")
   private String backendUrl;
@@ -1084,6 +1085,45 @@ public class CollectionTaskController {
     return Result.success(null);
   }
 
+
+  @GetMapping("/{taskId}/submissions/{submissionId}/ai-history")
+  @Operation(summary = "获取提交的AI评估历史")
+  public Result<List<com.idropin.domain.entity.AiEvaluationHistory>> getAiHistory(
+      @PathVariable String taskId,
+      @PathVariable String submissionId,
+      @AuthenticationPrincipal UserDetails userDetails) {
+    String userId = getUserId(userDetails);
+    taskService.getTask(taskId, userId);
+    List<com.idropin.domain.entity.AiEvaluationHistory> history =
+        aiEvaluationHistoryMapper.findBySubmissionId(submissionId);
+    return Result.success(history);
+  }
+
+  @GetMapping("/{taskId}/custom-dimensions")
+  @Operation(summary = "获取任务自定义评估维度")
+  public Result<List<Map<String, Object>>> getCustomDimensions(
+      @PathVariable String taskId,
+      @AuthenticationPrincipal UserDetails userDetails) {
+    String userId = getUserId(userDetails);
+    CollectionTask task = taskService.getTask(taskId, userId);
+    return Result.success(task.getCustomDimensions());
+  }
+
+  @PutMapping("/{taskId}/custom-dimensions")
+  @Operation(summary = "保存任务自定义评估维度")
+  public Result<Void> saveCustomDimensions(
+      @PathVariable String taskId,
+      @RequestBody List<Map<String, Object>> dimensions,
+      @AuthenticationPrincipal UserDetails userDetails) {
+    String userId = getUserId(userDetails);
+    taskService.getTask(taskId, userId);
+    com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<CollectionTask> wrapper =
+        new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<>();
+    wrapper.eq(CollectionTask::getId, taskId)
+        .set(CollectionTask::getCustomDimensions, dimensions);
+    collectionTaskMapper.update(null, wrapper);
+    return Result.success(null);
+  }
   private String getUserId(UserDetails userDetails) {
     if (userDetails == null) {
       log.error("UserDetails is null");
