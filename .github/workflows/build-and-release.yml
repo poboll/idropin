@@ -1,0 +1,231 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      version_suffix:
+        description: 'Optional version suffix (e.g. rc1)'
+        required: false
+
+env:
+  JAVA_VERSION: '21'
+  NODE_VERSION: '18'
+  FRONTEND_DIR: idropin-frontend
+  BACKEND_DIR: idropin-backend
+  DOCKER_FRONTEND_IMAGE: poboll/idropin-frontend
+  DOCKER_BACKEND_IMAGE: poboll/idropin-backend
+
+jobs:
+  # ────────────────────────────────────────────
+  # 1. Generate version tag (shared across jobs)
+  # ────────────────────────────────────────────
+  version:
+    name: Generate Version
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.gen.outputs.tag }}
+    steps:
+      - name: Generate version tag
+        id: gen
+        run: |
+          SUFFIX="${{ github.event.inputs.version_suffix }}"
+          TAG="v$(date -u +'%Y%m%d-%H%M%S')"
+          [ -n "$SUFFIX" ] && TAG="${TAG}-${SUFFIX}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Generated tag: ${TAG}"
+
+  # ────────────────────────────────────────────
+  # 2. Build frontend
+  # ────────────────────────────────────────────
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    needs: version
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: ${{ env.FRONTEND_DIR }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: npm ci
+
+      - name: Build
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: npm run build
+
+      - name: Package standalone output
+        run: |
+          mkdir -p dist/frontend
+          cp -r ${{ env.FRONTEND_DIR }}/.next/standalone/. dist/frontend/
+          cp -r ${{ env.FRONTEND_DIR }}/.next/static      dist/frontend/.next/static
+          cp -r ${{ env.FRONTEND_DIR }}/public            dist/frontend/public
+          tar -czf idropin-frontend-${{ needs.version.outputs.tag }}.tar.gz -C dist/frontend .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: idropin-frontend-${{ needs.version.outputs.tag }}.tar.gz
+          retention-days: 7
+
+  # ────────────────────────────────────────────
+  # 3. Build backend
+  # ────────────────────────────────────────────
+  build-backend:
+    name: Build Backend
+    runs-on: ubuntu-latest
+    needs: version
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+
+      - name: Build JAR
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: mvn clean package -DskipTests -B
+
+      - name: Rename JAR
+        run: |
+          mv ${{ env.BACKEND_DIR }}/target/idropin-backend-*.jar \
+             idropin-backend-${{ needs.version.outputs.tag }}.jar
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-build
+          path: idropin-backend-${{ needs.version.outputs.tag }}.jar
+          retention-days: 7
+
+  # ────────────────────────────────────────────
+  # 4. Build & push Docker images
+  # ────────────────────────────────────────────
+  docker:
+    name: Docker Build & Push
+    runs-on: ubuntu-latest
+    needs: [version, build-frontend, build-backend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build & push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ env.FRONTEND_DIR }}
+          push: true
+          tags: |
+            ${{ env.DOCKER_FRONTEND_IMAGE }}:latest
+            ${{ env.DOCKER_FRONTEND_IMAGE }}:${{ needs.version.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ env.BACKEND_DIR }}
+          push: true
+          tags: |
+            ${{ env.DOCKER_BACKEND_IMAGE }}:latest
+            ${{ env.DOCKER_BACKEND_IMAGE }}:${{ needs.version.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ────────────────────────────────────────────
+  # 5. Create GitHub Release
+  # ────────────────────────────────────────────
+  release:
+    name: GitHub Release
+    runs-on: ubuntu-latest
+    needs: [version, build-frontend, build-backend, docker]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          TAG="${{ needs.version.outputs.tag }}"
+          PREV_TAG=$(git tag --sort=-version:refname | head -1)
+
+          if [ -n "$PREV_TAG" ]; then
+            LOG=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s" --no-merges | head -30)
+          else
+            LOG=$(git log --pretty=format:"- %s" --no-merges | head -30)
+          fi
+
+          cat > release_notes.md << EOF
+          ## $TAG
+
+          ### 变更记录
+
+          ${LOG:-"- Initial release"}
+
+          ### 构建产物
+
+          | 产物 | 说明 |
+          |---|---|
+          | \`idropin-frontend-${TAG}.tar.gz\` | Next.js standalone 包，解压后 \`node server.js\` 运行 |
+          | \`idropin-backend-${TAG}.jar\` | Spring Boot 可执行 JAR，\`java -jar\` 运行 |
+
+          ### Docker 镜像
+
+          \`\`\`bash
+          docker pull poboll/idropin-frontend:${TAG}
+          docker pull poboll/idropin-backend:${TAG}
+          \`\`\`
+
+          ### 系统要求
+
+          | 组件 | 最低版本 |
+          |---|---|
+          | Node.js | 18 |
+          | Java | 21 |
+          | PostgreSQL | 16 |
+          | Redis | 7 |
+          EOF
+
+      - name: Create tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${{ needs.version.outputs.tag }}"
+          git push origin "${{ needs.version.outputs.tag }}"
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          name: ${{ needs.version.outputs.tag }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/idropin-frontend-${{ needs.version.outputs.tag }}.tar.gz
+            artifacts/idropin-backend-${{ needs.version.outputs.tag }}.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
