@@ -52,6 +52,7 @@ public class SecurityConfig {
                         .requestMatchers("/public/**").permitAll()
                         .requestMatchers("/tasks/*/public-info").permitAll() // 公开任务信息（用于收集链接）
                         .requestMatchers("/tasks/*/public-more-info").permitAll() // 公开任务更多信息
+                        .requestMatchers("/tasks/*/ai-progress").permitAll() // AI评分进度SSE
                         .requestMatchers("/tasks/*/submit").permitAll() // 公开文件提交
                         .requestMatchers("/tasks/*/submit-info").permitAll() // 公开信息提交
                         .requestMatchers("/tasks/*/public-submit").permitAll() // 公开文件提交

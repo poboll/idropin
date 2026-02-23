@@ -33,5 +33,7 @@ public interface EmailService {
      */
     void sendPasswordResetEmail(String to, String token);
 
+    void sendAiGradingNotification(String to, String taskTitle, String submitterName, int score, String grade);
+
     void refreshCache();
 }

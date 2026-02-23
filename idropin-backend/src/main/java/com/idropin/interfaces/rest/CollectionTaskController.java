@@ -555,6 +555,10 @@ public class CollectionTaskController {
             item.put("fileSize", file.getFileSize());
           }
         }
+        item.put("aiStatus", sub.getAiStatus());
+        item.put("aiEvaluation", sub.getAiEvaluation());
+        item.put("isPlagiarized", sub.getIsPlagiarized());
+        item.put("similarToId", sub.getSimilarToId());
         
         submissionList.add(item);
       }
