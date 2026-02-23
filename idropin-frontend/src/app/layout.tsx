@@ -7,7 +7,7 @@ import ConsoleBanner from '@/components/ConsoleBanner';
 const inter = Inter({ subsets: ['latin'] });
 
 export const viewport: Viewport = {
-  themeColor: '#3b82f6',
+  themeColor: '#1c1c1c',
 }
 
 export const metadata: Metadata = {
@@ -15,9 +15,13 @@ export const metadata: Metadata = {
   description: 'Idrop.in - 云集，一个技术先进、体验优秀的文件管理平台',
   manifest: '/manifest.json',
   icons: {
-    icon: 'https://task.caiths.com/favicon.ico',
-    shortcut: 'https://task.caiths.com/favicon.ico',
-    apple: '/icons/icon-192x192.png',
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icons/icon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
   },
 };
 
@@ -29,9 +33,9 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="https://task.caiths.com/favicon.ico" />
-        <link rel="shortcut icon" href="https://task.caiths.com/favicon.ico" />
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/icons/icon-192x192.png" type="image/png" sizes="192x192" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className={inter.className}>
         <ThemeProvider>
