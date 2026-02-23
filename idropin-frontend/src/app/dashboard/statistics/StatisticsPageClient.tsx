@@ -233,7 +233,7 @@ export default function StatisticsPage() {
                     <Pie data={statistics.fileTypeDistribution} cx="50%" cy="50%" innerRadius={56} outerRadius={90} dataKey="count" strokeWidth={2} stroke="transparent">
                       {statistics.fileTypeDistribution.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                     </Pie>
-                    <Tooltip contentStyle={TS} formatter={(v: number, _: string, p: { payload?: { typeName?: string; percentage?: number } }) => [`${v} 个 (${(p.payload?.percentage ?? 0).toFixed(1)}%)`, p.payload?.typeName ?? '']} />
+                    <Tooltip contentStyle={TS} formatter={(v: number | undefined, _: string, p: { payload?: { typeName?: string; percentage?: number } }) => [`${v ?? 0} 个 (${(p.payload?.percentage ?? 0).toFixed(1)}%)`, p.payload?.typeName ?? '']} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -269,7 +269,7 @@ export default function StatisticsPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
               <XAxis dataKey="categoryName" tick={{ fontSize: 12, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={TS} formatter={(v: number, _: string, p: { payload?: { storageSize?: number } }) => [`${v} 个（${formatBytes(p.payload?.storageSize ?? 0)}）`, '文件数']} cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
+              <Tooltip contentStyle={TS} formatter={(v: number | undefined, _: string, p: { payload?: { storageSize?: number } }) => [`${v ?? 0} 个（${formatBytes(p.payload?.storageSize ?? 0)}）`, '文件数']} cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
               <Bar dataKey="fileCount" fill="url(#bg)" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -343,7 +343,7 @@ export default function StatisticsPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
                 <XAxis dataKey="range" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip contentStyle={TS} formatter={(v: number) => [v, '人数']} />
+                <Tooltip contentStyle={TS} formatter={(v: number | undefined) => [v ?? 0, '人数']} />
                 <Bar dataKey="count" fill="url(#aiScoreGrad)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -366,7 +366,7 @@ export default function StatisticsPage() {
                       <Pie data={gradeDistribution} cx="50%" cy="50%" innerRadius={48} outerRadius={76} dataKey="count" strokeWidth={2} stroke="transparent">
                         {gradeDistribution.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                       </Pie>
-                      <Tooltip contentStyle={TS} formatter={(v: number, _: string, p: { payload?: { name?: string } }) => [`${v} 人`, `${p.payload?.name ?? ''} 级`]} />
+                      <Tooltip contentStyle={TS} formatter={(v: number | undefined, _: string, p: { payload?: { name?: string } }) => [`${v ?? 0} 人`, `${p.payload?.name ?? ''} 级`]} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -399,7 +399,7 @@ export default function StatisticsPage() {
                   <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 11, fill: '#6b7280' }} />
                   <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10, fill: '#9ca3af' }} />
                   <Radar dataKey="score" stroke="#374151" fill="#111827" fillOpacity={0.15} strokeWidth={2} />
-                  <Tooltip contentStyle={TS} formatter={(v: number) => [`${v} 分`, '平均分']} />
+                  <Tooltip contentStyle={TS} formatter={(v: number | undefined) => [`${v ?? 0} 分`, '平均分']} />
                 </RadarChart>
               </ResponsiveContainer>
             )}
