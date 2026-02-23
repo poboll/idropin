@@ -160,12 +160,12 @@ export default function FeedbackManagePage() {
   const totalPages = Math.ceil(total / pageSize);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-enter">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
+      <div className="page-header animate-slide-in-down flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">需求反馈</h1>
-          <p className="text-sm text-gray-500 mt-1">管理用户提交的需求和反馈</p>
+          <h1 className="page-title">需求反馈</h1>
+          <p className="page-description">管理用户提交的需求和反馈</p>
         </div>
       </div>
 

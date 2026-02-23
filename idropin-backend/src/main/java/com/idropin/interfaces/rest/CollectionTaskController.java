@@ -689,7 +689,7 @@ public class CollectionTaskController {
   }
 
   @GetMapping("/{taskId}/info-submissions/export")
-  @Operation(summary = "导出任务的信息提交记录（CSV格式）")
+  @Operation(summary = "导出任务的提交记录（CSV格式，支持AI字段）")
   public void exportInfoSubmissions(
       @PathVariable String taskId,
       @RequestParam(value = "format", defaultValue = "csv") String format,
@@ -697,15 +697,9 @@ public class CollectionTaskController {
       jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
 
     String userId = getUserId(userDetails);
-
-    // 验证用户有权限访问此任务
     CollectionTask task = taskService.getTask(taskId, userId);
 
-    // 查询所有信息提交记录
-    List<TaskSubmission> submissions = taskSubmissionMapper.findAllByTaskKey(taskId);
-
-    // 生成文件名：任务名称_提交记录_年-月-日
-    String dateStr = java.time.LocalDate.now().toString(); // 格式：2026-02-02
+    String dateStr = java.time.LocalDate.now().toString();
     String filename = task.getTitle() + "_提交记录_" + dateStr + ".csv";
     response.setContentType("text/csv;charset=UTF-8");
     response.setHeader("Content-Disposition", "attachment; filename=\"" +
@@ -713,68 +707,118 @@ public class CollectionTaskController {
     response.setCharacterEncoding("UTF-8");
 
     java.io.PrintWriter writer = response.getWriter();
-    
-    // 写入BOM以支持Excel正确识别UTF-8
     writer.write('\uFEFF');
 
-    // 收集所有可能的字段名
-    java.util.Set<String> allFields = new java.util.LinkedHashSet<>();
-    allFields.add("提交者");
-    allFields.add("提交时间");
-    allFields.add("状态");
+    boolean isFileTask = "FILE".equals(task.getCollectionType());
 
-    for (TaskSubmission sub : submissions) {
-      if (sub.getInfoData() != null && !sub.getInfoData().isEmpty()) {
-        try {
-          com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
-          java.util.Map<String, String> infoMap = objectMapper.readValue(sub.getInfoData(),
-              new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, String>>() {});
-          allFields.addAll(infoMap.keySet());
-        } catch (Exception e) {
-          log.warn("Failed to parse infoData: {}", e.getMessage());
+    if (isFileTask) {
+      // FILE类型：导出file_submission，包含AI字段
+      List<com.idropin.domain.entity.FileSubmission> fileSubmissions =
+        fileSubmissionMapper.selectList(
+          new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.idropin.domain.entity.FileSubmission>()
+            .eq("task_id", taskId)
+            .orderByDesc("submitted_at")
+        );
+
+      writer.println("提交者,提交时间,文件名,AI评分,完整性,准确性,规范性,创新性,抄袭状态,AI摘要,AI评语");
+
+      com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+      for (com.idropin.domain.entity.FileSubmission sub : fileSubmissions) {
+        java.util.List<String> row = new java.util.ArrayList<>();
+        row.add(escapeCsv(sub.getSubmitterName() != null ? sub.getSubmitterName() : ""));
+        row.add(escapeCsv(sub.getSubmittedAt() != null ? sub.getSubmittedAt().toString() : ""));
+
+        // 查文件名
+        String fname = "";
+        if (sub.getFileId() != null) {
+          com.idropin.domain.entity.File file = fileMapper.selectById(sub.getFileId());
+          if (file != null) fname = file.getOriginalName();
         }
-      }
-    }
+        row.add(escapeCsv(fname));
 
-    // 写入表头
-    writer.println(String.join(",", allFields));
-
-    // 写入数据行
-    for (TaskSubmission sub : submissions) {
-      java.util.List<String> row = new java.util.ArrayList<>();
-      java.util.Map<String, String> infoMap = new java.util.HashMap<>();
-
-      if (sub.getInfoData() != null && !sub.getInfoData().isEmpty()) {
-        try {
-          com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
-          infoMap = objectMapper.readValue(sub.getInfoData(),
-              new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, String>>() {});
-        } catch (Exception e) {
-          log.warn("Failed to parse infoData: {}", e.getMessage());
-        }
-      }
-
-      for (String field : allFields) {
-        String value = "";
-        if ("提交者".equals(field)) {
-          value = sub.getSubmitterName() != null ? sub.getSubmitterName() : "";
-        } else if ("提交时间".equals(field)) {
-          value = sub.getSubmittedAt() != null ? sub.getSubmittedAt().toString() : "";
-        } else if ("状态".equals(field)) {
-          value = sub.getStatus() == 0 ? "已提交" : "已撤回";
+        // AI字段
+        com.idropin.domain.vo.AiEvaluationResult eval = sub.getAiEvaluation();
+        if (eval != null && sub.getAiStatus() != null && sub.getAiStatus() == 2) {
+          row.add(String.valueOf(eval.getScore() != null ? eval.getScore() : ""));
+          java.util.Map<String, Integer> dims = eval.getDimensions();
+          row.add(dims != null ? String.valueOf(dims.getOrDefault("完整性", 0)) : "");
+          row.add(dims != null ? String.valueOf(dims.getOrDefault("准确性", 0)) : "");
+          row.add(dims != null ? String.valueOf(dims.getOrDefault("规范性", 0)) : "");
+          row.add(dims != null ? String.valueOf(dims.getOrDefault("创新性", 0)) : "");
+          row.add(Boolean.TRUE.equals(sub.getIsPlagiarized()) ? "涉嫌抄袭" : "正常");
+          row.add(escapeCsv(eval.getSummary() != null ? eval.getSummary() : ""));
+          row.add(escapeCsv(eval.getFeedback() != null ? eval.getFeedback() : ""));
         } else {
-          value = infoMap.getOrDefault(field, "");
+          String aiLabel = sub.getAiStatus() != null && sub.getAiStatus() == -1 ? "评估失败" : "待评估";
+          row.add(aiLabel);
+          row.add(""); row.add(""); row.add(""); row.add("");
+          row.add(""); row.add(""); row.add("");
         }
-        // 处理CSV特殊字符
-        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
-          value = "\"" + value.replace("\"", "\"\"") + "\"";
-        }
-        row.add(value);
+        writer.println(String.join(",", row));
       }
-      writer.println(String.join(",", row));
+    } else {
+      // INFO类型：原有逻辑
+      List<TaskSubmission> submissions = taskSubmissionMapper.findAllByTaskKey(taskId);
+
+      java.util.Set<String> allFields = new java.util.LinkedHashSet<>();
+      allFields.add("提交者");
+      allFields.add("提交时间");
+      allFields.add("状态");
+
+      com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+      for (TaskSubmission sub : submissions) {
+        if (sub.getInfoData() != null && !sub.getInfoData().isEmpty()) {
+          try {
+            java.util.Map<String, String> infoMap = om.readValue(sub.getInfoData(),
+                new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, String>>() {});
+            allFields.addAll(infoMap.keySet());
+          } catch (Exception e) {
+            log.warn("Failed to parse infoData: {}", e.getMessage());
+          }
+        }
+      }
+
+      writer.println(String.join(",", allFields));
+
+      for (TaskSubmission sub : submissions) {
+        java.util.List<String> row = new java.util.ArrayList<>();
+        java.util.Map<String, String> infoMap = new java.util.HashMap<>();
+
+        if (sub.getInfoData() != null && !sub.getInfoData().isEmpty()) {
+          try {
+            infoMap = om.readValue(sub.getInfoData(),
+                new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, String>>() {});
+          } catch (Exception e) {
+            log.warn("Failed to parse infoData: {}", e.getMessage());
+          }
+        }
+
+        for (String field : allFields) {
+          String value = "";
+          if ("提交者".equals(field)) {
+            value = sub.getSubmitterName() != null ? sub.getSubmitterName() : "";
+          } else if ("提交时间".equals(field)) {
+            value = sub.getSubmittedAt() != null ? sub.getSubmittedAt().toString() : "";
+          } else if ("状态".equals(field)) {
+            value = sub.getStatus() == 0 ? "已提交" : "已撤回";
+          } else {
+            value = infoMap.getOrDefault(field, "");
+          }
+          row.add(escapeCsv(value));
+        }
+        writer.println(String.join(",", row));
+      }
     }
 
     writer.flush();
+  }
+
+  private String escapeCsv(String value) {
+    if (value == null) return "";
+    if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+      return "\"" + value.replace("\"", "\"\"") + "\"";
+    }
+    return value;
   }
 
   @PostMapping("/{taskId}/info-submissions/{submissionId}/withdraw")

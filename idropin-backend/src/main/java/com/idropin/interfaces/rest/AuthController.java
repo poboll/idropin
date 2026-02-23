@@ -54,7 +54,7 @@ public class AuthController {
     /**
      * 用户登录
      */
-    @RateLimit(permits = 10, seconds = 60, key = "login")
+    @RateLimit(permits = 60, seconds = 60, key = "login")
     @Operation(summary = "用户登录", description = "用户登录获取Token")
     @PostMapping("/login")
     public Result<LoginResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {

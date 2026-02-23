@@ -5,7 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { 
-  Upload, 
   FolderOpen, 
   ListTodo, 
   Share2, 
@@ -26,6 +25,7 @@ import { normalizeBackendUrl } from '@/lib/api/baseUrl';
 import { MessageButton } from '@/components/layout/MessageButton';
 import { HitokotoDisplay } from '@/components/layout/HitokotoDisplay';
 import AuthGuard from '@/components/auth/AuthGuard';
+import { AppLogo } from '@/components/ui/AppLogo';
 import AnnouncementBanner from '@/components/AnnouncementBanner';
 
 const navItems = [
@@ -87,9 +87,7 @@ export default function DashboardLayout({
           {/* Left: Logo & Nav */}
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-gray-900 dark:bg-white rounded-md flex items-center justify-center">
-                <Upload className="w-3.5 h-3.5 text-white dark:text-gray-900" />
-              </div>
+              <AppLogo size={28} />
               <span className="text-base font-semibold text-gray-900 dark:text-white">云集</span>
             </Link>
 

@@ -178,19 +178,15 @@ const FORCE_LOGIN_SCRIPT = `<script>
     var name    = (userData.userName || userData.userAccount || '用户').slice(0, 6);
     var initial = name.slice(0, 1);
     var userId  = userData.id || '';
-    var avatar  = userData.userAvatar || '';
-    var avatarHtml = avatar
-      ? '<img src="' + avatar + '" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'inline-flex\'" />'
-        + '<span style="width:32px;height:32px;line-height:32px;font-size:14px;background:#1677ff;color:#fff;display:none;align-items:center;justify-content:center;border-radius:50%;flex-shrink:0">' + initial + '<\/span>'
-      : '<span style="width:32px;height:32px;line-height:32px;font-size:14px;background:#1677ff;color:#fff;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;flex-shrink:0">' + initial + '<\/span>';
+    var avatarEl = '<span style="width:32px;height:32px;line-height:32px;font-size:14px;background:#1677ff;color:#fff;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;flex-shrink:0">' + initial + '<\/span>';
     var html = '<a href="/user/' + userId + '/info" style="display:flex;align-items:center;gap:8px;cursor:pointer;text-decoration:none;color:inherit">'
-      + avatarHtml
+      + avatarEl
       + '<span style="font-size:14px;color:rgba(0,0,0,0.85);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + name + '<\/span>'
       + '<\/a>';
     var btns = document.querySelectorAll('button');
     for (var i = 0; i < btns.length; i++) {
       var t = btns[i].innerText || btns[i].textContent || '';
-      if (t.replace(/\s/g, '').indexOf('登录') !== -1) {
+      if (t.indexOf('登') !== -1) {
         var container = btns[i].parentElement;
         if (container) { container.innerHTML = html; return true; }
       }
@@ -212,8 +208,11 @@ const FORCE_LOGIN_SCRIPT = `<script>
   // carry the full courseInfo object. Parsing courseId from the URL and calling
   // run() manually is the reliable fix.
   function triggerCourseLoad(req) {
-    var m = window.location.pathname.match(/\/course\/([^\/]+)/);
-    if (!m) return;
+    var parts = window.location.pathname.split('/');
+    var courseIdx = parts.indexOf('course');
+    if (courseIdx === -1 || !parts[courseIdx + 1]) return;
+    var m = [null, parts[courseIdx + 1]];
+    if (!m[1]) return;
     var courseId = m[1];
     var store = getCourseStore(req);
     if (!store) return;
@@ -249,11 +248,16 @@ const FORCE_LOGIN_SCRIPT = `<script>
     var req = getWebpackReq();
     replaceLoginBtn(userData);
     updateZustandUser(req, userData);
-    // Retry DOM replacement — React may finish rendering slightly after this runs
-    var domTries = 0;
-    var iv = setInterval(function() {
-      if (replaceLoginBtn(userData) || ++domTries > 15) clearInterval(iv);
-    }, 300);
+    // MutationObserver: permanently watch for "登 录" button re-appearing after React re-renders.
+    // Do NOT disconnect — React may re-render the nav at any time and restore the login button.
+    var obs = new MutationObserver(function() {
+      var btns = document.querySelectorAll('button');
+      for (var i = 0; i < btns.length; i++) {
+        var t = btns[i].innerText || btns[i].textContent || '';
+        if (t.indexOf('\u767b') !== -1) { replaceLoginBtn(userData); break; }
+      }
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
     // Defer sidebar trigger to allow webpack modules to fully initialize
     setTimeout(function() { triggerCourseLoad(getWebpackReq()); }, 1200);
   }
@@ -448,12 +452,16 @@ function extractSessionFromSetCookie(headers) {
 }
 
 async function getActiveSession(env, browserSession) {
-  if (browserSession)  return browserSession;
-  if (cachedSession)   return cachedSession;
+  // KV session always takes priority over browser session.
+  // This prevents stale/expired browser cookies from overriding the master KV session.
   if (env.SESSION_KV) {
-    const stored = await env.SESSION_KV.get('session');
-    if (stored) { cachedSession = stored; return stored; }
+    if (!cachedSession) {
+      const stored = await env.SESSION_KV.get('session');
+      if (stored) cachedSession = stored;
+    }
+    if (cachedSession) return cachedSession;
   }
+  if (browserSession) return browserSession;
   return FALLBACK_SESSION;
 }
 

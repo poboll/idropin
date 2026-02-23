@@ -34,9 +34,11 @@ import {
   AlertCircle,
   Loader2,
   SlidersHorizontal,
+  ShieldCheck,
+  ShieldAlert,
 } from 'lucide-react';
 
-const AiRadarChart = dynamic(() => import('@/components/ai/AiRadarChart'), { ssr: false });
+const AiEvaluationPanel = dynamic(() => import('@/components/ai/AiEvaluationPanel'), { ssr: false });
 import { AuthGuard } from '@/components/auth';
 import { apiClient } from '@/lib/api/client';
 import { normalizeBackendUrl } from '@/lib/api/baseUrl';
@@ -176,40 +178,10 @@ function AiDrawerContent({ file }: { file: FileRecord }) {
   );
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="text-center py-4">
-        <div className="text-5xl font-bold text-gray-900 dark:text-white">{evaluation.score}</div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">综合评分</p>
-        {data?.isPlagiarized && (
-          <span className="inline-flex items-center gap-1 mt-3 px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full text-xs font-medium">
-            <AlertCircle className="w-3 h-3" />涉嫌与其他提交高度相似
-          </span>
-        )}
-      </div>
-      {evaluation.dimensions && Object.keys(evaluation.dimensions).length > 0 && (
-        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
-          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">维度分析</h4>
-          <AiRadarChart dimensions={evaluation.dimensions} />
-        </div>
-      )}
-      {evaluation.summary && (
-        <div>
-          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">评价摘要</h4>
-          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{evaluation.summary}</p>
-        </div>
-      )}
-      {evaluation.feedback && (
-        <div>
-          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">详细反馈</h4>
-          <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
-            {evaluation.feedback}
-          </div>
-        </div>
-      )}
-      <div className="text-xs text-gray-400 dark:text-gray-500 pt-2 border-t border-gray-100 dark:border-gray-800">
-        评估时间：{new Date(evaluation.evaluatedAt).toLocaleString('zh-CN')}
-      </div>
-    </div>
+    <AiEvaluationPanel
+      evaluation={evaluation}
+      isPlagiarized={data?.isPlagiarized}
+    />
   );
 }
 
@@ -435,11 +407,15 @@ function FilesPageContent() {
     return formatSize(files.filter(f => f.task_key === selectedTask).reduce((acc, f) => acc + f.size, 0));
   }, [files, selectedTask, totalSize]);
 
-  const aiAvgScore = useMemo(() => {
+  const aiStats = useMemo(() => {
     const graded = files.filter(f => f.aiStatus === 2 && f.aiScore != null);
-    if (graded.length === 0) return null;
-    return Math.round(graded.reduce((s, f) => s + (f.aiScore ?? 0), 0) / graded.length);
+    const pending = files.filter(f => !f.aiStatus || f.aiStatus === 0).length;
+    const processing = files.filter(f => f.aiStatus === 1).length;
+    const failed = files.filter(f => f.aiStatus === -1).length;
+    const avg = graded.length > 0 ? Math.round(graded.reduce((s, f) => s + (f.aiScore ?? 0), 0) / graded.length) : null;
+    return { avg, graded: graded.length, pending, processing, failed };
   }, [files]);
+  const aiAvgScore = aiStats.avg;
 
   // 处理排序点击
   const handleSort = (field: SortField) => {
@@ -729,9 +705,9 @@ function FilesPageContent() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 page-enter">
       {/* Page Header */}
-      <div>
+      <div className="page-header animate-slide-in-down">
         <h1 className="page-title">文件管理</h1>
         <p className="page-description">管理和查看所有收集的文件</p>
       </div>
@@ -778,12 +754,17 @@ function FilesPageContent() {
             <div className="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
               <Brain className="w-5 h-5 text-violet-600 dark:text-violet-400" />
             </div>
-            <div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">AI均分</div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">AI · 查重</div>
               <div className="text-2xl font-bold text-gray-900 dark:text-white leading-tight">
                 {aiAvgScore != null ? `${aiAvgScore}` : '—'}
               </div>
-              {aiAvgScore != null && <div className="text-xs text-gray-400 dark:text-gray-500">满分100</div>}
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                {aiStats.graded > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 font-medium">{aiStats.graded}已评</span>}
+                {aiStats.processing > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium">{aiStats.processing}评估中</span>}
+                {aiStats.failed > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-medium">{aiStats.failed}失败</span>}
+                {aiStats.pending > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-medium">{aiStats.pending}待评</span>}
+              </div>
             </div>
           </div>
         </div>
@@ -981,7 +962,7 @@ function FilesPageContent() {
                     <th>大小</th>
                     <th>缩略图</th>
                     <th>提交人</th>
-                    <th>AI</th>
+                    <th>AI / 查重</th>
                     <th className="w-28">操作</th>
                   </tr>
                 </thead>
@@ -1067,7 +1048,7 @@ function FilesPageContent() {
                   <th className="hidden sm:table-cell">
                     <div className="flex items-center gap-1.5">
                       <Brain className="w-3.5 h-3.5" />
-                      AI
+                      AI / 查重
                     </div>
                   </th>
                   <th className="w-28">操作</th>
@@ -1182,42 +1163,56 @@ function FilesPageContent() {
                       </td>
                     )}
                      <td className="hidden sm:table-cell">
+                     <div className="flex flex-col gap-1">
                      <div className="flex items-center gap-1.5">
-                         {file.aiStatus === 2 ? (
-                           <button
-                             onClick={() => setAiDrawerFile(file)}
-                             className="flex items-center gap-1.5 group/ai"
-                             title={`AI评分: ${file.aiScore}分，点击查看详情`}
-                           >
-                             <span className={`text-xs font-semibold tabular-nums ${
-                               (file.aiScore ?? 0) >= 80 ? 'text-emerald-700 dark:text-emerald-400' :
-                               (file.aiScore ?? 0) >= 60 ? 'text-amber-700 dark:text-amber-400' :
-                               'text-red-700 dark:text-red-400'
-                             }`}>
-                               {file.aiScore ?? '-'}
-                             </span>
-                             <div className="w-12 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                               <div
-                                 className={`h-full rounded-full transition-all ${
-                                   (file.aiScore ?? 0) >= 80 ? 'bg-emerald-500' :
-                                   (file.aiScore ?? 0) >= 60 ? 'bg-amber-500' : 'bg-red-500'
-                                 }`}
-                                 style={{ width: `${Math.min(file.aiScore ?? 0, 100)}%` }}
-                               />
-                             </div>
-                           </button>
-                        ) : file.aiStatus === 1 ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 animate-pulse">评估中</span>
-                        ) : file.aiStatus === -1 ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">失败</span>
-                        ) : (
-                          <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
-                        )}
-                        {file.isPlagiarized && (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-medium">抄</span>
+                     {file.aiStatus === 2 ? (
+                     <button
+                     onClick={() => setAiDrawerFile(file)}
+                     className="flex items-center gap-1.5 group/ai"
+                       title={`AI评分: ${file.aiScore}分，点击查看详情`}
+                     >
+                     <span className={`text-xs font-semibold tabular-nums ${
+                     (file.aiScore ?? 0) >= 80 ? 'text-emerald-700 dark:text-emerald-400' :
+                     (file.aiScore ?? 0) >= 60 ? 'text-amber-700 dark:text-amber-400' :
+                       'text-red-700 dark:text-red-400'
+                     }`}>
+                       {file.aiScore ?? '-'}
+                     </span>
+                     <div className="w-12 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                     <div
+                     className={`h-full rounded-full transition-all ${
+                     (file.aiScore ?? 0) >= 80 ? 'bg-emerald-500' :
+                       (file.aiScore ?? 0) >= 60 ? 'bg-amber-500' : 'bg-red-500'
+                     }`}
+                       style={{ width: `${Math.min(file.aiScore ?? 0, 100)}%` }}
+                       />
+                       </div>
+                        </button>
+                     ) : file.aiStatus === 1 ? (
+                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 animate-pulse">
+                       <Loader2 className="w-3 h-3 animate-spin" />评估中
+                       </span>
+                     ) : file.aiStatus === -1 ? (
+                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400">
+                         <AlertCircle className="w-3 h-3" />失败
+                     </span>
+                     ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500">待评估</span>
+                         )}
+                        </div>
+                        {file.aiStatus === 2 && (
+                          file.isPlagiarized ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-medium w-fit">
+                              <ShieldAlert className="w-3 h-3" />涉嫌抄袭
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 font-medium w-fit">
+                              <ShieldCheck className="w-3 h-3" />查重通过
+                            </span>
+                          )
                         )}
                        </div>
-                    </td>
+                     </td>
                      <td>
                        <div className="flex items-center gap-0.5">
                          <button
