@@ -13,6 +13,15 @@ const AI_PRESETS = [
   { key: 'custom', name: '自定义', desc: '兼容 OpenAI 接口的任意服务', base_url: '', chat_model: '', embedding_model: '', embedding_dimensions: '1024' },
 ] as const;
 
+const MODEL_OPTIONS: Record<string, string[]> = {
+  siliconflow: ['deepseek-ai/DeepSeek-V3', 'deepseek-ai/DeepSeek-R1', 'Qwen/Qwen2.5-72B-Instruct', 'Qwen/Qwen2.5-32B-Instruct', 'THUDM/glm-4-9b-chat'],
+  dashscope: ['qwen-plus', 'qwen-turbo', 'qwen-max', 'qwen-long'],
+  volcengine: ['doubao-1.5-pro-32k', 'doubao-1.5-lite-32k', 'doubao-pro-32k'],
+  openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'o1-mini'],
+  ollama: ['qwen2.5:7b', 'qwen2.5:14b', 'llama3.1:8b', 'mistral:7b', 'deepseek-r1:7b'],
+  custom: [],
+};
+
 export default function AiConfigTab() {
   const [aiConfig, setAiConfig] = useState<Record<string, string>>({
     'ai.provider': 'openai',
@@ -186,13 +195,41 @@ export default function AiConfigTab() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 对话模型
               </label>
-              <input
-                type="text"
-                value={aiConfig['ai.chat_model'] || ''}
-                onChange={e => setAiConfig(prev => ({ ...prev, 'ai.chat_model': e.target.value }))}
-                placeholder="gpt-4o-mini"
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-500 focus:border-transparent"
-              />
+              {(MODEL_OPTIONS[aiConfig['ai.provider']] ?? []).length > 0 ? (
+                <>
+                  <select
+                    value={(MODEL_OPTIONS[aiConfig['ai.provider']] ?? []).includes(aiConfig['ai.chat_model']) ? aiConfig['ai.chat_model'] : '__custom__'}
+                    onChange={e => {
+                      if (e.target.value !== '__custom__') {
+                        setAiConfig(prev => ({ ...prev, 'ai.chat_model': e.target.value }));
+                      }
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                  >
+                    {(MODEL_OPTIONS[aiConfig['ai.provider']] ?? []).map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                    <option value="__custom__">自定义...</option>
+                  </select>
+                  {!(MODEL_OPTIONS[aiConfig['ai.provider']] ?? []).includes(aiConfig['ai.chat_model']) && (
+                    <input
+                      type="text"
+                      value={aiConfig['ai.chat_model'] || ''}
+                      onChange={e => setAiConfig(prev => ({ ...prev, 'ai.chat_model': e.target.value }))}
+                      placeholder="输入自定义模型名称"
+                      className="mt-2 w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                    />
+                  )}
+                </>
+              ) : (
+                <input
+                  type="text"
+                  value={aiConfig['ai.chat_model'] || ''}
+                  onChange={e => setAiConfig(prev => ({ ...prev, 'ai.chat_model': e.target.value }))}
+                  placeholder="gpt-4o-mini"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                />
+              )}
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">用于 AI 批阅评分</p>
             </div>
             <div>

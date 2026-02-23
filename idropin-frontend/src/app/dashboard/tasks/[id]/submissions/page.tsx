@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Download, FileText, Clock, User, MapPin, Loader2, AlertCircle, ExternalLink, Trash2, Edit3, X, Check, Search, Filter, FolderOpen, Archive, Brain, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Clock, User, MapPin, Loader2, AlertCircle, ExternalLink, Trash2, Edit3, X, Check, Search, Filter, FolderOpen, Archive, Brain, ShieldCheck, ShieldAlert, Eye } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 
@@ -69,6 +69,9 @@ export default function TaskSubmissionsPage() {
   const [showPromptEditor, setShowPromptEditor] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [batchRegrading, setBatchRegrading] = useState(false);
+  const [previewSubmission, setPreviewSubmission] = useState<InfoSubmission | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   
   // 防止重复请求的标志
   const isLoadingRef = useRef(false);
@@ -404,6 +407,24 @@ export default function TaskSubmissionsPage() {
       await batchRegradeSubmissions(taskId, selectedIds, aiPrompt || undefined);
       alert(`已触发 ${selectedIds.length} 条重新评分`);
       setSelectedIds([]);
+      setTimeout(() => { hasLoadedRef.current = false; loadSubmissions(); }, 3000);
+    } catch {
+      alert('触发失败');
+    } finally {
+      setBatchRegrading(false);
+    }
+  };
+
+  const handleRegradeAll = async () => {
+    const allIds = submissions.filter(s => s.fileId && s.status === 0).map(s => s.id);
+    if (allIds.length === 0) { alert('没有可评分的提交'); return; }
+    if (!confirm(`确定要对全部 ${allIds.length} 份提交进行AI重新评分吗？`)) return;
+    setBatchRegrading(true);
+    try {
+      await batchRegradeSubmissions(taskId, allIds, aiPrompt || undefined);
+      alert(`已触发 ${allIds.length} 条重新评分，请稍后刷新查看结果`);
+      setSelectedIds([]);
+      setTimeout(() => { hasLoadedRef.current = false; loadSubmissions(); }, 3000);
     } catch {
       alert('触发失败');
     } finally {
@@ -464,6 +485,31 @@ export default function TaskSubmissionsPage() {
     } catch {
       return {};
     }
+  };
+
+  const PREVIEWABLE_EXT = /\.(pdf|png|jpe?g|gif|webp|svg|bmp|txt|md)$/i;
+  const isPreviewable = (name?: string) => !!name && PREVIEWABLE_EXT.test(name);
+
+  const handlePreview = async (submission: InfoSubmission) => {
+    if (!submission.fileId) return;
+    setPreviewSubmission(submission);
+    setPreviewLoading(true);
+    try {
+      const response = await apiClient.get(`/files/${submission.fileId}/download`, { responseType: 'blob' });
+      const blob = new Blob([response.data]);
+      setPreviewUrl(URL.createObjectURL(blob));
+    } catch {
+      alert('预览加载失败');
+      setPreviewSubmission(null);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const closePreview = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    setPreviewSubmission(null);
   };
 
   const [sortMode, setSortMode] = useState<'time' | 'score'>('time');
@@ -672,6 +718,14 @@ export default function TaskSubmissionsPage() {
                     重新评分 ({selectedIds.length})
                   </button>
                 )}
+                <button
+                  onClick={handleRegradeAll}
+                  disabled={batchRegrading}
+                  className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {batchRegrading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
+                  一键全部重评
+                </button>
               </>
             )}
             </div>
@@ -1012,6 +1066,16 @@ export default function TaskSubmissionsPage() {
                             >
                               <Download className="w-4 h-4" />
                             </button>
+                            {isPreviewable(submission.fileName) && (
+                              <button
+                                onClick={() => handlePreview(submission)}
+                                disabled={previewLoading && previewSubmission?.id === submission.id}
+                                className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                title="预览文件"
+                              >
+                                {previewLoading && previewSubmission?.id === submission.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                            )}
                             <Link
                               href="/dashboard/files"
                               className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
@@ -1103,6 +1167,49 @@ export default function TaskSubmissionsPage() {
         )}
       </div>
 
+      {/* File Preview Modal */}
+      {previewSubmission && (
+        <>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" onClick={closePreview} />
+          <div className="fixed inset-4 sm:inset-8 z-50 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+              <div className="flex items-center gap-3 min-w-0">
+                <Eye className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-gray-900 dark:text-white truncate">{previewSubmission.fileName}</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{previewSubmission.submitterName || '匿名用户'} · {formatFileSize(previewSubmission.fileSize)}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => handleDownloadFile(previewSubmission)} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors" title="下载文件">
+                  <Download className="w-5 h-5" />
+                </button>
+                <button onClick={closePreview} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-950">
+              {previewLoading ? (
+                <div className="h-full flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                </div>
+              ) : previewUrl ? (
+                previewSubmission.fileName?.match(/\.pdf$/i) ? (
+                  <iframe src={previewUrl} className="w-full h-full" title="PDF Preview" />
+                ) : previewSubmission.fileName?.match(/\.(png|jpe?g|gif|webp|svg|bmp)$/i) ? (
+                  <div className="h-full flex items-center justify-center p-8">
+                    <img src={previewUrl} alt={previewSubmission.fileName} className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
+                  </div>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-gray-500">不支持预览此文件类型</div>
+                )
+              ) : null}
+            </div>
+          </div>
+        </>
+      )}
+
       {aiDrawerSubmission && (
         <>
           <div
@@ -1166,6 +1273,7 @@ export default function TaskSubmissionsPage() {
                       try {
                         await regradeSubmission(taskId, aiDrawerSubmission.id, aiPrompt || undefined);
                         alert('已触发重新评分，请稍后刷新查看结果');
+                        setTimeout(() => { hasLoadedRef.current = false; loadSubmissions(); }, 3000);
                       } catch {
                         alert('触发失败');
                       }
