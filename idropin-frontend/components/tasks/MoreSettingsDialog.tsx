@@ -4,7 +4,7 @@ import Modal from '@/components/Modal';
 import { Task } from '@/lib/stores/task';
 import * as TaskApi from '@/lib/api/tasks';
 import { addPeopleByUser, getPeople, deletePeople } from '@/lib/api/people';
-import { Calendar, Info, Users, FileText, Settings, Plus, X, Clock, Check, Upload, Trash2, Image as ImageIcon, Download, Eye, ExternalLink, BarChart2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Info, Users, FileText, Settings, Plus, X, Clock, Check, Upload, Trash2, Image as ImageIcon, Download, Eye, ExternalLink, BarChart2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
 import { SubmissionStatusDialog } from './SubmissionStatusDialog';
@@ -71,6 +71,13 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
   const [showTaskImportDialog, setShowTaskImportDialog] = useState(false);
   const [availableTasks, setAvailableTasks] = useState<TaskWithCreatedAt[]>([]);
   const [showSubmissionStatus, setShowSubmissionStatus] = useState(false);
+  const [toast, setToast] = useState<{message: string; type: 'success' | 'error'} | null>(null);
+  const [taskImportLoading, setTaskImportLoading] = useState(false);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), type === 'error' ? 3000 : 2000);
+  };
 
   useEffect(() => {
     if (task && open) {
@@ -237,11 +244,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
       if (newPeople.length > 0) {
         setNameList([...nameList, ...newPeople]);
         // 显示成功提示
-        const successDiv = document.createElement('div');
-        successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50';
-        successDiv.innerHTML = `<span>成功导入 ${newPeople.length} 个名单</span>`;
-        document.body.appendChild(successDiv);
-        setTimeout(() => successDiv.remove(), 2000);
+        showToast(`成功导入 ${newPeople.length} 个名单`);
       } else {
         alert('没有新的名单可导入（可能都已存在）');
       }
@@ -254,6 +257,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
   };
 
   const handleTaskImport = async () => {
+    setTaskImportLoading(true);
     try {
       const tasks = await TaskApi.getUserTasks();
       // 转换 CollectionTask 到 TaskWithCreatedAt 类型
@@ -272,6 +276,8 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
       console.error(error);
       const errorMessage = error.message || error.response?.data?.message || '获取任务列表失败';
       alert(`获取任务列表失败: ${errorMessage}`);
+    } finally {
+      setTaskImportLoading(false);
     }
   };
 
@@ -288,11 +294,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
           setShowTaskImportDialog(false);
           
           // 显示成功提示
-          const successDiv = document.createElement('div');
-          successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50';
-          successDiv.innerHTML = `<span>成功导入 ${newPeople.length} 个名单</span>`;
-          document.body.appendChild(successDiv);
-          setTimeout(() => successDiv.remove(), 2000);
+          showToast(`成功导入 ${newPeople.length} 个名单`);
         }
       } else {
         alert('该任务没有名单数据');
@@ -481,35 +483,13 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
       });
       
       // 显示成功提示（2秒后自动消失）
-      const successDiv = document.createElement('div');
-      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-fade-in';
-      successDiv.innerHTML = `
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-        </svg>
-        <span>设置保存成功</span>
-      `;
-      document.body.appendChild(successDiv);
-      setTimeout(() => {
-        successDiv.remove();
-      }, 2000);
+      showToast('设置保存成功');
       
       onClose();
     } catch (e) {
       console.error(e);
       // 显示错误提示
-      const errorDiv = document.createElement('div');
-      errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50';
-      errorDiv.innerHTML = `
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-        </svg>
-        <span>保存失败，请重试</span>
-      `;
-      document.body.appendChild(errorDiv);
-      setTimeout(() => {
-        errorDiv.remove();
-      }, 3000);
+      showToast('保存失败，请重试', 'error');
     } finally {
       setSaving(false);
     }
@@ -566,7 +546,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                   onClick={() => setActiveTab(tab.id)}
                   className={`relative px-4 py-3 text-sm font-medium border-b-2 transition-all duration-150 whitespace-nowrap select-none ${
                     isActive
-                      ? 'border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400'
+                      ? 'border-gray-900 dark:border-white text-gray-900 dark:text-white'
                       : 'border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:border-gray-200 dark:hover:border-gray-700'
                   }`}
                 >
@@ -855,9 +835,11 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                         <div className="space-y-2">
                           <button
                             onClick={handleTaskImport}
-                            className="px-5 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm font-medium hover:bg-black dark:hover:bg-gray-100 transition-all"
+                            disabled={taskImportLoading}
+                            className="px-5 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm font-medium hover:bg-black dark:hover:bg-gray-100 transition-all disabled:opacity-50 flex items-center gap-2"
                           >
-                            选择任务
+                            {taskImportLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                            {taskImportLoading ? '加载中...' : '选择任务'}
                           </button>
                           <p className="text-xs text-gray-400 dark:text-gray-500">支持从已有的任务直接导入名单</p>
                         </div>
@@ -869,7 +851,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                             type="text"
                             value={newPersonName}
                             onChange={(e) => setNewPersonName(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && addPersonManually()}
+                            onKeyDown={(e) => e.key === 'Enter' && addPersonManually()}
                             placeholder="请输入姓名"
                             className="flex-1 py-2.5 px-4 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 dark:focus:ring-white/10 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
                           />
@@ -926,11 +908,15 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                           placeholder="输入绑定字段名"
                           className="flex-1 py-2 px-3 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all"
                         />
-                        <button
-                          className="px-5 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium hover:bg-black dark:hover:bg-gray-100 transition-all"
-                        >
-                          确定
-                        </button>
+                    <button
+                      onClick={() => {
+                        if (!bindFieldName.trim()) return;
+                        showToast(`绑定字段已设置为「${bindFieldName}」`);
+                      }}
+                      className="px-5 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium hover:bg-black dark:hover:bg-gray-100 transition-all"
+                    >
+                      确定
+                    </button>
                       </div>
                       <p className="text-xs text-gray-400 dark:text-gray-500">和表单项同名字段，可以避免重复填写</p>
                       <p className="text-xs text-amber-500 dark:text-amber-400">⚠ 若「必填信息」中不存在同名字段，则名单限制不会生效</p>
@@ -989,7 +975,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                         type="text"
                         value={newFieldName}
                         onChange={(e) => setNewFieldName(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && addRequiredField()}
+                        onKeyDown={(e) => e.key === 'Enter' && addRequiredField()}
                         placeholder="输入字段名称（如：姓名、学号）"
                         className="flex-1 py-3.5 px-4 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 dark:focus:ring-white/10 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
                       />
@@ -1055,7 +1041,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                           </button>
                           <button
                             onClick={handleTemplateDownload}
-                            className="p-2.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl transition-all hover:scale-110"
+                            className="p-2.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all hover:scale-110"
                             title="下载"
                           >
                             <Download className="w-5 h-5" />
@@ -1354,6 +1340,16 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
         />
       )}
 
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 px-5 py-3 rounded-xl shadow-lg flex items-center gap-2 transition-all ${
+          toast.type === 'success'
+            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+            : 'bg-red-500 text-white'
+        }`}>
+          {toast.type === 'success' ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+          <span className="text-sm font-medium">{toast.message}</span>
+        </div>
+      )}
     </Modal>
   );
 };
