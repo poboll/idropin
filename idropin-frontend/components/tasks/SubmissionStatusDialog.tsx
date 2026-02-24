@@ -138,7 +138,7 @@ export function SubmissionStatusDialog({ taskKey, taskTitle, open, onClose }: Su
           <button
             onClick={handleExport}
             disabled={exporting}
-            className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 disabled:bg-green-400 text-white text-sm font-medium rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-white hover:bg-black dark:hover:bg-gray-100 disabled:opacity-50 text-white dark:text-gray-900 text-sm font-medium rounded-lg transition-colors"
           >
             {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             导出记录
@@ -177,7 +177,7 @@ export function SubmissionStatusDialog({ taskKey, taskTitle, open, onClose }: Su
         <div className="flex justify-center py-3 shrink-0">
           <button
             onClick={() => setShowDetails(v => !v)}
-            className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors"
+            className={`px-5 py-2 text-sm font-medium rounded-lg transition-colors ${showDetails ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-black dark:hover:bg-gray-100' : 'border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
           >
             {showDetails ? '隐藏详细提交情况' : '显示详细提交情况'}
           </button>
