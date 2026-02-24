@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.idropin.application.service.ConfigService;
 import com.idropin.domain.vo.AiEvaluationResult;
-import lombok.RequiredArgsConstructor;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -16,12 +16,21 @@ import java.util.*;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class AiClientService {
 
     private final ConfigService configService;
     private final ObjectMapper objectMapper;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
+
+    public AiClientService(ConfigService configService, ObjectMapper objectMapper) {
+        this.configService = configService;
+        this.objectMapper = objectMapper;
+        org.springframework.http.client.SimpleClientHttpRequestFactory factory =
+                new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(15_000); // 15s
+        factory.setReadTimeout(90_000);    // 90s — AI inference can be slow
+        this.restTemplate = new RestTemplate(factory);
+    }
 
 
     private static final String JSON_SCHEMA_CONSTRAINT = """

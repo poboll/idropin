@@ -22,4 +22,6 @@ public class AiEvaluationResult {
     private String summary;
 
     private String evaluatedAt;
+
+    private String error;
 }

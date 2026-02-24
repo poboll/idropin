@@ -25,16 +25,26 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AiGradingServiceImpl implements AiGradingService {
 
-    private static final int AI_STATUS_PENDING = 0;
+    private static final int AI_STATUS_PENDING    = 0;
     private static final int AI_STATUS_PROCESSING = 1;
-    private static final int AI_STATUS_COMPLETED = 2;
-    private static final int AI_STATUS_FAILED = -1;
+    private static final int AI_STATUS_COMPLETED  = 2;
+    private static final int AI_STATUS_FAILED     = -1;
+
+    // MIME types from which text can be extracted
+    private static final Set<String> SUPPORTED_MIME_TYPES = Set.of(
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/pdf",
+            "text/plain",
+            "text/csv",
+            "text/markdown"
+    );
 
     private final FileSubmissionMapper submissionMapper;
     private final FileMapper fileMapper;
@@ -56,12 +66,10 @@ public class AiGradingServiceImpl implements AiGradingService {
             log.warn("Submission not found: {}", submissionId);
             return;
         }
-
         if (submission.getAiStatus() != null && submission.getAiStatus() != AI_STATUS_PENDING) {
             log.info("Submission {} already processed (status={}), skipping", submissionId, submission.getAiStatus());
             return;
         }
-
         doProcess(submission, null);
     }
 
@@ -85,14 +93,21 @@ public class AiGradingServiceImpl implements AiGradingService {
             File file = fileMapper.selectById(submission.getFileId());
             if (file == null) {
                 log.warn("File not found for submission {}", submissionId);
-                updateAiStatus(submissionId, AI_STATUS_FAILED);
+                failWithReason(submissionId, "文件不存在，可能已被删除");
+                return;
+            }
+
+            String mimeType = file.getMimeType();
+            if (!SUPPORTED_MIME_TYPES.contains(mimeType)) {
+                log.info("Unsupported mime type {} for submission {}, skipping AI grading", mimeType, submissionId);
+                failWithReason(submissionId, "暂不支持此类文件的 AI 评估（" + mimeType + "）。支持的格式：PDF、Word(.docx)、纯文本、CSV、Markdown。");
                 return;
             }
 
             String text = extractText(file);
             if (text.isBlank()) {
-                log.info("No extractable text for submission {}, marking as failed", submissionId);
-                updateAiStatus(submissionId, AI_STATUS_FAILED);
+                log.info("No extractable text for submission {}, mime={}", submissionId, mimeType);
+                failWithReason(submissionId, "文件内容为空或无法提取文本，请检查文件是否损坏");
                 return;
             }
 
@@ -100,19 +115,19 @@ public class AiGradingServiceImpl implements AiGradingService {
             saveEmbedding(submissionId, embedding);
 
             boolean plagiarized = checkPlagiarism(submission, embedding);
-
             if (plagiarized) {
                 FileSubmission updateEntity = new FileSubmission();
                 updateEntity.setId(submissionId);
                 updateEntity.setAiStatus(AI_STATUS_COMPLETED);
-                submissionMapper.updateById(updateEntity);                log.info("Submission {} flagged as plagiarized, skipping AI evaluation", submissionId);
+                submissionMapper.updateById(updateEntity);
+                log.info("Submission {} flagged as plagiarized, skipping AI evaluation", submissionId);
                 return;
             }
 
             String taskTitle = getTaskTitle(submission.getTaskId());
             String prompt = customPrompt != null ? customPrompt : getTaskPrompt(submission.getTaskId());
             CollectionTask taskEntity = taskMapper.selectByIdString(submission.getTaskId());
-            java.util.List<java.util.Map<String, Object>> customDims = taskEntity != null ? taskEntity.getCustomDimensions() : null;
+            List<java.util.Map<String, Object>> customDims = taskEntity != null ? taskEntity.getCustomDimensions() : null;
             AiEvaluationResult evaluation = aiClientService.evaluate(text, taskTitle, prompt, customDims);
 
             FileSubmission updateEntity = new FileSubmission();
@@ -121,7 +136,6 @@ public class AiGradingServiceImpl implements AiGradingService {
             updateEntity.setAiEvaluation(evaluation);
             submissionMapper.updateById(updateEntity);
 
-            // Save evaluation history
             try {
                 AiEvaluationHistory history = new AiEvaluationHistory();
                 history.setSubmissionId(submissionId);
@@ -138,11 +152,14 @@ public class AiGradingServiceImpl implements AiGradingService {
             log.info("AI grading completed for submission {}: score={}", submissionId, evaluation.getScore());
             AiProgressSseController.broadcast(submission.getTaskId(), submissionId, AI_STATUS_COMPLETED, evaluation.getScore());
 
-            // Email notification
             try {
                 boolean emailEnabled = "true".equals(configService.getSystemConfigValue("ai.email_notification"));
-                if (emailEnabled && emailService != null && submission.getSubmitterEmail() != null && !submission.getSubmitterEmail().isBlank()) {
-                    String grade = evaluation.getScore() >= 90 ? "S" : evaluation.getScore() >= 80 ? "A" : evaluation.getScore() >= 70 ? "B" : evaluation.getScore() >= 60 ? "C" : "D";
+                if (emailEnabled && emailService != null
+                        && submission.getSubmitterEmail() != null && !submission.getSubmitterEmail().isBlank()) {
+                    String grade = evaluation.getScore() >= 90 ? "S"
+                            : evaluation.getScore() >= 80 ? "A"
+                            : evaluation.getScore() >= 70 ? "B"
+                            : evaluation.getScore() >= 60 ? "C" : "D";
                     emailService.sendAiGradingNotification(
                             submission.getSubmitterEmail(), taskTitle,
                             submission.getSubmitterName(), evaluation.getScore(), grade);
@@ -154,13 +171,24 @@ public class AiGradingServiceImpl implements AiGradingService {
 
         } catch (AiClientService.AiServiceException e) {
             log.error("AI service error for submission {}: {}", submissionId, e.getMessage());
-            updateAiStatus(submissionId, AI_STATUS_FAILED);
+            failWithReason(submissionId, "AI 服务异常：" + e.getMessage());
             AiProgressSseController.broadcast(submission.getTaskId(), submissionId, AI_STATUS_FAILED, null);
         } catch (Exception e) {
             log.error("Unexpected error processing submission {}", submissionId, e);
-            updateAiStatus(submissionId, AI_STATUS_FAILED);
+            failWithReason(submissionId, "评估过程中发生未知错误：" + e.getMessage());
             AiProgressSseController.broadcast(submission.getTaskId(), submissionId, AI_STATUS_FAILED, null);
         }
+    }
+
+    /** 标记失败并写入失败原因 */
+    private void failWithReason(String submissionId, String reason) {
+        AiEvaluationResult errorResult = new AiEvaluationResult();
+        errorResult.setError(reason);
+        FileSubmission updateEntity = new FileSubmission();
+        updateEntity.setId(submissionId);
+        updateEntity.setAiStatus(AI_STATUS_FAILED);
+        updateEntity.setAiEvaluation(errorResult);
+        submissionMapper.updateById(updateEntity);
     }
 
     private String extractText(File file) {

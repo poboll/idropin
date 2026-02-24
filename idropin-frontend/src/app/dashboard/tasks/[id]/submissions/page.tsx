@@ -1200,7 +1200,12 @@ export default function TaskSubmissionsPage() {
                               </button>
                             )}
                             {submission.aiStatus === -1 && (
-                              <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full text-xs">评估失败</span>
+                              <span
+                                className="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full text-xs cursor-help"
+                                title={submission.aiEvaluation?.error ?? '评估失败'}
+                              >
+                                {submission.aiEvaluation?.error?.includes('格式') ? '格式不支持' : '评估失败'}
+                              </span>
                             )}
                           </>
                         )}
@@ -1402,7 +1407,17 @@ export default function TaskSubmissionsPage() {
               </button>
             </div>
 
-            {aiDrawerSubmission.aiEvaluation ? (
+            {aiDrawerSubmission.aiStatus === -1 ? (
+              <div className="p-12 text-center">
+                <AlertCircle className="w-10 h-10 text-red-400 dark:text-red-500 mx-auto mb-3" />
+                <p className="text-red-600 dark:text-red-400 font-medium mb-2">AI 评估失败</p>
+                {aiDrawerSubmission.aiEvaluation?.error && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
+                    {aiDrawerSubmission.aiEvaluation.error}
+                  </p>
+                )}
+              </div>
+            ) : aiDrawerSubmission.aiEvaluation ? (
               <>
                 <div ref={aiDrawerContentRef}>
                 <AiEvaluationPanel
@@ -1446,7 +1461,7 @@ export default function TaskSubmissionsPage() {
                       max="100"
                       value={overrideScore}
                       onChange={e => setOverrideScore(e.target.value)}
-                      placeholder={String(aiDrawerSubmission.aiEvaluation.score)}
+                      placeholder={String(aiDrawerSubmission.aiEvaluation?.score ?? '')}
                       className="w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-500 focus:border-transparent"
                     />
                     <button
