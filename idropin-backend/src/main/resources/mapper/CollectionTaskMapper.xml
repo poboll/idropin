@@ -16,6 +16,8 @@
         <result column="status" property="status" jdbcType="VARCHAR"/>
         <result column="collection_type" property="collectionType" jdbcType="VARCHAR"/>
         <result column="deleted" property="deleted" jdbcType="BOOLEAN"/>
+        <result column="limit_one_per_device" property="limitOnePerDevice" jdbcType="BOOLEAN"/>
+        <result column="limit_one_per_user" property="limitOnePerUser" jdbcType="BOOLEAN"/>
         <result column="deleted_at" property="deletedAt" jdbcType="TIMESTAMP"/>
         <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
         <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
@@ -25,14 +27,14 @@
 
     <select id="selectByIdString" resultMap="BaseResultMap">
         SELECT id, title, description, deadline, allow_anonymous, require_login,
-               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, deleted_at, created_at, updated_at, ai_prompt, custom_dimensions
+               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, deleted_at, created_at, updated_at, ai_prompt, custom_dimensions, limit_one_per_device, limit_one_per_user
         FROM collection_task
         WHERE id::text = #{id}
     </select>
 
     <select id="selectByCreatedBy" resultMap="BaseResultMap">
         SELECT id, title, description, deadline, allow_anonymous, require_login,
-               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, deleted_at, created_at, updated_at, ai_prompt, custom_dimensions
+               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, deleted_at, created_at, updated_at, ai_prompt, custom_dimensions, limit_one_per_device, limit_one_per_user
         FROM collection_task
         WHERE created_by::text = #{createdBy}
           AND (deleted = false OR deleted IS NULL)
@@ -41,7 +43,7 @@
 
     <select id="selectDeletedByCreatedBy" resultMap="BaseResultMap">
         SELECT id, title, description, deadline, allow_anonymous, require_login,
-               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, deleted_at, created_at, updated_at, ai_prompt, custom_dimensions
+               max_file_size, allowed_types, max_file_count, created_by, status, collection_type, deleted, deleted_at, created_at, updated_at, ai_prompt, custom_dimensions, limit_one_per_device, limit_one_per_user
         FROM collection_task
         WHERE created_by::text = #{createdBy}
           AND deleted = true
@@ -83,6 +85,7 @@
             allow_anonymous = #{allowAnonymous},
             require_login   = #{requireLogin},
             limit_one_per_device = #{limitOnePerDevice},
+            limit_one_per_user = #{limitOnePerUser},
             max_file_size   = #{maxFileSize},
             allowed_types   = #{allowedTypes, jdbcType=ARRAY, typeHandler=com.idropin.infrastructure.config.StringArrayTypeHandler},
             max_file_count  = #{maxFileCount},
@@ -109,6 +112,8 @@
             status,
             collection_type,
             deleted,
+            limit_one_per_device,
+            limit_one_per_user,
             created_at,
             updated_at
         ) VALUES (
@@ -125,6 +130,8 @@
             #{status},
             #{collectionType},
             false,
+            #{limitOnePerDevice},
+            #{limitOnePerUser},
             #{createdAt},
             #{updatedAt}
         )

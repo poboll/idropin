@@ -24,6 +24,7 @@ interface AiEvaluation {
   feedback: string;
   summary: string;
   evaluatedAt: string;
+  error?: string;
 }
 
 interface InfoSubmission {
@@ -658,7 +659,7 @@ export default function TaskSubmissionsPage() {
           <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
           <div className="flex gap-3 justify-center">
             <button
-              onClick={() => router.back()}
+              onClick={() => router.push('/dashboard/tasks')}
               className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >
               返回
@@ -683,7 +684,7 @@ export default function TaskSubmissionsPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => router.back()}
+                onClick={() => router.push('/dashboard/tasks')}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
               >
                 <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />

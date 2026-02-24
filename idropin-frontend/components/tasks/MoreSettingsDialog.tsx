@@ -4,9 +4,10 @@ import Modal from '@/components/Modal';
 import { Task } from '@/lib/stores/task';
 import * as TaskApi from '@/lib/api/tasks';
 import { addPeopleByUser, getPeople, deletePeople } from '@/lib/api/people';
-import { Calendar, Info, Users, FileText, Settings, Plus, X, Clock, Check, Upload, Trash2, Image as ImageIcon, Download, Eye } from 'lucide-react';
+import { Calendar, Info, Users, FileText, Settings, Plus, X, Clock, Check, Upload, Trash2, Image as ImageIcon, Download, Eye, ExternalLink, BarChart2 } from 'lucide-react';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { SubmissionStatusDialog } from './SubmissionStatusDialog';
 
 interface MoreSettingsDialogProps {
   task: Task | null;
@@ -62,10 +63,12 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
   const [autoRename, setAutoRename] = useState<boolean>(true);
   const [allowAnonymous, setAllowAnonymous] = useState<boolean>(true);
   const [requireLogin, setRequireLogin] = useState<boolean>(false);
+  const [limitOnePerUser, setLimitOnePerUser] = useState<boolean>(false);
   
   // Task import dialog state
   const [showTaskImportDialog, setShowTaskImportDialog] = useState(false);
   const [availableTasks, setAvailableTasks] = useState<TaskWithCreatedAt[]>([]);
+  const [showSubmissionStatus, setShowSubmissionStatus] = useState(false);
 
   useEffect(() => {
     if (task && open) {
@@ -93,6 +96,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
       setMaxFileSizeValue(taskDetails.maxFileSize || 0);
       setAllowAnonymous(taskDetails.allowAnonymous !== false);
       setRequireLogin(taskDetails.requireLogin === true);
+      setLimitOnePerUser(taskDetails.limitOnePerUser === true);
       
       const info = await TaskApi.getTaskMoreInfo(key);
       setTaskInfo(info);
@@ -404,6 +408,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
         requireLogin: requireLogin,
         allowAnonymous: allowAnonymous,
         limitOnePerDevice: currentTask.limitOnePerDevice,
+        limitOnePerUser: limitOnePerUser,
         maxFileSize: maxFileSizeValue,
         allowedTypes: allowedTypesArray,
         maxFileCount: maxFileCount
@@ -525,6 +530,22 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
   return (
     <Modal isOpen={open} onClose={onClose} title="更多设置" size="md">
       <div className="flex flex-col h-[520px]">
+        {/* Task name header */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-gray-800/60 bg-gray-50/50 dark:bg-gray-800/30 shrink-0">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            任务名：<span className="font-semibold text-gray-900 dark:text-white">{task?.name}</span>
+          </p>
+          <a
+            href={`/task/${task?.key}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 shrink-0"
+          >
+            去查看效果
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </div>
+
         {/* tab navigation */}
         <div className="flex border-b border-gray-100 dark:border-gray-800/60 overflow-x-auto shrink-0 bg-white dark:bg-gray-900/50">
           {tabs.map((tab) => {
@@ -600,6 +621,26 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                         requireLogin ? 'bg-white dark:bg-gray-900 border-white dark:border-gray-900' : 'border-gray-300 dark:border-gray-600'
                       }`}>
                         {requireLogin && <Check className="w-3 h-3 text-gray-900 dark:text-white" />}
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setLimitOnePerUser(v => !v)}
+                      className={`w-full flex items-center justify-between px-5 py-4 rounded-2xl border transition-all duration-200 ${
+                        limitOnePerUser
+                          ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
+                          : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      <div className="text-left">
+                        <p className={`text-sm font-semibold ${limitOnePerUser ? 'text-white dark:text-gray-900' : 'text-gray-800 dark:text-gray-200'}`}>每人只能提交一次</p>
+                        <p className={`text-xs mt-0.5 ${limitOnePerUser ? 'text-gray-300 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400'}`}>每位用户仅可提交一次，开启后重复提交将被拒绝</p>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                        limitOnePerUser ? 'bg-white dark:bg-gray-900 border-white dark:border-gray-900' : 'border-gray-300 dark:border-gray-600'
+                      }`}>
+                        {limitOnePerUser && <Check className="w-3 h-3 text-gray-900 dark:text-white" />}
                       </div>
                     </button>
                   </div>
@@ -747,6 +788,13 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                       }`}
                     >
                       关闭
+                    </button>
+                    <button
+                      onClick={() => setShowSubmissionStatus(true)}
+                      className="flex-1 py-3 rounded-xl font-medium transition-all border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center justify-center gap-2"
+                    >
+                      <BarChart2 className="w-4 h-4" />
+                      查看提交情况
                     </button>
                     <button
                       onClick={() => setNameListEnabled(true)}
@@ -1258,6 +1306,17 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
           </div>
         </div>
       )}
+
+      {/* Submission Status Dialog */}
+      {task && (
+        <SubmissionStatusDialog
+          taskKey={task.key}
+          taskTitle={task.name || ''}
+          open={showSubmissionStatus}
+          onClose={() => setShowSubmissionStatus(false)}
+        />
+      )}
+
     </Modal>
   );
 };

@@ -14,6 +14,7 @@ export interface CreateTaskRequest {
   requireLogin?: boolean;
   // Back-end CreateTaskRequest has limitOnePerDevice; keep name aligned.
   limitOnePerDevice?: boolean;
+  limitOnePerUser?: boolean;
   maxFileSize?: number;
   allowedTypes?: string[];
   maxFileCount?: number; // 最大同时提交文件数量（1-16，默认10）
@@ -30,6 +31,7 @@ export interface CollectionTask {
   allowAnonymous: boolean;
   requireLogin: boolean;
   limitOnePerDevice?: boolean;
+  limitOnePerUser?: boolean;
   maxFileSize?: number;
   allowedTypes?: string[];
   maxFileCount?: number; // 最大同时提交文件数量（1-16，默认10）
