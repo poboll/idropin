@@ -115,7 +115,8 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
     }
     task.setRequireLogin(request.getRequireLogin() != null ? request.getRequireLogin() : false);
     task.setLimitOnePerDevice(request.getLimitOnePerDevice() != null ? request.getLimitOnePerDevice() : true);
-    task.setLimitOnePerUser(request.getLimitOnePerUser() != null ? request.getLimitOnePerUser() : false);
+    task.setLimitOnePerUser(request.getLimitOnePerUser() != null ? request.getLimitOnePerUser() : true);
+    task.setAllowAnonymous(request.getAllowAnonymous() != null ? request.getAllowAnonymous() : true);
     task.setMaxFileSize(request.getMaxFileSize());
     task.setMaxFileCount(request.getMaxFileCount() != null ? request.getMaxFileCount() : 10);
 

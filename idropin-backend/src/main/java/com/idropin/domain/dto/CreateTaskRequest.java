@@ -45,6 +45,11 @@ public class CreateTaskRequest {
   private Boolean limitOnePerUser;
 
   /**
+   * 是否允许匿名提交
+   */
+  private Boolean allowAnonymous;
+
+  /**
    * 最大文件大小（字节）
    */
   private Long maxFileSize;
