@@ -288,10 +288,17 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
     }
 
     if (task.getAllowedTypes() != null && task.getAllowedTypes().length > 0) {
+      String fileName = file.getOriginalName() != null ? file.getOriginalName() : file.getName();
+      String ext = "";
+      int dotIdx = fileName.lastIndexOf('.');
+      if (dotIdx >= 0) {
+        ext = fileName.substring(dotIdx + 1).toLowerCase();
+      }
+      final String fileExt = ext;
       boolean allowed = Arrays.stream(task.getAllowedTypes())
-          .anyMatch(type -> file.getMimeType().startsWith(type));
+          .anyMatch(type -> type.equalsIgnoreCase(fileExt));
       if (!allowed) {
-        throw new BusinessException("不支持的文件类型: " + file.getMimeType());
+        throw new BusinessException("不支持的文件类型: " + fileExt + "，仅支持: " + String.join(", ", task.getAllowedTypes()));
       }
     }
 

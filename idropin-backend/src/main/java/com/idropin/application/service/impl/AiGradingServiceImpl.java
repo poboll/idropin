@@ -40,6 +40,7 @@ public class AiGradingServiceImpl implements AiGradingService {
     // MIME types from which text can be extracted
     private static final Set<String> SUPPORTED_MIME_TYPES = Set.of(
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/msword",
             "application/pdf",
             "text/plain",
             "text/csv",
@@ -98,13 +99,33 @@ public class AiGradingServiceImpl implements AiGradingService {
             }
 
             String mimeType = file.getMimeType();
+            // Fallback: if MIME is generic/unknown, infer from file extension
+            if (!SUPPORTED_MIME_TYPES.contains(mimeType)) {
+                String name = file.getOriginalName() != null ? file.getOriginalName() : file.getName();
+                if (name != null) {
+                    int dot = name.lastIndexOf('.');
+                    String ext = dot >= 0 ? name.substring(dot + 1).toLowerCase() : "";
+                    mimeType = switch (ext) {
+                        case "doc"  -> "application/msword";
+                        case "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+                        case "pdf"  -> "application/pdf";
+                        case "txt"  -> "text/plain";
+                        case "csv"  -> "text/csv";
+                        case "md"   -> "text/markdown";
+                        default     -> mimeType;
+                    };
+                    if (!ext.isEmpty() && !mimeType.equals(file.getMimeType())) {
+                        log.info("MIME fallback: {} -> {} for submission {}", file.getMimeType(), mimeType, submissionId);
+                    }
+                }
+            }
             if (!SUPPORTED_MIME_TYPES.contains(mimeType)) {
                 log.info("Unsupported mime type {} for submission {}, skipping AI grading", mimeType, submissionId);
-                failWithReason(submissionId, "暂不支持此类文件的 AI 评估（" + mimeType + "）。支持的格式：PDF、Word(.docx)、纯文本、CSV、Markdown。");
+                failWithReason(submissionId, "暂不支持此类文件的 AI 评估（" + mimeType + "）。支持的格式：PDF、Word(.doc/.docx)、纯文本、CSV、Markdown。");
                 return;
             }
 
-            String text = extractText(file);
+            String text = extractText(file, mimeType);
             if (text.isBlank()) {
                 log.info("No extractable text for submission {}, mime={}", submissionId, mimeType);
                 failWithReason(submissionId, "文件内容为空或无法提取文本，请检查文件是否损坏");
@@ -191,9 +212,9 @@ public class AiGradingServiceImpl implements AiGradingService {
         submissionMapper.updateById(updateEntity);
     }
 
-    private String extractText(File file) {
+    private String extractText(File file, String resolvedMimeType) {
         try (InputStream is = storageService.downloadFile(file.getStoragePath())) {
-            return documentExtractService.extractText(is, file.getMimeType());
+            return documentExtractService.extractText(is, resolvedMimeType);
         } catch (Exception e) {
             log.warn("Failed to extract text from file {}: {}", file.getId(), e.getMessage());
             return "";

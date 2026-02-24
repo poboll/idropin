@@ -586,12 +586,13 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">提交方式设置</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">控制谁可以提交以及是否允许匿名提交。</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">设置提交者身份验证方式和提交次数限制。</p>
                   </div>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
+                    <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">身份验证（二选一）</p>
                     <button
                       type="button"
-                      onClick={() => setAllowAnonymous(v => !v)}
+                      onClick={() => { setAllowAnonymous(true); setRequireLogin(false); }}
                       className={`w-full flex items-center justify-between px-5 py-4 rounded-2xl border transition-all duration-200 ${
                         allowAnonymous
                           ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
@@ -611,7 +612,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
 
                     <button
                       type="button"
-                      onClick={() => setRequireLogin(v => !v)}
+                      onClick={() => { setRequireLogin(true); setAllowAnonymous(false); }}
                       className={`w-full flex items-center justify-between px-5 py-4 rounded-2xl border transition-all duration-200 ${
                         requireLogin
                           ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
@@ -628,7 +629,10 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                         {requireLogin && <Check className="w-3 h-3 text-gray-900 dark:text-white" />}
                       </div>
                     </button>
+                  </div>
 
+                  <div className="border-t border-gray-100 dark:border-gray-800/60 pt-5">
+                    <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">提交次数</p>
                     <button
                       type="button"
                       onClick={() => setLimitOnePerUser(v => !v)}
@@ -649,12 +653,6 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                       </div>
                     </button>
                   </div>
-
-                  {requireLogin && allowAnonymous && (
-                    <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-xl text-xs text-amber-700 dark:text-amber-300">
-                      提示：同时开启&ldquo;需要登录&rdquo;和&ldquo;允许匿名&rdquo;时，&ldquo;需要登录&rdquo;优先生效。
-                    </div>
-                  )}
                 </div>
               )}
 

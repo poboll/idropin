@@ -144,6 +144,13 @@
             <version>${poi.version}</version>
         </dependency>
 
+        <!-- Apache POI Scratchpad for legacy .doc format (HWPF) -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-scratchpad</artifactId>
+            <version>${poi.version}</version>
+        </dependency>
+
         <!-- Apache PDFBox for PDF text extraction -->
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
