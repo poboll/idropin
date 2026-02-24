@@ -32,6 +32,7 @@ export function SubmissionStatusDialog({ taskKey, taskTitle, open, onClose }: Su
   const [filter, setFilter] = useState<FilterType>('all');
   const [search, setSearch] = useState('');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const [showDetails, setShowDetails] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!taskKey) return;
@@ -172,6 +173,25 @@ export function SubmissionStatusDialog({ taskKey, taskTitle, open, onClose }: Su
           未提交: <span className="font-semibold text-gray-500">{stats.unsubmitted}</span>
         </div>
 
+        {/* Detail toggle */}
+        <div className="flex justify-center py-3 shrink-0">
+          <button
+            onClick={() => setShowDetails(v => !v)}
+            className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            {showDetails ? '隐藏详细提交情况' : '显示详细提交情况'}
+          </button>
+        </div>
+
+        {/* Column explanations */}
+        {showDetails && (
+          <div className="px-5 pb-3 space-y-1 text-xs text-gray-500 dark:text-gray-400 shrink-0">
+            <p><span className="font-semibold text-gray-700 dark:text-gray-300">&ldquo;提交次数&rdquo;</span> 用户实际的提交次数</p>
+            <p><span className="font-semibold text-gray-700 dark:text-gray-300">&ldquo;现存数量&rdquo;</span> 还存在于服务器上的文件数 (不包含删除) --- 慢查询</p>
+            <p><span className="font-semibold text-gray-700 dark:text-gray-300">&ldquo;提交数量&rdquo;</span> 用户实际提交的文件数 (不包含撤回) --- 慢查询</p>
+          </div>
+        )}
+
         {/* Table */}
         <div className="flex-1 overflow-auto">
           {loading ? (
@@ -185,15 +205,15 @@ export function SubmissionStatusDialog({ taskKey, taskTitle, open, onClose }: Su
               <p className="text-sm">{people.length === 0 ? '暂无名单数据' : '无匹配结果'}</p>
             </div>
           ) : (
-            <table className="w-full text-sm">
+            <table className="w-full text-sm border-collapse border border-gray-200 dark:border-gray-700">
               <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800/80 z-10">
                 <tr className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  <th className="px-4 py-3 w-[60px] text-center">序号</th>
-                  <th className="px-4 py-3">姓名</th>
-                  <th className="px-4 py-3 w-[100px] text-center">提交状态</th>
-                  <th className="px-4 py-3 w-[100px] text-center">提交次数</th>
+                  <th className="px-4 py-3 w-[60px] text-center border border-gray-200 dark:border-gray-700">序号</th>
+                  <th className="px-4 py-3 border border-gray-200 dark:border-gray-700">姓名</th>
+                  <th className="px-4 py-3 w-[100px] text-center border border-gray-200 dark:border-gray-700">提交状态</th>
+                  <th className="px-4 py-3 w-[100px] text-center border border-gray-200 dark:border-gray-700">提交次数</th>
                   <th
-                    className="px-4 py-3 w-[170px] cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                    className="px-4 py-3 w-[170px] cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200 transition-colors border border-gray-200 dark:border-gray-700"
                     onClick={() => setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))}
                   >
                     <span className="inline-flex items-center gap-1">
@@ -201,27 +221,27 @@ export function SubmissionStatusDialog({ taskKey, taskTitle, open, onClose }: Su
                       <ArrowUpDown className="w-3.5 h-3.5" />
                     </span>
                   </th>
-                  <th className="px-4 py-3 w-[80px] text-center">操作</th>
+                  <th className="px-4 py-3 w-[80px] text-center border border-gray-200 dark:border-gray-700">操作</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              <tbody>
                 {filteredRows.map((row, idx) => (
                   <tr
                     key={row.id}
                     className="hover:bg-gray-50 dark:hover:bg-gray-800/40 even:bg-gray-50/50 dark:even:bg-gray-800/20 transition-colors"
                   >
-                    <td className="px-4 py-3 text-center text-gray-500 dark:text-gray-400">{idx + 1}</td>
-                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{row.name}</td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-center text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700">{idx + 1}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700">{row.name}</td>
+                    <td className="px-4 py-3 text-center border border-gray-200 dark:border-gray-700">
                       {row.status === 1 ? (
                         <span className="text-green-600 dark:text-green-400 font-medium">已提交</span>
                       ) : (
                         <span className="text-gray-400 dark:text-gray-500">未提交</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-center text-gray-700 dark:text-gray-300">{row.submitCount}</td>
-                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">{formatTime(row.lastTime)}</td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-center text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">{row.submitCount}</td>
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs border border-gray-200 dark:border-gray-700">{formatTime(row.lastTime)}</td>
+                    <td className="px-4 py-3 text-center border border-gray-200 dark:border-gray-700">
                       <button
                         onClick={() => handleDelete(row)}
                         className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-xs font-medium"
