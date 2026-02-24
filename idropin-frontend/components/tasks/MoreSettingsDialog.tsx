@@ -798,17 +798,17 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                   <div className="flex gap-3">
                     <button
                       onClick={() => setNameListEnabled(!nameListEnabled)}
-                      className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                      className={`px-5 py-2 rounded-xl text-sm font-medium transition-all ${
                         nameListEnabled
-                          ? 'bg-red-500 text-white hover:bg-red-600'
-                          : 'bg-green-500 text-white hover:bg-green-600'
+                          ? 'border border-red-200 dark:border-red-800/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
+                          : 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-black dark:hover:bg-gray-100'
                       }`}
                     >
                       {nameListEnabled ? '关闭' : '开启'}
                     </button>
                     <button
                       onClick={() => setShowSubmissionStatus(true)}
-                      className="px-6 py-2 rounded-full text-sm font-medium border border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
+                      className="px-5 py-2 rounded-xl text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all"
                     >
                       查看提交情况
                     </button>
@@ -817,7 +817,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                   {nameListEnabled && (
                     <>
                       {/* Import mode selector */}
-                      <div className="bg-gray-100 dark:bg-gray-800 rounded-full p-1 inline-flex">
+                      <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-1 inline-flex">
                         {([
                           { key: 'file' as const, label: '文件导入' },
                           { key: 'task' as const, label: '任务导入' },
@@ -826,9 +826,9 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                           <button
                             key={mode.key}
                             onClick={() => setImportMode(mode.key)}
-                            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
                               importMode === mode.key
-                                ? 'bg-green-500 text-white shadow-sm'
+                                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
                                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                             }`}
                           >
@@ -842,7 +842,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                         <div className="space-y-2">
                           <button
                             onClick={() => fileInputRef.current?.click()}
-                            className="px-6 py-2.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-all flex items-center gap-2"
+                            className="px-5 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm font-medium hover:bg-black dark:hover:bg-gray-100 transition-all flex items-center gap-2"
                           >
                             <Upload className="w-4 h-4" />
                             选择文件
@@ -855,7 +855,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                         <div className="space-y-2">
                           <button
                             onClick={handleTaskImport}
-                            className="px-6 py-2.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-all"
+                            className="px-5 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm font-medium hover:bg-black dark:hover:bg-gray-100 transition-all"
                           >
                             选择任务
                           </button>
@@ -871,11 +871,11 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                             onChange={(e) => setNewPersonName(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && addPersonManually()}
                             placeholder="请输入姓名"
-                            className="flex-1 py-2.5 px-4 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition-all"
+                            className="flex-1 py-2.5 px-4 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 dark:focus:ring-white/10 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
                           />
                           <button
                             onClick={addPersonManually}
-                            className="px-5 py-2.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-all"
+                            className="px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm font-medium hover:bg-black dark:hover:bg-gray-100 transition-all"
                           >
                             确定
                           </button>
@@ -924,15 +924,16 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                           value={bindFieldName}
                           onChange={(e) => setBindFieldName(e.target.value)}
                           placeholder="输入绑定字段名"
-                          className="flex-1 py-2 px-3 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+                          className="flex-1 py-2 px-3 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all"
                         />
                         <button
-                          className="px-5 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-all"
+                          className="px-5 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium hover:bg-black dark:hover:bg-gray-100 transition-all"
                         >
                           确定
                         </button>
                       </div>
-                      <p className="text-xs text-gray-400 dark:text-gray-500">和表单项同名字段，可以避免重复填写!!</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">和表单项同名字段，可以避免重复填写</p>
+                      <p className="text-xs text-amber-500 dark:text-amber-400">⚠ 若「必填信息」中不存在同名字段，则名单限制不会生效</p>
 
                       <input
                         ref={fileInputRef}
