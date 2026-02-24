@@ -23,6 +23,8 @@ function CreateTaskForm({ activeCategory, onSuccess, onCancel }: CreateTaskFormP
     deadline: null,
     requireLogin: false,
     limitOnePerDevice: true,
+    allowAnonymous: true,
+    limitOnePerUser: true,
     maxFileSize: 104857600,
     allowedTypes: [],
   });

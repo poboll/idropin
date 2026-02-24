@@ -471,7 +471,15 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
         ddl: deadline ? deadline.toISOString() : null,
         tip: JSON.stringify(tipData), // 保存批注信息（包含文本和图片）
         people: nameListEnabled,
-        format: taskInfo.format,
+        format: JSON.stringify({
+          status: fileTypeRestriction === 'restricted',
+          format: fileTypeRestriction === 'restricted' && allowedFileTypes.trim()
+            ? allowedFileTypes.split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
+            : [],
+          size: maxFileSizeValue > 0 ? Math.round(maxFileSizeValue / (1024 * 1024)) : 0,
+          sizeUnit: 'MB',
+          limit: maxFileCount,
+        }),
         template: taskInfo.template,
         bindField: JSON.stringify({
           fieldName: bindFieldName, // 绑定字段名称
@@ -898,28 +906,6 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                         </div>
                       </div>
 
-                      {/* Bind field input */}
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">绑定表单项</span>
-                        <input
-                          type="text"
-                          value={bindFieldName}
-                          onChange={(e) => setBindFieldName(e.target.value)}
-                          placeholder="输入绑定字段名"
-                          className="flex-1 py-2 px-3 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all"
-                        />
-                    <button
-                      onClick={() => {
-                        if (!bindFieldName.trim()) return;
-                        showToast(`绑定字段已设置为「${bindFieldName}」`);
-                      }}
-                      className="px-5 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium hover:bg-black dark:hover:bg-gray-100 transition-all"
-                    >
-                      确定
-                    </button>
-                      </div>
-                      <p className="text-xs text-gray-400 dark:text-gray-500">和表单项同名字段，可以避免重复填写</p>
-                      <p className="text-xs text-amber-500 dark:text-amber-400">⚠ 若「必填信息」中不存在同名字段，则名单限制不会生效</p>
 
                       <input
                         ref={fileInputRef}

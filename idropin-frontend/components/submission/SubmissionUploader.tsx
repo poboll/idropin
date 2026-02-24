@@ -197,6 +197,7 @@ export default function SubmissionUploader({
   return (
     <div className="space-y-5">
       {isMobile ? (
+        <>
         <label className="block">
           <input
             type="file"
@@ -209,6 +210,21 @@ export default function SubmissionUploader({
             选择文件
           </span>
         </label>
+        {formatConfig && (formatConfig.status || formatConfig.size > 0) && (
+          <div className="flex flex-wrap justify-center gap-2 mt-3">
+            {formatConfig.status && formatConfig.format.length > 0 && (
+              <span className="text-xs px-2.5 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-full">
+                仅支持 {formatConfig.format.join('、')}
+              </span>
+            )}
+            {formatConfig.size > 0 && (
+              <span className="text-xs px-2.5 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-full">
+                ≤{formatConfig.size}{formatConfig.sizeUnit}
+              </span>
+            )}
+          </div>
+        )}
+        </>
       ) : (
         <div
           onDragOver={handleDragOver}
@@ -238,6 +254,20 @@ export default function SubmissionUploader({
               将文件拖于此处 或 <span className="text-gray-900 dark:text-white font-semibold">直接选择文件</span>
             </span>
             <span className="text-xs text-gray-400 dark:text-gray-500 mt-2">支持多文件同时上传</span>
+            {formatConfig && (formatConfig.status || formatConfig.size > 0) && (
+              <div className="flex flex-wrap justify-center gap-2 mt-3">
+                {formatConfig.status && formatConfig.format.length > 0 && (
+                  <span className="text-xs px-2.5 py-1 bg-gray-100/80 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 rounded-full">
+                    仅支持 {formatConfig.format.join('、')}
+                  </span>
+                )}
+                {formatConfig.size > 0 && (
+                  <span className="text-xs px-2.5 py-1 bg-gray-100/80 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 rounded-full">
+                    ≤{formatConfig.size}{formatConfig.sizeUnit}
+                  </span>
+                )}
+              </div>
+            )}
           </label>
         </div>
       )}
