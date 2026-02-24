@@ -115,6 +115,7 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
     }
     task.setRequireLogin(request.getRequireLogin() != null ? request.getRequireLogin() : false);
     task.setLimitOnePerDevice(request.getLimitOnePerDevice() != null ? request.getLimitOnePerDevice() : true);
+    task.setLimitOnePerUser(request.getLimitOnePerUser() != null ? request.getLimitOnePerUser() : false);
     task.setMaxFileSize(request.getMaxFileSize());
     task.setMaxFileCount(request.getMaxFileCount() != null ? request.getMaxFileCount() : 10);
 
@@ -200,6 +201,9 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
     if (request.getLimitOnePerDevice() != null) {
       task.setLimitOnePerDevice(request.getLimitOnePerDevice());
     }
+    if (request.getLimitOnePerUser() != null) {
+      task.setLimitOnePerUser(request.getLimitOnePerUser());
+    }
     if (request.getMaxFileSize() != null) {
       task.setMaxFileSize(request.getMaxFileSize());
     }
@@ -262,6 +266,13 @@ public class CollectionTaskServiceImpl implements CollectionTaskService {
       long existingSubmissions = submissionMapper.countByTaskIdAndIp(taskId, submitterIp);
       if (existingSubmissions > 0) {
         throw new BusinessException("您已经提交过了，每个设备只能提交一次");
+      }
+    }
+
+    if (Boolean.TRUE.equals(task.getLimitOnePerUser()) && submitterId != null) {
+      long existingByUser = submissionMapper.countByTaskIdAndSubmitterId(taskId, submitterId);
+      if (existingByUser > 0) {
+        throw new BusinessException("您已经提交过了，每个用户只能提交一次");
       }
     }
 

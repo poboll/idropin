@@ -256,7 +256,27 @@ public class CollectionTaskController {
     }
     
     String userId = getUserIdOrNull(userDetails);
-    
+
+    // IP去重检查
+    if (Boolean.TRUE.equals(task.getLimitOnePerDevice()) && clientIp != null) {
+      long count = taskSubmissionMapper.selectCount(
+          new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<TaskSubmission>()
+              .eq("task_key", taskId).eq("submitter_ip", clientIp).eq("status", 0));
+      if (count > 0) {
+        throw new BusinessException("您已经提交过了，每个设备只能提交一次");
+      }
+    }
+
+    // 用户去重检查
+    if (Boolean.TRUE.equals(task.getLimitOnePerUser()) && userId != null) {
+      long count = taskSubmissionMapper.selectCount(
+          new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<TaskSubmission>()
+              .eq("task_key", taskId).eq("submitter_name", submitterName).eq("status", 0));
+      if (count > 0) {
+        throw new BusinessException("您已经提交过了，每个用户只能提交一次");
+      }
+    }
+
     // 创建一个信息提交记录（使用TaskSubmission表）
     TaskSubmission submission = new TaskSubmission();
     submission.setTaskKey(taskId);
@@ -419,6 +439,8 @@ public class CollectionTaskController {
     result.put("creatorAvatarUrl", creatorAvatarUrl);
     result.put("collectionType", task.getCollectionType());
     result.put("requireLogin", task.getRequireLogin() != null && task.getRequireLogin());
+    result.put("limitOnePerDevice", task.getLimitOnePerDevice() != null && task.getLimitOnePerDevice());
+    result.put("limitOnePerUser", task.getLimitOnePerUser() != null && task.getLimitOnePerUser());
     
     log.info("Returning public task info: taskId={}, creatorAvatarUrl={}", taskId, creatorAvatarUrl);
     

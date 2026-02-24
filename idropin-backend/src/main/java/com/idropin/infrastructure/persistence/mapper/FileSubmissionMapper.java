@@ -22,6 +22,9 @@ public interface FileSubmissionMapper extends BaseMapper<FileSubmission> {
     @Select("SELECT COUNT(*) FROM file_submission WHERE task_id::text = #{taskId}::text AND submitter_ip = #{submitterIp}")
     long countByTaskIdAndIp(@Param("taskId") String taskId, @Param("submitterIp") String submitterIp);
 
+    @Select("SELECT COUNT(*) FROM file_submission WHERE task_id::text = #{taskId}::text AND submitter_id::text = #{submitterId}::text")
+    long countByTaskIdAndSubmitterId(@Param("taskId") String taskId, @Param("submitterId") String submitterId);
+
     List<FileSubmission> findSimilarByVector(
             @Param("taskId") String taskId,
             @Param("excludeId") String excludeId,

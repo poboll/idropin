@@ -40,6 +40,11 @@ public class CreateTaskRequest {
   private Boolean limitOnePerDevice;
 
   /**
+   * 限制每个用户只能提交一次
+   */
+  private Boolean limitOnePerUser;
+
+  /**
    * 最大文件大小（字节）
    */
   private Long maxFileSize;
