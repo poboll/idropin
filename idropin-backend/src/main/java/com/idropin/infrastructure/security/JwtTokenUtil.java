@@ -1,44 +1,115 @@
 package com.idropin.infrastructure.security;
 
+import com.idropin.domain.entity.SystemConfig;
+import com.idropin.infrastructure.persistence.mapper.SystemConfigMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 import java.util.Date;
 import java.util.function.Function;
 
 /**
  * JWT 工具类 — RS256 非对称签名
  *
- * 启动时生成 RSA-2048 密钥对。access token 15 分钟有效期。
- * refresh token 由 AuthService 以 UUID 形式存 Redis，与本类无关。
+ * Access token 2 小时有效期。RSA-2048 密钥对持久化于数据库，重启后仍有效。
+ * Refresh token 由 AuthService 以 UUID 形式存 Redis，与本类无关。
  */
 @Slf4j
 @Component
 public class JwtTokenUtil {
 
-    public static final long ACCESS_TOKEN_EXPIRATION = 15 * 60 * 1000L;
+    public static final long ACCESS_TOKEN_EXPIRATION = 2 * 60 * 60 * 1000L; // 2 hours
 
     private RSAPublicKey publicKey;
     private RSAPrivateKey privateKey;
 
+    @Autowired(required = false)
+    private SystemConfigMapper systemConfigMapper;
+
+    private static final String KEY_PRIVATE = "jwt.rsa.private_key";
+    private static final String KEY_PUBLIC  = "jwt.rsa.public_key";
+
     @PostConstruct
     public void init() {
         try {
-            KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
-            kpg.initialize(2048);
-            KeyPair kp = kpg.generateKeyPair();
-            this.publicKey = (RSAPublicKey) kp.getPublic();
-            this.privateKey = (RSAPrivateKey) kp.getPrivate();
-            log.info("RS256 密钥对初始化完成");
+            if (tryLoadFromDb()) {
+                return;
+            }
+            generateAndPersist();
         } catch (Exception e) {
-            throw new IllegalStateException("RSA 密钥对生成失败", e);
+            throw new IllegalStateException("RSA 密钥对初始化失败", e);
+        }
+    }
+
+    private boolean tryLoadFromDb() {
+        if (systemConfigMapper == null) return false;
+        try {
+            SystemConfig privCfg = systemConfigMapper.findByKey(KEY_PRIVATE);
+            SystemConfig pubCfg  = systemConfigMapper.findByKey(KEY_PUBLIC);
+            if (privCfg == null || pubCfg == null
+                    || privCfg.getConfigValue() == null || pubCfg.getConfigValue() == null) {
+                return false;
+            }
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            byte[] privBytes = Base64.getDecoder().decode(privCfg.getConfigValue());
+            byte[] pubBytes  = Base64.getDecoder().decode(pubCfg.getConfigValue());
+            this.privateKey = (RSAPrivateKey) kf.generatePrivate(new PKCS8EncodedKeySpec(privBytes));
+            this.publicKey  = (RSAPublicKey)  kf.generatePublic(new X509EncodedKeySpec(pubBytes));
+            log.info("RS256 密钥对从数据库加载成功");
+            return true;
+        } catch (Exception e) {
+            log.warn("从数据库加载 RSA 密钥失败，将重新生成: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    private void generateAndPersist() throws Exception {
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+        kpg.initialize(2048);
+        KeyPair kp = kpg.generateKeyPair();
+        this.publicKey  = (RSAPublicKey)  kp.getPublic();
+        this.privateKey = (RSAPrivateKey) kp.getPrivate();
+
+        if (systemConfigMapper != null) {
+            persistKey(KEY_PRIVATE, Base64.getEncoder().encodeToString(privateKey.getEncoded()), "JWT RSA 私钥");
+            persistKey(KEY_PUBLIC,  Base64.getEncoder().encodeToString(publicKey.getEncoded()),  "JWT RSA 公钥");
+            log.info("RS256 密钥对已生成并持久化到数据库");
+        } else {
+            log.warn("SystemConfigMapper 不可用，RS256 密钥对仅在本次运行有效");
+        }
+    }
+
+    private void persistKey(String key, String value, String description) {
+        try {
+            SystemConfig existing = systemConfigMapper.findByKey(key);
+            if (existing != null) {
+                systemConfigMapper.updateValue(key, value);
+            } else {
+                SystemConfig cfg = new SystemConfig();
+                cfg.setConfigKey(key);
+                cfg.setConfigValue(value);
+                cfg.setConfigType("string");
+                cfg.setDescription(description);
+                cfg.setCategory("security");
+                cfg.setIsEnabled(false);
+                cfg.setCreatedAt(java.time.LocalDateTime.now());
+                cfg.setUpdatedAt(java.time.LocalDateTime.now());
+                systemConfigMapper.insert(cfg);
+            }
+        } catch (Exception e) {
+            log.warn("持久化 RSA 密钥到数据库失败: {}", e.getMessage());
         }
     }
 
