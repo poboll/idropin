@@ -6,6 +6,8 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.hwpf.HWPFDocument;
+import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -27,6 +29,7 @@ public class DocumentExtractService {
         try {
             String raw = switch (mimeType) {
                 case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> extractDocx(inputStream);
+                case "application/msword" -> extractDoc(inputStream);
                 case "application/pdf" -> extractPdf(inputStream);
                 case "text/plain", "text/csv", "text/markdown" -> extractPlainText(inputStream);
                 default -> "";
@@ -45,6 +48,13 @@ public class DocumentExtractService {
                 sb.append(p.getText()).append('\n');
             }
             return sb.toString();
+        }
+    }
+
+    private String extractDoc(InputStream is) throws IOException {
+        try (HWPFDocument doc = new HWPFDocument(is);
+             WordExtractor extractor = new WordExtractor(doc)) {
+            return extractor.getText();
         }
     }
 

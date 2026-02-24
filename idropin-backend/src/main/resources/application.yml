@@ -132,7 +132,7 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
-  production: true
+  production: false
 
 # 文件存储配置
 file:
