@@ -4,7 +4,7 @@ import Modal from '@/components/Modal';
 import { Task } from '@/lib/stores/task';
 import * as TaskApi from '@/lib/api/tasks';
 import { addPeopleByUser, getPeople, deletePeople } from '@/lib/api/people';
-import { Calendar, Info, Users, FileText, Settings, Plus, X, Clock, Check, Upload, Trash2, Image as ImageIcon, Download, Eye, ExternalLink, BarChart2 } from 'lucide-react';
+import { Calendar, Info, Users, FileText, Settings, Plus, X, Clock, Check, Upload, Trash2, Image as ImageIcon, Download, Eye, ExternalLink, BarChart2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
 import { SubmissionStatusDialog } from './SubmissionStatusDialog';
@@ -47,8 +47,10 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
   const [nameList, setNameList] = useState<NameListPerson[]>([]);
   const [newPersonName, setNewPersonName] = useState('');
   const [nameListEnabled, setNameListEnabled] = useState(false);
+  const [importMode, setImportMode] = useState<'file' | 'task' | 'manual'>('file');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const templateInputRef = useRef<HTMLInputElement>(null);
+  const tabScrollRef = useRef<HTMLDivElement>(null);
   
   // Tip images state
   const [tipImages, setTipImages] = useState<string[]>([]);
@@ -547,24 +549,39 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
         </div>
 
         {/* tab navigation */}
-        <div className="flex border-b border-gray-100 dark:border-gray-800/60 overflow-x-auto shrink-0 bg-white dark:bg-gray-900/50">
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`relative flex items-center gap-1.5 px-4 py-3 text-xs font-semibold border-b-2 transition-all duration-150 whitespace-nowrap select-none ${
-                  isActive
-                    ? 'border-gray-900 dark:border-white text-gray-900 dark:text-white'
-                    : 'border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:border-gray-200 dark:hover:border-gray-700'
-                }`}
-              >
-                <tab.icon className={`w-3.5 h-3.5 ${isActive ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500'}`} />
-                {tab.label}
-              </button>
-            );
-          })}
+        <div className="flex items-center border-b border-gray-100 dark:border-gray-800/60 shrink-0 bg-white dark:bg-gray-900/50">
+          <button
+            type="button"
+            onClick={() => tabScrollRef.current?.scrollBy({ left: -120, behavior: 'smooth' })}
+            className="shrink-0 px-1.5 py-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <div ref={tabScrollRef} className="flex-1 flex overflow-hidden">
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative px-4 py-3 text-sm font-medium border-b-2 transition-all duration-150 whitespace-nowrap select-none ${
+                    isActive
+                      ? 'border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400'
+                      : 'border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:border-gray-200 dark:hover:border-gray-700'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            onClick={() => tabScrollRef.current?.scrollBy({ left: 120, behavior: 'smooth' })}
+            className="shrink-0 px-1.5 py-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
 
         <div className="flex-1 p-5 overflow-y-auto bg-white dark:bg-gray-900">
@@ -774,97 +791,102 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
               {activeTab === 'people' && (
                 <div className="space-y-5">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">分类列表</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">只有名单里的成员，才可提交文件</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">只有名单里的成员，才可提交文件💡</p>
                   </div>
-                  
+
+                  {/* Action buttons */}
                   <div className="flex gap-3">
                     <button
-                      onClick={() => setNameListEnabled(false)}
-                      className={`flex-1 py-3 rounded-xl font-medium transition-all ${
-                        !nameListEnabled
-                          ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                      onClick={() => setNameListEnabled(!nameListEnabled)}
+                      className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                        nameListEnabled
+                          ? 'bg-red-500 text-white hover:bg-red-600'
+                          : 'bg-green-500 text-white hover:bg-green-600'
                       }`}
                     >
-                      关闭
+                      {nameListEnabled ? '关闭' : '开启'}
                     </button>
                     <button
                       onClick={() => setShowSubmissionStatus(true)}
-                      className="flex-1 py-3 rounded-xl font-medium transition-all border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center justify-center gap-2"
+                      className="px-6 py-2 rounded-full text-sm font-medium border border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
                     >
-                      <BarChart2 className="w-4 h-4" />
                       查看提交情况
-                    </button>
-                    <button
-                      onClick={() => setNameListEnabled(true)}
-                      className={`flex-1 py-3 rounded-xl font-medium transition-all ${
-                        nameListEnabled
-                          ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                      }`}
-                    >
-                      开启
                     </button>
                   </div>
 
                   {nameListEnabled && (
                     <>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          onClick={() => fileInputRef.current?.click()}
-                          className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700/80 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all flex items-center gap-2 text-gray-700 dark:text-gray-300"
-                        >
-                          <Upload className="w-4 h-4" />
-                          文件导入
-                        </button>
-                        <button
-                          onClick={handleTaskImport}
-                          className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700/80 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all flex items-center gap-2 text-gray-700 dark:text-gray-300"
-                        >
-                          <FileText className="w-4 h-4" />
-                          任务导入
-                        </button>
-                        <button
-                          onClick={() => {
-                            const name = prompt('请输入姓名：');
-                            if (name) {
-                              setNewPersonName(name);
-                              setTimeout(() => addPersonManually(), 0);
-                            }
-                          }}
-                          className="px-4 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm font-medium hover:bg-black dark:hover:bg-gray-100 transition-all flex items-center gap-2"
-                        >
-                          <Plus className="w-4 h-4" />
-                          手动添加
-                        </button>
+                      {/* Import mode selector */}
+                      <div className="bg-gray-100 dark:bg-gray-800 rounded-full p-1 inline-flex">
+                        {([
+                          { key: 'file' as const, label: '文件导入' },
+                          { key: 'task' as const, label: '任务导入' },
+                          { key: 'manual' as const, label: '手动添加' },
+                        ]).map((mode) => (
+                          <button
+                            key={mode.key}
+                            onClick={() => setImportMode(mode.key)}
+                            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                              importMode === mode.key
+                                ? 'bg-green-500 text-white shadow-sm'
+                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                            }`}
+                          >
+                            {mode.label}
+                          </button>
+                        ))}
                       </div>
 
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={newPersonName}
-                          onChange={(e) => setNewPersonName(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && addPersonManually()}
-                          placeholder="请输入姓名"
-                          className="flex-1 py-3 px-4 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 dark:focus:ring-white/10 focus:border-gray-400 dark:focus:border-gray-500 transition-all"
-                        />
-                        <button
-                          onClick={addPersonManually}
-                          className="px-6 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
-                        >
-                          确定
-                        </button>
-                      </div>
+                      {/* Import mode content */}
+                      {importMode === 'file' && (
+                        <div className="space-y-2">
+                          <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="px-6 py-2.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-all flex items-center gap-2"
+                          >
+                            <Upload className="w-4 h-4" />
+                            选择文件
+                          </button>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">支持 txt/csv 格式文件导入</p>
+                        </div>
+                      )}
 
-                      <p className="text-xs text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3">
-                        💡 会自动判重，不会重复添加。大量名单优先推荐使用文件导入。
-                      </p>
+                      {importMode === 'task' && (
+                        <div className="space-y-2">
+                          <button
+                            onClick={handleTaskImport}
+                            className="px-6 py-2.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-all"
+                          >
+                            选择任务
+                          </button>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">支持从已有的任务直接导入名单</p>
+                        </div>
+                      )}
 
+                      {importMode === 'manual' && (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={newPersonName}
+                            onChange={(e) => setNewPersonName(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && addPersonManually()}
+                            placeholder="请输入姓名"
+                            className="flex-1 py-2.5 px-4 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/80 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition-all"
+                          />
+                          <button
+                            onClick={addPersonManually}
+                            className="px-5 py-2.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-all"
+                          >
+                            确定
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Name list table */}
                       <div className="border border-gray-200/80 dark:border-gray-700/80 rounded-2xl overflow-hidden">
                         <div className="bg-gray-50/80 dark:bg-gray-800/80 px-4 py-3 flex items-center border-b border-gray-200/80 dark:border-gray-700/80">
-                          <span className="flex-1 text-sm font-medium text-gray-700 dark:text-gray-300">绑定表单项</span>
-                          <span className="w-24 text-sm font-medium text-gray-700 dark:text-gray-300 text-center">姓名</span>
+                          <span className="flex-1 text-sm font-medium text-gray-700 dark:text-gray-300">姓名</span>
+                          <span className="w-24 text-sm font-medium text-gray-700 dark:text-gray-300 text-center">{bindFieldName}</span>
                           <span className="w-20 text-sm font-medium text-gray-700 dark:text-gray-300 text-center">操作</span>
                         </div>
                         <div className="max-h-64 overflow-y-auto">
@@ -879,7 +901,7 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                             nameList.map((person, index) => (
                               <div key={person.id} className={`px-4 py-3.5 flex items-center hover:bg-gray-50/80 dark:hover:bg-gray-800/50 transition-colors ${index !== nameList.length - 1 ? 'border-b border-gray-100 dark:border-gray-800' : ''}`}>
                                 <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 font-medium">{person.name}</span>
-                                <span className="w-24 text-sm text-gray-500 dark:text-gray-400 text-center">姓名</span>
+                                <span className="w-24 text-sm text-gray-500 dark:text-gray-400 text-center">{bindFieldName}</span>
                                 <div className="w-20 flex justify-center">
                                   <button
                                     onClick={() => removePerson(person.id)}
@@ -894,9 +916,23 @@ export const MoreSettingsDialog: React.FC<MoreSettingsDialogProps> = ({ task, op
                         </div>
                       </div>
 
-                      <p className="text-xs text-gray-400 dark:text-gray-500">
-                        和表单项同名字段，可以避免重复填写
-                      </p>
+                      {/* Bind field input */}
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">绑定表单项</span>
+                        <input
+                          type="text"
+                          value={bindFieldName}
+                          onChange={(e) => setBindFieldName(e.target.value)}
+                          placeholder="输入绑定字段名"
+                          className="flex-1 py-2 px-3 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+                        />
+                        <button
+                          className="px-5 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-all"
+                        >
+                          确定
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">和表单项同名字段，可以避免重复填写!!</p>
 
                       <input
                         ref={fileInputRef}
