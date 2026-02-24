@@ -212,6 +212,12 @@ export function SubmissionStatusDialog({ taskKey, taskTitle, open, onClose }: Su
                   <th className="px-4 py-3 border border-gray-200 dark:border-gray-700">姓名</th>
                   <th className="px-4 py-3 w-[100px] text-center border border-gray-200 dark:border-gray-700">提交状态</th>
                   <th className="px-4 py-3 w-[100px] text-center border border-gray-200 dark:border-gray-700">提交次数</th>
+                  {showDetails && (
+                    <>
+                      <th className="px-4 py-3 w-[100px] text-center border border-gray-200 dark:border-gray-700">现存数量</th>
+                      <th className="px-4 py-3 w-[100px] text-center border border-gray-200 dark:border-gray-700">提交数量</th>
+                    </>
+                  )}
                   <th
                     className="px-4 py-3 w-[170px] cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200 transition-colors border border-gray-200 dark:border-gray-700"
                     onClick={() => setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))}
@@ -240,6 +246,12 @@ export function SubmissionStatusDialog({ taskKey, taskTitle, open, onClose }: Su
                       )}
                     </td>
                     <td className="px-4 py-3 text-center text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">{row.submitCount}</td>
+                    {showDetails && (
+                      <>
+                        <td className="px-4 py-3 text-center text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700">—</td>
+                        <td className="px-4 py-3 text-center text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700">—</td>
+                      </>
+                    )}
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs border border-gray-200 dark:border-gray-700">{formatTime(row.lastTime)}</td>
                     <td className="px-4 py-3 text-center border border-gray-200 dark:border-gray-700">
                       <button
