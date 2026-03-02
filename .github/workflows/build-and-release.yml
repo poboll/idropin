@@ -68,7 +68,7 @@ jobs:
           cp -r ${{ env.FRONTEND_DIR }}/public            dist/frontend/public
           tar -czf idropin-frontend-${{ needs.version.outputs.tag }}.tar.gz -C dist/frontend .
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: frontend-build
           path: idropin-frontend-${{ needs.version.outputs.tag }}.tar.gz
@@ -99,7 +99,7 @@ jobs:
           mv ${{ env.BACKEND_DIR }}/target/idropin-backend-*.jar \
              idropin-backend-${{ needs.version.outputs.tag }}.jar
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: backend-build
           path: idropin-backend-${{ needs.version.outputs.tag }}.jar
