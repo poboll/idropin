@@ -165,11 +165,11 @@ jobs:
         with:
           timeout_minutes: 10
           max_attempts: 3
-        env:
-          GH_TOKEN: ${{ github.token }}
           retry_wait_seconds: 30
           command: |
             gh run download ${{ github.run_id }} --dir artifacts --repo ${{ github.repository }}
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Generate changelog
         id: changelog
