@@ -153,7 +153,6 @@ jobs:
     name: GitHub Release
     runs-on: ubuntu-latest
     needs: [version, build-frontend, build-backend, docker]
-    continue-on-error: true  # Allow workflow to succeed even if release fails
     permissions:
       contents: write
     steps:
@@ -161,11 +160,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download artifacts
-        uses: actions/download-artifact@v8
+      - name: Download artifacts with retry
+        uses: nick-fields/retry@v3
         with:
-          path: artifacts
-          merge-multiple: true
+          timeout_minutes: 10
+          max_attempts: 3
+        env:
+          GH_TOKEN: ${{ github.token }}
+          retry_wait_seconds: 30
+          command: |
+            gh run download ${{ github.run_id }} --dir artifacts --repo ${{ github.repository }}
 
       - name: Generate changelog
         id: changelog
@@ -218,15 +222,11 @@ jobs:
           git push origin "${{ needs.version.outputs.tag }}"
 
       - name: Publish Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ needs.version.outputs.tag }}
-          name: ${{ needs.version.outputs.tag }}
-          body_path: release_notes.md
-          draft: false
-          prerelease: false
-          files: |
-            artifacts/idropin-frontend-${{ needs.version.outputs.tag }}.tar.gz
-            artifacts/idropin-backend-${{ needs.version.outputs.tag }}.jar
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ needs.version.outputs.tag }}" \
+            --title "${{ needs.version.outputs.tag }}" \
+            --notes-file release_notes.md \
+            artifacts/idropin-frontend-${{ needs.version.outputs.tag }}.tar.gz \
+            artifacts/idropin-backend-${{ needs.version.outputs.tag }}.jar
