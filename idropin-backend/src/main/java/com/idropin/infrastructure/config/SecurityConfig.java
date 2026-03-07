@@ -70,6 +70,8 @@ public class SecurityConfig {
                         .requestMatchers("/shares/*/info").permitAll() // 公开分享信息查询
                         .requestMatchers("/shares/*/download").permitAll() // 公开分享文件下载
                         .requestMatchers("/shares/access/**").permitAll() // 公开分享访问
+                        .requestMatchers("/config/routes").permitAll() // 公开路由配置查询
+                        .requestMatchers("/config/routes/check").permitAll() // 公开路由检查
                         .requestMatchers("/config/system/**").permitAll() // 公开系统配置查询
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers("/doc.html", "/swagger-ui/**", "/v3/api-docs/**", "/webjars/**").permitAll()
