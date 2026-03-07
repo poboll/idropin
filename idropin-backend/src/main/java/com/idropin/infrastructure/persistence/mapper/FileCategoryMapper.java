@@ -19,7 +19,7 @@ public interface FileCategoryMapper extends BaseMapper<FileCategory> {
     /**
      * 根据用户ID查询所有分类
      */
-    @Select("SELECT * FROM file_category WHERE user_id = #{userId} ORDER BY sort_order, created_at")
+    @Select("SELECT * FROM file_category WHERE user_id = #{userId} OR user_id IS NULL ORDER BY sort_order, created_at")
     List<FileCategory> findByUserId(@Param("userId") String userId);
 
     /**
@@ -31,7 +31,7 @@ public interface FileCategoryMapper extends BaseMapper<FileCategory> {
     /**
      * 查询顶级分类（无父分类）
      */
-    @Select("SELECT * FROM file_category WHERE parent_id IS NULL AND user_id = #{userId} ORDER BY sort_order")
+    @Select("SELECT * FROM file_category WHERE parent_id IS NULL AND (user_id = #{userId} OR user_id IS NULL) ORDER BY sort_order")
     List<FileCategory> findRootCategories(@Param("userId") String userId);
 
     /**

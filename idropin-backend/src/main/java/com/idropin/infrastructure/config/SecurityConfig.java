@@ -88,6 +88,8 @@ public class SecurityConfig {
         // 允许所有常用的本地开发端口 + 局域网访问
         configuration.setAllowedOriginPatterns(
                 Arrays.asList(
+                    "https://idrop.caiths.com",
+                    "http://idrop.caiths.com",
                     "http://localhost:3000", 
                     "http://localhost:3001", 
                       "http://localhost:5173",
