@@ -142,7 +142,56 @@ public class AiClientService {
                     .get("choices").get(0)
                     .get("message").get("content")
                     .asText();
-            AiEvaluationResult result = objectMapper.readValue(content, AiEvaluationResult.class);
+            log.info("AI evaluation response received, length={}", content.length());
+            
+            // Parse manually via JsonNode to handle non-standard AI responses
+            JsonNode parsed = objectMapper.readTree(content);
+            AiEvaluationResult result = new AiEvaluationResult();
+            
+            // Score: try "score" first, then "总分"
+            if (parsed.has("score") && !parsed.get("score").isNull()) {
+                result.setScore(parsed.get("score").asInt());
+            } else if (parsed.has("总分") && !parsed.get("总分").isNull()) {
+                result.setScore(parsed.get("总分").asInt());
+            }
+            
+            // Feedback: handle both string and object formats
+            if (parsed.has("feedback")) {
+                JsonNode fb = parsed.get("feedback");
+                if (fb.isTextual()) {
+                    result.setFeedback(fb.asText());
+                } else if (fb.isObject()) {
+                    // Convert object like {"优点":"...", "不足":"..."} to string
+                    StringBuilder fbStr = new StringBuilder();
+                    fb.fields().forEachRemaining(e -> {
+                        if (!fbStr.isEmpty()) fbStr.append("；");
+                        fbStr.append(e.getKey()).append("：").append(e.getValue().asText());
+                    });
+                    result.setFeedback(fbStr.toString());
+                }
+            }
+            
+            // Summary
+            result.setSummary(parsed.has("summary") ? parsed.get("summary").asText() : null);
+            
+            // Dimensions: try "dimensions" wrapper first, then look for Chinese dimension keys at top level
+            String[] defaultDimNames = {"完整性", "准确性", "规范性", "创新性"};
+            if (parsed.has("dimensions") && parsed.get("dimensions").isObject()) {
+                Map<String, Integer> dims = new LinkedHashMap<>();
+                parsed.get("dimensions").fields().forEachRemaining(e -> dims.put(e.getKey(), e.getValue().asInt()));
+                result.setDimensions(dims);
+            } else {
+                // Check if dimensions are at top level
+                Map<String, Integer> dims = new LinkedHashMap<>();
+                for (String dimName : defaultDimNames) {
+                    if (parsed.has(dimName) && parsed.get(dimName).isNumber()) {
+                        dims.put(dimName, parsed.get(dimName).asInt());
+                    }
+                }
+                if (!dims.isEmpty()) {
+                    result.setDimensions(dims);
+                }
+            }
             result.setEvaluatedAt(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
             return result;
         } catch (Exception e) {
