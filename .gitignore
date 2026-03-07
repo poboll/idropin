@@ -46,6 +46,8 @@ final-comprehensive-test.sh
 quick-test.sh
 
 # Temporary documentation (AI generated)
+APIFOX_MOCK_SETUP.md
+宝塔部署操作指南.md
 *_COMPLETE.md
 *_FIX*.md
 *_SUMMARY.md
@@ -164,6 +166,12 @@ playwright.config.ts
 # Sisyphus plans (AI assistant artifacts)
 .sisyphus/
 .serena/
+.spec-workflow/
+
+# Python cache
+__pycache__/
+*.pyc
+.ruff_cache/
 
 # Legacy code directories
 idropin-backend-legacy/
@@ -183,3 +191,59 @@ tasks-snapshot.md
 idropin-frontend/tests/
 idropin-frontend/src/app/dashboard/feedback/
 codefather/
+
+# Temporary scripts and artifacts (AI generated)
+apifox-*.py
+blog-*.js
+generate-signature.js
+update-*.js
+update-*.sh
+trim_thesis.py
+compile_readme.md
+bosszhipin_spider_readme.md
+login-page-snapshot.md
+
+# Screenshots and images (temp)
+*.png
+!idropin-frontend/public/**/*.png
+!idropin-backend/src/main/resources/**/*.png
+*.svg
+!idropin-frontend/public/**/*.svg
+!idropin-backend/src/main/resources/**/*.svg
+
+# Signature files (temp)
+caiths-*.svg
+caiths-*.html
+caiths-*.txt
+caiths-*.png
+signature-*.html
+signature-*.svg
+signature-*.png
+signature-*.txt
+animated-signature*
+preview-*.html
+test-*.html
+test-*.png
+stroke-*.html
+
+# Docker compose variants
+docker-compose.*.yml
+
+# Misc temp files
+*.out
+nohup.out
+*/nohup.out
+fix_schema*.sql
+package.json
+package-lock.json
+idropin-backend/.factorypath
+idropin-frontend/.env.local.backup
+idropin-frontend/.env.production
+
+# Chinese docs (temp AI generated)
+博客运维手册.md
+签名功能实施方案.md
+聊天记录总结与交接文档.md
+论文.md
+论文_backup.md
+部署说明.md
