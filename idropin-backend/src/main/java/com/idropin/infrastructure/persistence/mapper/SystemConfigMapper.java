@@ -24,12 +24,12 @@ public interface SystemConfigMapper extends BaseMapper<SystemConfig> {
     @Update("UPDATE sys_system_config SET config_value = #{value}, updated_at = CURRENT_TIMESTAMP WHERE config_key = #{key}")
     int updateValue(@Param("key") String key, @Param("value") String value);
 
-    @Update("UPDATE sys_system_config SET is_enabled = #{enabled}, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}::uuid")
+    @Update("UPDATE sys_system_config SET is_enabled = #{enabled}, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
     int updateEnabled(@Param("id") String id, @Param("enabled") Boolean enabled);
     
-    @Update("UPDATE sys_system_config SET config_value = #{value}, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}::uuid")
+    @Update("UPDATE sys_system_config SET config_value = #{value}, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
     int updateConfigValue(@Param("id") String id, @Param("value") String value);
     
-    @Select("SELECT * FROM sys_system_config WHERE id = #{id}::uuid")
+    @Select("SELECT * FROM sys_system_config WHERE id = #{id}")
     SystemConfig findById(@Param("id") String id);
 }

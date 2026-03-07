@@ -119,10 +119,9 @@ public class MinioStorageService implements StorageService {
 
     @Override
     public String getFileUrl(String objectName) {
-        return String.format("%s/%s/%s", 
-                endpoint, 
-                bucket, 
-                objectName);
+        // Return backend proxy URL for private S3 buckets
+        // The /api/files/download/ endpoint will stream the file from S3
+        return "/api/files/download/" + objectName;
     }
 
     @Override

@@ -113,7 +113,7 @@ public interface FileMapper extends BaseMapper<File> {
      * 插入文件记录
      */
     @Insert("INSERT INTO file (id, name, original_name, file_size, mime_type, storage_path, storage_provider, uploader_id, status, created_at, updated_at) " +
-            "VALUES (#{id}::uuid, #{name}, #{originalName}, #{fileSize}, #{mimeType}, #{storagePath}, #{storageProvider}, #{uploaderId}::uuid, #{status}, #{createdAt}, #{updatedAt})")
+            "VALUES (#{id}, #{name}, #{originalName}, #{fileSize}, #{mimeType}, #{storagePath}, #{storageProvider}, #{uploaderId}, #{status}, #{createdAt}, #{updatedAt})")
     int insertFile(File file);
 
     /**

@@ -86,11 +86,6 @@ public class FileController {
         boolean isRemoteStorage = storageType != null
                 && !storageType.equals("local")
                 && !storageType.equals("nas");
-        if (isRemoteStorage) {
-            String presignedUrl = storageService.getPresignedUrl(file.getStoragePath(), 3600);
-            response.sendRedirect(presignedUrl);
-            return;
-        }
 
         String originalName = file.getOriginalName();
         if (originalName == null || originalName.isEmpty()) {

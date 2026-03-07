@@ -1,42 +1,45 @@
 export function resolveApiBaseUrl(): string {
   const env = process.env.NEXT_PUBLIC_API_URL;
 
+  // SSR 端：优先用环境变量，fallback 到本地开发地址
   if (typeof window === 'undefined') {
-    return env || 'http://localhost:8081/api';
+    return env || 'http://localhost:8082/api';
   }
 
-  const { protocol, hostname } = window.location;
-  const derived = `${protocol}//${hostname}:8081/api`;
-  if (!env) return derived;
+  // 浏览器端：如果有环境变量就直接用
+  if (env) {
+    try {
+      const envUrl = new URL(env, window.location.origin);
+      const pageHost = window.location.hostname;
 
-  try {
-    const envUrl = new URL(env, derived);
-    const pageHost = hostname;
+      const isLoopbackHost = (h: string) => h === 'localhost' || h === '127.0.0.1';
+      const isPrivateIpv4 = (h: string) => {
+        const parts = h.split('.').map((p) => Number(p));
+        if (parts.length !== 4 || parts.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return false;
+        const [a, b] = parts;
+        if (a === 10) return true;
+        if (a === 192 && b === 168) return true;
+        if (a === 172 && b >= 16 && b <= 31) return true;
+        return false;
+      };
 
-    const isLoopbackHost = (h: string) => h === 'localhost' || h === '127.0.0.1';
-    const isPrivateIpv4 = (h: string) => {
-      const parts = h.split('.').map((p) => Number(p));
-      if (parts.length !== 4 || parts.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return false;
-      const [a, b] = parts;
-      if (a === 10) return true;
-      if (a === 192 && b === 168) return true;
-      if (a === 172 && b >= 16 && b <= 31) return true;
-      return false;
-    };
+      const shouldRewriteToPageHost =
+        envUrl.hostname !== pageHost &&
+        (isLoopbackHost(envUrl.hostname) || isPrivateIpv4(envUrl.hostname)) &&
+        (isLoopbackHost(pageHost) || isPrivateIpv4(pageHost));
 
-    const shouldRewriteToPageHost =
-      envUrl.hostname !== pageHost &&
-      (isLoopbackHost(envUrl.hostname) || isPrivateIpv4(envUrl.hostname)) &&
-      (isLoopbackHost(pageHost) || isPrivateIpv4(pageHost));
+      if (shouldRewriteToPageHost) {
+        envUrl.hostname = pageHost;
+      }
 
-    if (shouldRewriteToPageHost) {
-      envUrl.hostname = pageHost;
+      return envUrl.toString().replace(/\/$/, '');
+    } catch {
+      return env;
     }
-
-    return envUrl.toString();
-  } catch {
-    return env;
   }
+
+  // 没有环境变量时，用当前页面的 origin + /api（走 Nginx 反代）
+  return `${window.location.origin}/api`;
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();

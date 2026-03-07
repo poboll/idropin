@@ -61,12 +61,12 @@ public class FileServiceImpl implements FileService {
     
     private static final Map<String, String> CATEGORY_NAME_MAP = new HashMap<>();
     static {
-        CATEGORY_NAME_MAP.put("文档", "43d7428b-0468-4623-abe4-19f50e8db9a0");
-        CATEGORY_NAME_MAP.put("图片", "72e62a74-a7e0-4737-8361-cd8384093cd0");
-        CATEGORY_NAME_MAP.put("视频", "fb79c20d-d601-419b-8947-b1d1c55a6131");
-        CATEGORY_NAME_MAP.put("音频", "d9e923c1-bc8e-4da1-b361-3f5628d67826");
-        CATEGORY_NAME_MAP.put("压缩包", "133f9930-e9a6-4db7-bcd4-9c4daa6ce008");
-        CATEGORY_NAME_MAP.put("其他", "de17a518-59ec-44ef-a6b6-495d99b0ba0c");
+        CATEGORY_NAME_MAP.put("文档", "cat-001");
+        CATEGORY_NAME_MAP.put("图片", "cat-002");
+        CATEGORY_NAME_MAP.put("视频", "cat-003");
+        CATEGORY_NAME_MAP.put("音频", "cat-004");
+        CATEGORY_NAME_MAP.put("压缩包", "cat-005");
+        CATEGORY_NAME_MAP.put("其他", "cat-006");
     }
 
     @Override
