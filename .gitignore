@@ -207,6 +207,7 @@ login-page-snapshot.md
 *.png
 !idropin-frontend/public/**/*.png
 !idropin-backend/src/main/resources/**/*.png
+!docs/images/**/*.png
 *.svg
 !idropin-frontend/public/**/*.svg
 !idropin-backend/src/main/resources/**/*.svg
