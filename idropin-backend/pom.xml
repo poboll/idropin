@@ -24,7 +24,7 @@
         <mybatis-plus.version>3.5.7</mybatis-plus.version>
         <postgresql.version>42.7.10</postgresql.version>
         <redis.version>5.1.0</redis.version>
-        <minio.version>8.6.0</minio.version>
+        <minio.version>9.0.1</minio.version>
         <jwt.version>0.12.3</jwt.version>
         <knife4j.version>4.5.0</knife4j.version>
         <poi.version>5.2.4</poi.version>
