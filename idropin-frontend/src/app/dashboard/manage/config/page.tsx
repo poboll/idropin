@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactElement } from 'react';
 import Link from 'next/link';
 import { 
   RefreshCw, Globe, Lock, AlertCircle, Settings, Database, Save, X, Cloud, HardDrive, Copy,
@@ -258,7 +258,7 @@ export default function ConfigManagePage() {
     url: 'border-l-teal-500', other: 'border-l-gray-400',
   };
 
-  const renderSection = (sectionId: string, title: string, icon: JSX.Element, configs: SystemConfig[], hint?: string) => {
+  const renderSection = (sectionId: string, title: string, icon: ReactElement, configs: SystemConfig[], hint?: string) => {
     if (configs.length === 0) return null;
 
     const isCollapsed = collapsedSections.has(sectionId);
