@@ -3,11 +3,11 @@ package com.idropin.infrastructure.storage;
 import com.idropin.common.exception.BusinessException;
 import io.minio.*;
 import io.minio.ComposeObjectArgs;
-import io.minio.ComposeSource;
+import io.minio.SourceObject;
 import io.minio.errors.*;
-import io.minio.http.Method;
-import io.minio.messages.DeleteError;
-import io.minio.messages.DeleteObject;
+import io.minio.Http.Method;
+import io.minio.messages.DeleteRequest;
+import io.minio.messages.DeleteResult;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.InputStream;
@@ -49,7 +49,7 @@ public class MinioStorageService implements StorageService {
                     PutObjectArgs.builder()
                             .bucket(bucket)
                             .object(objectName)
-                            .stream(inputStream, size, -1)
+                            .stream(inputStream, size, -1L)
                             .contentType(contentType)
                             .build()
             );
@@ -95,19 +95,19 @@ public class MinioStorageService implements StorageService {
     @Override
     public void deleteFiles(List<String> objectNames) {
         try {
-            List<DeleteObject> objects = objectNames.stream()
-                    .map(DeleteObject::new)
+            List<DeleteRequest.Object> objects = objectNames.stream()
+                    .map(DeleteRequest.Object::new)
                     .collect(Collectors.toList());
 
-            Iterable<Result<DeleteError>> results = minioClient.removeObjects(
+            Iterable<Result<DeleteResult.Error>> results = minioClient.removeObjects(
                     RemoveObjectsArgs.builder()
                             .bucket(bucket)
                             .objects(objects)
                             .build()
             );
 
-            for (Result<DeleteError> result : results) {
-                DeleteError error = result.get();
+            for (Result<DeleteResult.Error> result : results) {
+                DeleteResult.Error error = result.get();
                 log.error("Failed to delete object: {}", error.objectName());
             }
             log.info("Batch deleted {} files from MinIO", objectNames.size());
@@ -213,8 +213,8 @@ public class MinioStorageService implements StorageService {
     @Override
     public void composeObjects(List<String> sourceKeys, String destKey) {
         try {
-            List<ComposeSource> sources = sourceKeys.stream()
-                .map(k -> ComposeSource.builder().bucket(bucket).object(k).build())
+            List<SourceObject> sources = sourceKeys.stream()
+                .map(k -> SourceObject.builder().bucket(bucket).object(k).build())
                 .collect(Collectors.toList());
             minioClient.composeObject(ComposeObjectArgs.builder()
                 .bucket(bucket).object(destKey).sources(sources).build());
