@@ -2,12 +2,10 @@
 const nextConfig = {
   output: 'standalone',
   reactStrictMode: false,
-  swcMinify: true,
   compress: true,
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
   images: {
-    domains: ['localhost', 'img.cdn.sugarat.top', 'pic.imgdb.cn'],
     remotePatterns: [
       {
         protocol: 'http',
