@@ -28,9 +28,9 @@
     "react-dom": "^19.2.8",
     "recharts": "3.7.0",
     "swr": "^2.4.1",
-    "tailwind-merge": "^3.5.0",
+    "tailwind-merge": "^3.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "zustand": "^5.0.11"
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.0",
