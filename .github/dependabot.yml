@@ -6,7 +6,8 @@ updates:
       interval: "monthly"
       time: "09:00"
       timezone: "Asia/Shanghai"
-    open-pull-requests-limit: 3
+    # Disable routine version-update PRs; security updates remain enabled.
+    open-pull-requests-limit: 0
     groups:
       frontend-non-major:
         patterns:
@@ -44,7 +45,8 @@ updates:
       interval: "monthly"
       time: "09:00"
       timezone: "Asia/Shanghai"
-    open-pull-requests-limit: 3
+    # Disable routine version-update PRs; security updates remain enabled.
+    open-pull-requests-limit: 0
     groups:
       backend-non-major:
         patterns:
@@ -68,7 +70,8 @@ updates:
       interval: "monthly"
       time: "09:00"
       timezone: "Asia/Shanghai"
-    open-pull-requests-limit: 1
+    # Disable routine version-update PRs; security updates remain enabled.
+    open-pull-requests-limit: 0
     groups:
       actions:
         patterns:
